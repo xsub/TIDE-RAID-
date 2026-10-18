@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Separate Cargo Balance Lab prototype
+
+- Added independent `cargo.html` entry point and a link in TIDE RAID Helm Settings. Vite builds both pages for local development and GitHub Pages. Original racing/exploration mechanics, settings, records and replays are untouched; the cargo lab does not use local storage.
+- One custom container ship, 18 weighted containers and 24 deck slots across four bays / three columns / two tiers. Click-to-select/place controls enforce support and unblocked lifting; loading has undo/unload. Static list is previewed on the ship with mass/stability/list/trim instruments. All cargo must be aboard to depart.
+- A deterministic 120 Hz, 90-second crossing has three smoothly changing wave stages, heel-driven damage and arrival/failure states. Two forecast crane windows allow four total three-second sea moves below 20° heel. Pause freezes the clock/crane; editing a retry preserves the cargo plan. Responsive layout, camera controls and WebGL-failure text fallback included.
+- Limits: game approximation, not a marine safety/loading tool. No actual geographic passage, calibrated hydrostatics, suspended-load crane dynamics, stack-strength/lashing/ballast/flooding model, audio, save system or campaign. At-sea crane is intentionally fictional. Ocean uses one reused 90×90 grid; ship/container geometry is shared and renderer pixel ratio capped at 1.5. No extra asset downloads or effects pipeline.
+- All 122 tests and the two-page production build pass. New tests cover support/unique manifests, undo, CG/list/trim effects, crane timing/limits, deterministic full crossings, damage/failure and terminal-state behavior. Browser verified all 18 placements, departure and pause without runtime errors. Existing shared Three.js bundle-size advisory remains; phone performance and player enjoyment have not been validated.
+
 ## 2026-10-18 — Hull shape, loading and inertia response
 
 - Expanded all six boat profiles with effective waterplane area, fore/aft load share, center-of-gravity height, deadrise, support spacing and three-axis inertia multipliers. Selector explains each hull's handling character.

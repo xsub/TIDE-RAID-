@@ -1,5 +1,15 @@
 # TIDE RAID 2.0
 
+## Experimental Cargo Balance Lab
+
+Open **Helm Settings → Cargo Balance Lab**, or visit `cargo.html` beside the main game. This is a separate entry point, UI and deterministic simulation: it does not load or write TIDE RAID preferences, records or replays, and does not change racing/exploration physics.
+
+One fictional 70 m feeder ship carries an 18-container manifest on a four-bay, three-column, two-tier grid. Select a quay/container button, then an empty supported slot. Heavy containers low and a balanced port/starboard and fore/aft plan improve the simplified stability margin, list and trim. The ship view previews static loading list. Loading supports undo and returning unblocked containers to quay. All 18 must be aboard to depart.
+
+The 90-second crossing transitions from gentle water to cross swell to rougher beam sea. Four sea moves are available during 22–30s and 52–60s crane windows, below 20° heel. Each move takes three simulation seconds; pause freezes both sea and crane for planning. Cargo condition falls above severe heel; lost condition or sustained extreme heel fails. Arrival shows retained condition. **Edit / retry load** preserves the arrangement for quick iteration; **Clear deck** starts fresh. Camera rotate/zoom buttons and responsive stacked layout support mouse and touch; no drag-only controls.
+
+This is a fun-test prototype, not maritime training or a safety/loading calculator. Effective KG/GM, fixed restoring/damping coefficients and synthetic wave forcing are simplified, unvalidated approximations. The onboard crane is a fictional arcade concession; cargo transfers apply at completion without simulating suspended loads. No hull stress solver, lashing/stack-strength limits, free-surface flooding, ballast tanks, weather coupling, persistent campaign, economy, audio or mobile-device performance certification. The crossing is represented by a timer and changing ocean around the ship, not a geographic route. Validate whether loading decisions and limited mid-crossing adjustments are enjoyable before expanding it.
+
 ## Hull-specific handling
 
 Every selectable boat now defines effective waterplane area, front/rear load share, center-of-gravity height, deadrise, buoyancy support spacing and pitch/roll/yaw inertia factors, alongside existing mass, dimensions, power, draft, drag and rudder area. The boat selector describes its handling character.

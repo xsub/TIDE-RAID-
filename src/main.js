@@ -40,6 +40,7 @@ document.getElementById('app').innerHTML = `
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
       <button id="beauty">BEAUTY PRESET</button>
+      <a href="./cargo.html" style="display:block;padding:12px 0;color:#9ee6ca">CARGO BALANCE LAB · SEPARATE PROTOTYPE ↗</a>
       <details><summary>WEATHER & TIME</summary>
         <label for="weather">WEATHER</label><select id="weather"><option value="sunny">Sunny</option><option value="cloudy">Cloudy</option><option value="rain">Rain</option></select>
         <label for="hour">TIME OF DAY <output id="hourValue"></output></label><input id="hour" type="range" min="0" max="24" step="0.25">
