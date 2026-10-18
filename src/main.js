@@ -855,7 +855,7 @@ function frame(now) {
     underwaterView.reset(cameraSurface - camera.position.y, simTime); cameraCut = false;
   } else underwater = underwaterBlend(underwater, cameraSurface - camera.position.y, underwaterEnabled, elapsed);
   seabed.update(state, camera, simTime, underwater, weather, trafficView ? traffic.boats : []);
-  underwaterView.update(simTime, camera, underwater, voyage.sinking.air, roughness);
+  underwaterView.update(simTime, camera, underwater, voyage.sinking.air, roughness, weather.sun);
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
     traffic.boats, !complete && race.phase !== 'ready' && (!exploring || voyage.flooding < 0.75), underwater);
   atmosphere.update(simTime, camera, weather, underwater);

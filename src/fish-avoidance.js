@@ -16,7 +16,10 @@ export function fishEscape(x, y, z, player, ships = [], output = {}) {
     const boatY = Number.isFinite(boat.y) ? boat.y : 0;
     const vertical = Math.max(0, 1 - Math.abs(y - boatY) / 16);
     const proximity = Math.max(0, 1 - distance / range);
-    const strength = proximity * proximity * (3 - 2 * proximity) * vertical;
+    const aft = (x - boat.x) * Math.sin(boat.heading ?? 0) + (z - boat.z) * Math.cos(boat.heading ?? 0);
+    const lateral = Math.abs((x - boat.x) * Math.cos(boat.heading ?? 0) - (z - boat.z) * Math.sin(boat.heading ?? 0));
+    const wash = aft > 0 && aft < 18 ? Math.sin(aft / 18 * Math.PI) ** 2 * Math.exp(-lateral * lateral / 9) * Math.min(1, speed / 12) : 0;
+    const strength = Math.min(1, proximity * proximity * (3 - 2 * proximity) + wash * 0.7) * vertical;
     pushX += (distance > 0.001 ? awayX / distance : 1) * strength;
     pushZ += (distance > 0.001 ? awayZ / distance : 0) * strength;
   };

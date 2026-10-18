@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 7: underwater disturbance and suspended life
+
+- Fish now react more strongly inside fast trailing prop wash; seagrass gains a bounded near-boat disturbance sway attenuated by depth. Existing deterministic schools and single instanced flora batch remain.
+- Added 128 persistent suspended sediment motes with daylight-dependent visibility, independent of air bubbles. One fixed-buffer draw batch hidden above water. These are visual approximations, not sediment transport or a full biological ecosystem. Full tests and both builds pass before this commit.
+
 ## 2026-10-18 — Roadmap 6: optional coastal activities
 
 - Added repeatable harbor deliveries (stop to collect, then reach a different harbor) and precision docking (hold within 10 m below 0.7 m/s for 5 s). Live target/distance/hold/elapsed feedback and a simple completion score; no unlock grind or spending. Existing green harbor markers locate destinations.

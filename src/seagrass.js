@@ -4,20 +4,25 @@ import {waterDepth} from './depth.js';
 export function createSeagrass(group) {
   const geometry = new THREE.PlaneGeometry(0.16, 1, 1, 4).translate(0, 0.5, 0);
   const clock = {value: 0};
+  const boat = {value: new THREE.Vector3()}; const wash = {value: 0};
   const material = new THREE.MeshStandardMaterial({color: 0x688445, roughness: 0.92, side: THREE.DoubleSide});
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uGrassTime = clock;
-    shader.vertexShader = 'uniform float uGrassTime;\n' + shader.vertexShader;
+    shader.uniforms.uGrassBoat = boat; shader.uniforms.uGrassWash = wash;
+    shader.vertexShader = 'uniform float uGrassTime; uniform vec3 uGrassBoat; uniform float uGrassWash;\n' + shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       vec3 root=(instanceMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;
       transformed.x+=sin(uGrassTime*0.85+root.x*0.3+root.z*0.2+position.y*1.8)*position.y*position.y*0.16;
+      vec2 away=root.xz-uGrassBoat.xz;
+      float disturbance=exp(-dot(away,away)/100.0)*exp(-abs(root.y-uGrassBoat.y)/12.0)*uGrassWash;
+      transformed.x+=sin(uGrassTime*4.0+root.z)*position.y*position.y*disturbance*0.35;
       transformed.x*=1.0-position.y*0.85;`);
   };
   material.customProgramCacheKey = () => 'seagrass-sway-v1';
   const mesh = new THREE.InstancedMesh(geometry, material, 1536); mesh.name = 'Seabed seagrass meadows'; mesh.count = 0; group.add(mesh);
   const transform = new THREE.Object3D(); const color = new THREE.Color();
   const hash = (seed) => {const value = Math.sin(seed * 127.1 + 31.7) * 43758.5453; return value - Math.floor(value);};
-  return {animate(time) {clock.value = time;}, rebuild(cellX, cellZ, scale) {
+  return {animate(time, state) {clock.value = time; if(state){boat.value.set(state.x,state.y,state.z);wash.value=Math.min(1,state.speed/15);}}, rebuild(cellX, cellZ, scale) {
     let count = 0;
     for (let row = -12; row <= 12 && count < 1536; row++) for (let column = -12; column <= 12 && count < 1536; column++) {
       const gridX = cellX * 8 + column; const gridZ = cellZ * 8 + row;

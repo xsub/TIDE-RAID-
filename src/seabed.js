@@ -53,7 +53,7 @@ export function createSeabed(scene) {
       group.visible = amount > 0.01;
       if (!group.visible) return;
       uniforms.uSeaTime.value = time; uniforms.uSeaSun.value = weather.sun;
-      grass.animate(time);
+      grass.animate(time, state);
       fish.update(state, camera, time, ships);
       rays.visible = weather.sun > 0.05;
       rays.position.set(state.x, 0, state.z);
