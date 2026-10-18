@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Covered helms
+
+- Replaced the exposed driving spaces on sport, runabout and classic boats with compact hardtops, opaque tinted glazing, corner frames and side trim. Covered the cruiser's upper helm as well; the sailboat already uses an enclosed cabin.
+- Shared fleet templates apply these changes to both the player and passing traffic without adding materials or per-frame animation. No driver characters or transparent cabin interiors are simulated.
+- Added geometry-level coverage checks for every helm; automated tests and production build pass.
+
 ## 2026-10-18 — Vertical 8: cinematic coast and calm spatial soundscape
 
 - Added a procedural clouded sky, matching environment lighting, warmer sunlight, soft local shadows, restrained HDR bloom, subtle color grading/vignette and a one-click Beauty preset. Cinematic effects can be disabled independently for performance.

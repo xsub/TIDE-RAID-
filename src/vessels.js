@@ -72,6 +72,16 @@ export function createVessel(style = 'sport') {
     const curve = new THREE.CatmullRomCurve3(points.map((point) => new THREE.Vector3(...point)));
     return part(new THREE.TubeGeometry(curve, 32, radius, 5, false), material, [0, 0, 0]);
   }
+  function enclosedHelm(width, depth, floor, height, centerZ) {
+    box([width, height, depth], glass, [0, floor + height / 2, centerZ], 0.2);
+    box([width + 0.12, 0.13, depth + 0.12], paint, [0, floor + height, centerZ], 0.06);
+    for (const side of [-1, 1]) {
+      for (const end of [-1, 1]) {
+        box([0.065, height, 0.09], paint, [side * (width / 2 - 0.07), floor + height / 2, centerZ + end * (depth / 2 - 0.12)], 0.02);
+      }
+      box([0.06, 0.045, depth * 0.8], chrome, [side * width / 2, floor + height * 0.2, centerZ], 0.015);
+    }
+  }
   for (const side of [-1, 1]) {
     rail(sections.map((section) => [side * section.width * 1.006, section.deck + 0.07, section.z]), dark, 0.025);
     rail(sections.filter((section, index) => index > 3 && index < 21).map((section) => [side * section.width * 0.95, section.deck + 0.58, section.z]));
@@ -98,6 +108,7 @@ export function createVessel(style = 'sport') {
     if (style === 'cruiser') {
       box([1.8, 0.15, 1.7], teak, [0, 2.11, 0.2]);
       box([1.2, 0.43, 0.45], seat, [0, 2.42, 0.5]);
+      enclosedHelm(1.55, 1.4, 2.16, 0.8, 0.1);
       box([1.65, 0.17, 1.5], paint, [0, 3.05, 0.1]);
       for (const side of [-1, 1]) rail([[side * 0.7, 2.1, -0.6], [side * 0.7, 3.0, -0.6]], chrome, 0.025);
       part(new THREE.SphereGeometry(0.22, 16, 8), paint, [0, 3.34, 0.25]);
@@ -115,6 +126,7 @@ export function createVessel(style = 'sport') {
       box([0.12, 0.65, 0.14], chrome, [side * 0.64, -0.52, 4], 0.03);
     }
     const wheel = part(new THREE.TorusGeometry(0.19, 0.02, 6, 20), dark, [-0.56, 1.04, -0.27]); wheel.rotation.x = -0.35;
+    enclosedHelm(2.08, 2.35, 0.84, 0.86, 0.16);
     if (style === 'classic') box([1.6, 0.045, 1.5], teak, [0, 0.61, -2.3]);
   }
   if (style === 'sail') {
@@ -160,5 +172,6 @@ export function createVessel(style = 'sport') {
     group.add(mesh);
   }
   group.userData.style = style;
+  group.userData.helmEnclosed = true;
   return group;
 }
