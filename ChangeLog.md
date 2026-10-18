@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Feedback roadmap: energy/material-aware sound
+
+- Impact and landing noise envelopes now scale smoothly with recorded dissipated/entry energy while retaining strict calm gain limits. Soft ground, wooden docks and hard contacts use distinct filtering; grounding adds a quiet speed-dependent scrape wash.
+- No random simulation state, camera shake, extra oscillators or unbounded voice pools were introduced. Added monotonicity, material, gain-bound and malformed-input tests; all tests and production build pass.
+- Sounds remain synthesized approximations, not recorded hull damage or a structural acoustics model. First-contact event gating remains; sustained manifold scrapes beyond grounding are not implemented.
+
 ## 2026-10-18 — Performance roadmap: bounded immutable world caches
 
 - Collision checks now reuse frozen feature/harbor layouts for the finite 94-sector world instead of regenerating terrain circles and village/dock arrays in hot loops. Invalid/out-of-world requests are not retained in caches.

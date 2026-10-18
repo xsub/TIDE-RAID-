@@ -52,6 +52,7 @@ export function resolveHarborCollision(state) {
       state.x += contact.normalX*(contact.depth+1e-6);
       state.z += contact.normalZ*(contact.depth+1e-6);
       contactImpulse(state,null,contact.normalX,contact.normalZ,0.08,0.3,contact);
+      state.impactMaterial=3;
       state.collision = 0.5;
       state.speed = Math.hypot(state.vx, state.vz);
       hit = true;

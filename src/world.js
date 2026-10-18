@@ -60,6 +60,7 @@ export function resolveCollision(state) {
       const side = x < banks.center ? -1 : 1;
       const normalZ = 0.15*Math.cos(z*0.005)+0.234*Math.cos(z*0.013)+side*(0.585*Math.cos((z-START_Z)*0.0009)+0.651*Math.cos((z-START_Z)*0.0031));
       contactImpulse(state,null,-side,normalZ,0.08,0.35,{x:corrected+side*capsule.radius,z});
+      state.impactMaterial=2;
       hit = true;
     }
   }
@@ -71,6 +72,7 @@ export function resolveCollision(state) {
       state.x += contact.normalX*(contact.depth+1e-6);
       state.z += contact.normalZ*(contact.depth+1e-6);
       contactImpulse(state,null,contact.normalX,contact.normalZ,feature.kind === 'rock' ? 0.15 : 0.03,feature.kind === 'rock' ? 0.25 : 0.5,contact);
+      state.impactMaterial=feature.kind==='rock' ? 1 : 2;
       hit = true;
     }
   }

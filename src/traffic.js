@@ -56,6 +56,7 @@ export function collideTraffic(player, ship) {
   contact.x += normalX*correction*(playerShare-0.5);
   contact.z += normalZ*correction*(playerShare-0.5);
   contactImpulse(player,ship,normalX,normalZ,0.12,0.2,contact);
+  player.impactMaterial=4;
   player.collision = 0.5;
   player.speed = Math.hypot(player.vx, player.vz);
   ship.contacted = true;

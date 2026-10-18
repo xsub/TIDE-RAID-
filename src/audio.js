@@ -1,4 +1,5 @@
 import {createMusic} from './music.js';
+import {impactFeedback} from './impact-feedback.js';
 
 export function engineMix(speed, throttle, airborne, boost) {
   const load = Math.min(1, Math.max(0, speed) / 55);
@@ -31,6 +32,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
   let motor;
   let spray;
   let ambience;
+  let grounding;
   let noise;
   let music;
   let voices;
@@ -86,16 +88,18 @@ export function createAudio(contextFactory = () => new AudioContext()) {
     motor = engine(buses.effects);
     spray = wash(buses.effects, 1800, 'bandpass');
     ambience = wash(buses.ambience, 560, 'lowpass');
+    grounding = wash(buses.effects, 190, 'lowpass');
     voices = Array.from({length: 6}, () => engine(buses.traffic, true));
     music = createMusic(context, buses.music);
   }
-  function burst(impact) {
+  function burst(impact,energy=0,material=0) {
+    const feedback=impactFeedback(energy,material,!impact);
     const source = context.createBufferSource(); source.buffer = noise;
     const filter = context.createBiquadFilter(); filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(impact ? 430 : 2000, context.currentTime);
+    filter.frequency.setValueAtTime(feedback.cutoff, context.currentTime);
     filter.frequency.exponentialRampToValueAtTime(130, context.currentTime + 0.7);
     const envelope = gain(buses.effects);
-    envelope.gain.setValueAtTime(impact ? 0.13 : 0.085, context.currentTime);
+    envelope.gain.setValueAtTime(feedback.gain, context.currentTime);
     envelope.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.05);
     source.connect(filter).connect(envelope); source.start(); source.stop(context.currentTime + 1.1);
     source.onended = () => {source.disconnect(); filter.disconnect(); envelope.disconnect();};
@@ -122,6 +126,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
       motor.filter.frequency.setTargetAtTime(mix.cutoff, time, 0.25);
       motor.output.gain.setTargetAtTime(engineActive ? mix.motor : 0, time, 0.3);
       spray.gain.setTargetAtTime(engineActive ? mix.spray : 0, time, 0.3);
+      grounding.gain.setTargetAtTime(engineActive ? Math.min(0.035,(state.grounded ?? 0)*state.speed*0.003) : 0,time,0.2);
       ambience.gain.setTargetAtTime(0.025 + Math.sin(time * 0.22) * 0.008 + Math.sin(time * 0.37) * 0.005, time, 0.7);
       const nearest = engineActive ? ships.filter((ship) => ship.active).map((ship) => ({ship, mix: trafficMix(ship, state)})).filter((entry) => entry.mix.gain > 0).sort((first, second) => first.mix.distance - second.mix.distance).slice(0, voices.length) : [];
       voices.forEach((voice, index) => {
@@ -137,8 +142,8 @@ export function createAudio(contextFactory = () => new AudioContext()) {
         voice.panner.pan.setTargetAtTime(nearby.pan, time, 0.18);
       });
       music.update(time, audible && levels.music > 0);
-      if (audible && engineActive && state.collision > 0 && !lastImpact) burst(true);
-      if (audible && engineActive && state.landing > 0 && !lastLanding) burst(false);
+      if (audible && engineActive && state.collision > 0 && !lastImpact) burst(true,state.impactEnergy,state.impactMaterial);
+      if (audible && engineActive && state.landing > 0 && !lastLanding) burst(false,state.landingEnergy);
       lastImpact = state.collision > 0; lastLanding = state.landing > 0;
     },
   };
