@@ -4,6 +4,7 @@ import {settleContacts} from './contacts.js';
 import {advanceHull} from './motion.js';
 import {applyRudder} from './steering.js';
 import {vesselProfile,propulsionAcceleration} from './vessel-profiles.js';
+import {applyShallows} from './depth.js';
 
 export function channelHeading(z) {
   return Math.atan((channel(z + 1).center - channel(z - 1).center) / 2);
@@ -12,7 +13,7 @@ export function channelHeading(z) {
 export function createState(model='boat-speed-c') {
   return {...vesselProfile(model),x: channel(START_Z - 20).center, z: START_Z - 20, y: 1.5,
     vx: 0, vz: 0, vy: 0, heading: channelHeading(START_Z - 20), pitch: 0, roll: 0,
-    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0, impactEnergy: 0, yawRate: 0};
+    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0, impactEnergy: 0, yawRate: 0, depth: 20, grounded: 0, shallowFactor: 1};
 }
 
 export function recover(state, time, roughness = 1) {
@@ -62,8 +63,9 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   const drag = Math.exp(-((0.1 + speed * state.waterDrag) * wet + 0.025) * dt);
   state.vx *= drag;
   state.vz *= drag;
+  applyShallows(state,dt);
   applyRudder(state,input.turn,forward,wet,dt);
-  const planing = Math.min(speed / state.planingSpeed, 1) * wet;
+  const planing = Math.min(speed / state.planingSpeed, 1) * wet * state.shallowFactor;
   state.vy += (support * (1 + planing * state.planingLift) - 9.81) * dt;
   state.vy = Math.max(-12, Math.min(3.0, state.vy));
   let impact=false;

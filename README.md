@@ -55,6 +55,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+Procedural bank/island/sandbank depth slopes now drive draft-sensitive shallow drag and grounding friction, with three hull probes and a HUD warning. Deep-draft boats ground sooner. Friction removes energy without reversing stopped boats; reverse/recovery can free the boat. This is estimated bathymetry, not a surveyed bed mesh or tidal model.
+
 Player vessels now have distinct size/mass/power/drag/rudder/planing profiles. Cruiser length is 11 m and sailboat 12 m with matching physics dimensions; smaller craft remain 7.4 m. Acceleration uses bounded thrust/power divided by mass. **B** (remappable) or gamepad **B** engages reduced reverse; **S** remains braking. Values are tuned gameplay approximations. Earlier shared-size descriptions below are historical; current profiles live in `src/vessel-profiles.js`.
 
 ### Collision impulses

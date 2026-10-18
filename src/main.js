@@ -493,7 +493,7 @@ function frame(now) {
   if (hudTimer > 0.1) {
     hudTimer = 0;
     elements.speed.textContent = Math.round(state.speed * 3.6).toString().padStart(3, '0');
-    elements.air.textContent = state.collision ? `IMPACT / ${(state.impactEnergy / 1000).toFixed(1)} kJ · ${keyName('recover')} TO RECOVER` : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
+    elements.air.textContent = state.grounded>0 ? `GROUNDING / ${state.depth.toFixed(1)} M DEPTH · REVERSE / RECOVER` : state.collision ? `IMPACT / ${(state.impactEnergy / 1000).toFixed(1)} kJ · ${keyName('recover')} TO RECOVER` : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
     const distance = Math.max(0, START_Z - 20 - state.z);
     const length = race.phase === 'explore' ? WORLD_SIZE - 20 : COURSE_LENGTH;
     elements.distance.textContent = `${(distance / 1000).toFixed(2)} / ${(length / 1000).toFixed(2)} KM`;

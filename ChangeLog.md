@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Water interaction roadmap 1: draft and grounding
+
+- Added deterministic approximate bed depths from bank distance and island/sandbank slopes, ignoring rocks/docks as depth sources. Three longitudinal hull probes compare depth to vessel draft.
+- Shallow water increases drag and reduces planing lift; grounding adds bounded dissipative friction without reversing velocity. HUD reports grounding/depth and suggests reverse/recovery.
+- Added deterministic-depth, draft discrimination and energy/stopped-state tests. All tests and production build pass. Depths are procedural estimates, not surveyed bathymetry or a seabed contact solver; tides and wave-trough grounding are not modeled.
+
 ## 2026-10-18 — Handling roadmap 2: distinct vessel profiles and reverse
 
 - Player cruiser/sailboat now use native 11/12 m lengths with matching capsule, inertia and buoyancy sampling dimensions. Added per-vessel power, thrust ceiling, drag, lateral grip, rudder area, planing thresholds/lift and draft parameters.
