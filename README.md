@@ -15,7 +15,19 @@ Open the local Vite URL. `npm run build` produces `dist/`; `npm run preview` ser
 
 ## Controls
 
-W / ↑ throttle, S / ↓ brake, A D / ← → steer, either Shift boost, C camera, P / Escape pause, R restart. On-screen controls support simultaneous touches. Focus loss pauses automatically. Arcade overview is the default; chase follows the boat's heading. Camera distance adapts to viewport width to keep broad water visible. The exact screen percentage varies with bends, aspect ratio and bank proximity.
+W / ↑ throttle, S / ↓ brake, A D / ← → steer, either Shift boost, C camera, P / Escape pause, H recover, R restart. Enter starts a time trial. On-screen controls support simultaneous touches. Focus loss pauses automatically. Arcade overview is the default; chase follows the boat's heading. Camera distance adapts to viewport width to keep broad water visible. The exact screen percentage varies with bends, aspect ratio and bank proximity.
+
+Helm settings include keyboard remapping (conflicts swap), steering sensitivity, water detail, opt-in synthesized audio and action-driven driving hints. Camera, water detail, sensitivity, key bindings and hint preferences save locally; blocked storage falls back to session-only behavior. Standard gamepads use RT throttle, LT brake, left stick steer, A boost, X recovery, Y camera and Start pause/start. Physical controller testing is still pending.
+
+## Coastal Sprint
+
+The default mode is a 4 km time trial with a three-second countdown and five ordered orange gates. The scanner marks the next gate. Pass between its posts while travelling downstream. Missing a gate requires returning or using recovery, which places the boat upstream of that gate. Boost drains in roughly four seconds and recharges in ten; release the boost button after depletion to use the recharged reserve. Impacts add two seconds; recovery adds five. Gold is 2:10, silver 2:50 and bronze 3:40; these thresholds are provisional. Finished runs show results and save the fastest personal best locally. Trials use standard swell; choose exploration for adjustable swell and the entire 18.78 km river.
+
+## Roadmap delivery loop
+
+Every implementation slice is tested and built, documented in `ChangeLog.md`, then committed and pushed separately. Delivered slices: handling/recovery/audio, complete time-trial loop, and onboarding/control preferences. Tests cover simulation, races, persistence, remapping and controller mapping. Browser checks include start/countdown/pause, recovery penalties and preference persistence.
+
+The next acceptance gate is observing 8–12 new players on this course: can they understand the controls, finish without coaching, explain failures and voluntarily retry? Record where steering, camera visibility, gates or collisions cause frustration. Tune these from that feedback before expanding courses, boats or progression. Automated checks do not establish enjoyment, medal balance or physical controller ergonomics. A release-ready campaign, additional finished courses, final art/audio, device performance matrix and deployment remain future roadmap work.
 
 ## World
 

@@ -1,5 +1,15 @@
 # ChangeLog
 
+## 2026-10-18 — Vertical 3: onboarding and control preferences
+
+- Added action-driven driving hints and an option to hide them.
+- Added standard gamepad mapping with stick deadzone, trigger throttle/brake and edge-triggered camera, recovery and pause actions.
+- Added keyboard remapping with conflict swapping, steering sensitivity and saved camera/water/hint settings, with storage failure fallback.
+- Added unit coverage for gamepad mapping/disconnect, remapping, preference validation/persistence and tutorial progression.
+- Added next-gate guidance to the scanner and documented the delivery loop and pending player-validation gate.
+- Validation: all 14 tests and production build pass; browser checks confirm remapping and sensitivity survive reload. Test changes to player preferences were restored afterward.
+- Controller mapping is tested with simulated input data; physical controller ergonomics and external player enjoyment still require real-device/player testing.
+
 ## 2026-10-18 — Vertical 2: Coastal Sprint time trial
 
 - Added a 4 km time trial with ready screen, three-second countdown, five ordered gates, timer, medals, results and instant retry; retained full exploration mode.
