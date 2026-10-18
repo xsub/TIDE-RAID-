@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Driver POV mouse look and recenter key
+
+- Drag on the game canvas with either left or right mouse button in Pilot view to look horizontally/vertically. Uses the same saved pilot angles as IJKL, with 360-degree yaw and ±75-degree tilt, without moving the helm eye. V or Reset Camera immediately looks straight ahead; driving remaps retain priority.
+- Pointer capture keeps drags stable outside the canvas; release, cancellation, lost capture, mode changes and window blur end the gesture and save preferences. Canvas focus restores keyboard controls after settings. Exterior right-drag orbit remains unchanged; touch driving is not intercepted by pilot mouse look.
+- All 168 tests and both production entry builds pass, including mouse direction, yaw wrap, tilt bounds, event-rate-independent deltas, keyboard-angle composition, and V repeat/remap/modifier handling. Existing shared-bundle advisory remains; native pointer feel still needs in-game playtesting.
+
 ## 2026-10-18 — Driver POV free look
 
 - IJKL now works from the helm: J/L look left/right through 360 degrees, I/K look up/down within ±75 degrees. Separate saved pilot angles leave exterior orbit/tilt settings untouched; Reset Camera returns the driver gaze straight ahead.

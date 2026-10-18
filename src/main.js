@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {dragPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
 import {cameraKeyMotion} from './camera-keys.js';
 import {sampleWave} from './waves.js';
@@ -85,7 +86,7 @@ document.getElementById('app').innerHTML = `
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <small>Wreck inspection follows the hull underwater. Orbit/zoom work; manual height/tilt is ignored in this view.</small>
-      <small id="pilotHint" hidden>Pilot view: J/L look left/right through 360°; I/K look up/down (±75°). Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only.</small>
+      <small id="pilotHint" hidden>Pilot view: drag with the left or right mouse button to look around, or use J/L and I/K (±75° tilt). V / Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only. Driving remaps take priority over V.</small>
       <label><input id="pilotSinkWithBoat" type="checkbox" style="width:auto"> DRIVER POV: SINK WITH BOAT</label>
       <label><input id="manualCamera" type="checkbox" style="width:auto"> MANUAL CAMERA HEIGHT / TILT</label>
       <label for="cameraElevation">ANGLE ABOVE WATER <output id="cameraElevationValue"></output></label>
@@ -430,25 +431,32 @@ renderer.domElement.addEventListener('wheel', (event) => {
 document.getElementById('cameraAngle').oninput = (event) => setCameraAngle(Number(event.target.value));
 document.getElementById('cameraAngle').onchange = persistPreferences;
 document.getElementById('cameraRear').onclick = () => {
-  if (mode === 'pilot') {preferences.pilotYaw = 0; preferences.pilotPitch = 0;}
+  if (mode === 'pilot') {preferences.pilotYaw = 0; preferences.pilotPitch = 0; snapCamera();}
   else setCameraAngle(20);
   persistPreferences();
 };
 let orbitDrag = null;
 renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
 renderer.domElement.addEventListener('pointerdown', (event) => {
-  if (mode === 'pilot' || event.button !== 2) return;
-  orbitDrag = {id: event.pointerId, x: event.clientX};
+  if (orbitDrag || (mode === 'pilot' ? (event.pointerType !== 'mouse' || ![0, 2].includes(event.button)) : event.button !== 2)) return;
+  event.preventDefault();
+  renderer.domElement.tabIndex = 0; renderer.domElement.focus({preventScroll: true});
+  orbitDrag = {id: event.pointerId, x: event.clientX, y: event.clientY, mode};
   renderer.domElement.setPointerCapture(event.pointerId);
 });
 renderer.domElement.addEventListener('pointermove', (event) => {
-  if (mode === 'pilot' || orbitDrag?.id !== event.pointerId) return;
-  setCameraAngle((preferences.cameraAngle + (event.clientX - orbitDrag.x) * 0.35 + 360) % 360);
-  orbitDrag.x = event.clientX;
+  if (orbitDrag?.id !== event.pointerId) return;
+  if (orbitDrag.mode !== mode) {finishOrbit(event); return;}
+  if (mode === 'pilot') {
+    const look = dragPilotLook(preferences.pilotYaw, preferences.pilotPitch, event.clientX - orbitDrag.x, event.clientY - orbitDrag.y);
+    preferences.pilotYaw = look.yaw; preferences.pilotPitch = look.pitch;
+  } else setCameraAngle((preferences.cameraAngle + (event.clientX - orbitDrag.x) * 0.35 + 360) % 360);
+  orbitDrag.x = event.clientX; orbitDrag.y = event.clientY;
 });
 function finishOrbit(event) {
   if (orbitDrag?.id !== event.pointerId) return;
   orbitDrag = null;
+  if (renderer.domElement.hasPointerCapture(event.pointerId)) renderer.domElement.releasePointerCapture(event.pointerId);
   persistPreferences();
 }
 renderer.domElement.addEventListener('pointerup', finishOrbit);
@@ -474,6 +482,7 @@ addEventListener('keydown', (event) => {
   if (shortcut) {
     event.preventDefault();
     if (shortcut === 'sound') void toggleSound();
+    else if (shortcut === 'resetLook') document.getElementById('cameraRear').click();
     else {setCameraZoom(preferences.cameraZoom * (shortcut === 'zoomIn' ? 1.25 : 1 / 1.25)); persistPreferences();}
     return;
   }
@@ -495,7 +504,7 @@ addEventListener('keyup', (event) => {
   keys.delete(event.code);
   if (cameraKeysDirty && ['KeyI', 'KeyJ', 'KeyK', 'KeyL'].includes(event.code)) {persistPreferences(); cameraKeysDirty = false;}
 });
-addEventListener('blur', () => {keys.clear(); if (!paused) togglePause();});
+addEventListener('blur', () => {if (orbitDrag) finishOrbit({pointerId: orbitDrag.id}); keys.clear(); if (!paused) togglePause();});
 document.addEventListener('visibilitychange', () => {if (document.hidden && !paused) togglePause();});
 for (const button of document.querySelectorAll('[data-key]')) {
   let pressedCode;

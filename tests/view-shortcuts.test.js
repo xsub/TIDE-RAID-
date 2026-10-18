@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {viewShortcut} from '../src/view-shortcuts.js';
 
+test('V recenters pilot look once per press and respects remaps and modifiers', () => {
+  assert.equal(viewShortcut({code: 'KeyV'}, {}, 'pilot'), 'resetLook');
+  assert.equal(viewShortcut({code: 'KeyV', repeat: true}, {}, 'pilot'), null);
+  assert.equal(viewShortcut({code: 'KeyV'}, {}, 'chase'), null);
+  assert.equal(viewShortcut({code: 'KeyV'}, {reverse: 'KeyV'}, 'pilot'), null);
+  assert.equal(viewShortcut({code: 'KeyV', ctrlKey: true}, {}, 'pilot'), null);
+});
+
 test('plus/minus zoom shortcuts support main keyboard and keypad', () => {
   for (const event of [{key: '+', code: 'Equal'}, {key: '=', code: 'Equal'}, {key: '+', code: 'NumpadAdd'}]) assert.equal(viewShortcut(event, {}, 'chase'), 'zoomIn');
   for (const event of [{key: '-', code: 'Minus'}, {code: 'NumpadSubtract'}]) assert.equal(viewShortcut(event, {}, 'wreck'), 'zoomOut');
