@@ -11,6 +11,7 @@ export function readPreferences(storage) {
   defaults.playerBoat = 'boat-speed-c';
   defaults.cameraViews = {}; defaults.reducedCameraMotion = false;
   defaults.livingWeather = true;
+  defaults.qualityPreset = 'custom';
   defaults.shallowThreshold = 1; defaults.shallowMuted = false;
   defaults.riverDepth = 2;
   defaults.pilotSinkWithBoat = false;
@@ -21,6 +22,7 @@ export function readPreferences(storage) {
   defaults.cameraZoom = 1;
   defaults.manualCamera = false; defaults.cameraElevation = 30; defaults.cameraHeight = 15;
   if (!saved || typeof saved !== 'object') return defaults;
+  if (['custom', 'low', 'balanced', 'high', 'auto'].includes(saved.qualityPreset)) defaults.qualityPreset = saved.qualityPreset;
   if (typeof saved.livingWeather === 'boolean') defaults.livingWeather = saved.livingWeather;
   defaults.cameraViews = cameraMemory(saved.cameraViews);
   if (typeof saved.reducedCameraMotion === 'boolean') defaults.reducedCameraMotion = saved.reducedCameraMotion;

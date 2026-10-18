@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {QUALITY_PRESETS, createQualityController} from './quality-controller.js';
 import {createActivity, tickActivity, activityText} from './coastal-activity.js';
 import {setHarborShelter} from './harbor-water.js';
 import {propulsionResponse} from './propulsion-response.js';
@@ -83,6 +84,7 @@ document.getElementById('app').innerHTML = `
       <small id="handlingDescription"></small>
       <small>Native hull sizes, mass, power and handling. Sailboat uses auxiliary power. Changing boat restarts the run. Reverse: B / gamepad B (keyboard remappable).</small>
       <label for="detail">WATER SURFACE <output id="quality"></output></label>
+      <label for="qualityPreset">PERFORMANCE PRESET</label><select id="qualityPreset"><option value="custom">Custom · original quality</option><option value="low">Low · resolution / water / effects</option><option value="balanced">Balanced</option><option value="high">High</option><option value="auto">Auto · adaptive resolution</option></select><output id="resolutionStatus"></output><small>Auto lowers resolution after sustained slow frames and restores it cautiously. Physics stays at 120 Hz. Low disables cinematic postprocessing; custom retains your settings. No guaranteed FPS on every device.</small>
       <input id="detail" type="range" min="0" max="100" value="25">
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
       <label for="swell">SWELL <output id="swellValue">${DEFAULT_SWELL.toFixed(1)}×</output></label>
@@ -151,6 +153,7 @@ try {storage = localStorage;} catch {}
 const preferences = readPreferences(storage);
 document.querySelector('details').open = innerWidth > 900;
 const renderer = new THREE.WebGLRenderer({antialias: true});
+const qualityController = createQualityController();
 renderer.info.autoReset = false;
 const performanceOverlay = createPerformanceOverlay(renderer);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -185,6 +188,13 @@ loadRealScenery().then((assets)=>{
 }).catch(()=>{sceneryStatus.textContent='PHOTO ASSETS / FAILED · FALLBACK ACTIVE · RELOAD TO RETRY';});
 elements.quality.textContent = water.setDetail(preferences.detail);
 document.getElementById('detail').value = preferences.detail;
+document.getElementById('qualityPreset').value = preferences.qualityPreset;
+document.getElementById('qualityPreset').onchange = (event) => {
+  preferences.qualityPreset = event.target.value;
+  const preset = QUALITY_PRESETS[preferences.qualityPreset];
+  if (preset.detail !== undefined) {preferences.detail = preset.detail; document.getElementById('detail').value = preset.detail; elements.quality.textContent = water.setDetail(preset.detail);}
+  persistPreferences();
+};
 const boat = createBoat();
 const rainView = createRain(scene);
 let playerLights = null;
@@ -795,9 +805,9 @@ function frame(now) {
   document.getElementById('cameraHeight').disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   const weather = weatherState(preferences, simTime - weatherEpoch);
-  document.getElementById('coastalActivity').disabled = !exploring;
+  document.getElementById('coastalActivity').disabled = race.phase !== 'explore';
   document.getElementById('activityStatus').textContent = activityText(activity, state);
-  weather.harborShelter = exploring;
+  weather.harborShelter = race.phase === 'explore';
   const displayedHour = Math.floor(weather.hour * 60);
   document.getElementById('hourValue').textContent = `${String(Math.floor(displayedHour / 60)).padStart(2, '0')}:${String(displayedHour % 60).padStart(2, '0')}`;
   document.getElementById('cycleValue').textContent = `${preferences.cycleMinutes} minutes`;
@@ -867,7 +877,12 @@ function frame(now) {
   sun.position.set(-0.58, Math.max(0.12, weather.elevation), -0.67).normalize().multiplyScalar(200).add(sun.target.position);
   document.body.classList.toggle('impact', state.collision > 0 && !paused);
   renderer.info.reset();
-  cinema.render(preferences.cinema);
+  const ratio = Math.min(devicePixelRatio, qualityController.update(preferences.qualityPreset, frameMilliseconds, !paused && !document.hidden && (race.phase === 'explore' || race.phase === 'racing')));
+  if (Math.abs(renderer.getPixelRatio() - ratio) > 0.01) {renderer.setPixelRatio(ratio); renderer.setSize(innerWidth, innerHeight); cinema.resize(innerWidth, innerHeight);}
+  const cinematic = preferences.cinema && preferences.qualityPreset !== 'low' && !(preferences.qualityPreset === 'auto' && ratio < 0.9);
+  renderer.shadowMap.enabled = cinematic;
+  document.getElementById('resolutionStatus').textContent = `${preferences.qualityPreset.toUpperCase()} · ${ratio.toFixed(2)}× RENDER RESOLUTION`;
+  cinema.render(cinematic);
   performanceOverlay.update(frameMilliseconds, now, chunks, preferences.cinema);
   hudTimer += elapsed;
   if (hudTimer > 0.1) {

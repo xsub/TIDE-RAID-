@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 8: performance presets
+
+- Added saved Custom/Low/Balanced/High/Auto performance presets. Explicit presets choose resolution/water detail; Low disables cinematic effects/shadows without overwriting the user's cinematic preference. Custom preserves existing manual controls.
+- Auto uses bounded render resolution (0.65–1.5×), lowering after sustained slow frames and restoring only after three fast windows. Paused/hidden/menu frames and long background stalls do not drive adaptation. No changes to 120 Hz simulation, replay inputs, world content or boat physics. This is frame-time adaptation, not GPU benchmarking or guaranteed FPS.
+- Final integration browser check caught and fixed an activity/harbor initialization-order error that unit tests did not cover. Verified exploration, delivery target feedback, camera switching and Auto/Custom resolution in a clean browser session without console errors; restored original display preferences afterward.
+- All 187 tests and both production entry builds pass. Existing shared Three.js bundle-size advisory remains. First playable pass now spans all eight roadmap areas; moving squall fronts, dedicated rescue/lighthouse missions, moored fleet assets, dedicated wake-crossing spray/audio and full object-camera collision remain follow-up work, not completed features. Device performance and subjective feel still require player testing.
+
 ## 2026-10-18 — Roadmap 7: underwater disturbance and suspended life
 
 - Fish now react more strongly inside fast trailing prop wash; seagrass gains a bounded near-boat disturbance sway attenuated by depth. Existing deterministic schools and single instanced flora batch remain.
