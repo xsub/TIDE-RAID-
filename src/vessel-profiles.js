@@ -7,7 +7,15 @@ export const VESSEL_PROFILES=Object.freeze({
   'boat-tug-a':Object.freeze({...sport,mass:3000,length:12,beam:4.54,power:45000,maxThrust:3500,waterDrag:0.009,planingSpeed:100,planingLift:0,rudderArea:0.12,draft:1.6,lateralGrip:3.2,waterplaneArea:9.5,foreLoad:0.5,cgHeight:0.55,deadrise:30,supportBeam:0.27,yawInertiaFactor:1.45,pitchInertiaFactor:1.5,rollInertiaFactor:1.8,stabilityFactor:0.6,bankFactor:0.12,planingTrim:0}),
   'boat-speed-d':Object.freeze({...sport,mass:1700,power:450000,maxThrust:18000,waterDrag:0.005,planingSpeed:30,draft:0.65,waterplaneArea:6.8,foreLoad:0.48,cgHeight:0.7,deadrise:16,pitchInertiaFactor:1.2}),
 });
-export const vesselProfile=(model)=>VESSEL_PROFILES[model] ?? VESSEL_PROFILES['boat-speed-c'];
+export const PILOT_HELMS = Object.freeze({
+  'boat-speed-c': Object.freeze({helmHeight: 1.45, helmForward: 0.1, helmSide: -0.45}),
+  'boat-cat-42': Object.freeze({helmHeight: 1.1, helmForward: -0.6, helmSide: -0.25}),
+  'boat-speed-a': Object.freeze({helmHeight: 1.5, helmForward: 0.1, helmSide: -0.45}),
+  'boat-house-a': Object.freeze({helmHeight: 3.1, helmForward: 0.1, helmSide: -0.25}),
+  'boat-tug-a': Object.freeze({helmHeight: 1.9, helmForward: 0.2, helmSide: -0.3}),
+  'boat-speed-d': Object.freeze({helmHeight: 1.4, helmForward: 0.1, helmSide: -0.45}),
+});
+export const vesselProfile=(model)=>({... (VESSEL_PROFILES[model] ?? VESSEL_PROFILES['boat-speed-c']), ...(PILOT_HELMS[model] ?? PILOT_HELMS['boat-speed-c'])});
 export const VESSEL_HANDLING = Object.freeze({
   'boat-speed-c': 'Deep-V racer · aft-loaded · responsive bank and pitch',
   'boat-cat-42': 'Twin-sponson racer · low center of gravity · wide, flatter cornering',

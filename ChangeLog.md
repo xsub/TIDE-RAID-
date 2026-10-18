@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Pilot / driver POV camera
+
+- Added persistent Pilot view to a direct camera-view selector and the C / gamepad Y cycle (Chase → Pilot → Arcade). Each of the six vessels has its own numeric helm height/fore-aft/lateral offsets; the cruiser sits higher than the low racing catamaran.
+- Forward sightline follows heading with limited pitch movement and no camera roll; faster position/target follow reduces steering lag. Exterior height/tilt/orbit/zoom settings are preserved but disabled/ignored in Pilot mode, and mode switching snaps to avoid a flight through the hull. Existing surface-following sinking safeguard remains.
+- Player exterior is hidden only in Pilot mode because current cabins have opaque glazing and no modeled interior. This is a clear helm-height POV with existing HUD, not a detailed cockpit/dashboard or driver animation. Other boats, lighting, water and controls remain visible/active. Cargo Lab camera is unchanged.
+- All 129 tests and both production page builds pass. Tests cover all-boat eye offsets, heading alignment, ignored exterior settings, limited pitch and persisted/portrait POV. Browser drove the catamaran at ~69 km/h from Pilot view without runtime errors. Existing shared-bundle size advisory remains.
+
 ## 2026-10-18 — Progressive flooding, buoyancy loss and escaping-air bubbles
 
 - Replaced exploration's fixed 3 m visual sinking offset with four aggregate flood compartments. Realistic inflow follows damaged opening severity and local water head with biased bow/stern/port/starboard rates; Arcade retains predictable wreck filling. Water persists until harbor pumping/recovery rather than disappearing after damage stops.

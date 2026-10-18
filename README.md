@@ -1,5 +1,9 @@
 # TIDE RAID 2.0
 
+## Pilot / driver camera
+
+Select **Helm Settings → Camera View → Pilot / driver POV**, or cycle **C / gamepad Y** through Chase → Pilot → Arcade. Each boat has its own helm-height/seat offset and a forward sightline, with limited pitch and a roll-stabilized horizon. Camera selection persists. External orbit/zoom/manual placement is preserved but inactive in Pilot view. Current opaque exterior cabins are hidden for a clear view: this is a first-person helm-height camera with the existing HUD, not a modeled cockpit interior or animated driver. Cargo Lab retains its separate camera controls.
+
 ## Progressive sinking and escaping air
 
 Exploration sinking now tracks four simplified bow/stern, port/starboard flood volumes. Realistic mode estimates leak inflow from damage severity and water head; Arcade fills a wreck on a predictable timer. Water stays aboard until pumped at a service harbor or cleared by Recover. Added water mass/draft, a free-surface CG penalty and late-stage flotation loss feed the existing player physics. Uneven flooding adds list/trim; submerged drag, a shallow-water/depth cap, engine/light shutdown and a surface-following camera avoid the old constant downward render offset.

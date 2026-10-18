@@ -72,6 +72,8 @@ document.getElementById('app').innerHTML = `
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
       <button id="camera">CAMERA / ARCADE</button>
+      <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option></select>
+      <small id="pilotHint" hidden>Pilot view: forward-facing helm height, steadied horizon. Exterior player hull is hidden for an unobstructed view; no detailed cockpit interior yet. Orbit, zoom and manual height/tilt apply only to exterior views. C / gamepad Y cycles cameras.</small>
       <label><input id="manualCamera" type="checkbox" style="width:auto"> MANUAL CAMERA HEIGHT / TILT</label>
       <label for="cameraElevation">ANGLE ABOVE WATER <output id="cameraElevationValue"></output></label>
       <input id="cameraElevation" type="range" min="5" max="85" step="1">
@@ -318,9 +320,11 @@ function rescue() {
   }
 }
 function toggleCamera() {
-  mode = mode === 'arcade' ? 'chase' : 'arcade';
+  mode = ({chase: 'pilot', pilot: 'arcade', arcade: 'chase'})[mode];
   elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`;
   preferences.camera = mode;
+  document.getElementById('cameraView').value = mode;
+  snapCamera();
   persistPreferences();
 }
 function togglePause() {
@@ -387,7 +391,7 @@ document.getElementById('zoomPreset').onchange = (event) => {
 document.getElementById('zoomIn').onclick = () => {setCameraZoom(preferences.cameraZoom * 1.25); persistPreferences();};
 document.getElementById('zoomOut').onclick = () => {setCameraZoom(preferences.cameraZoom / 1.25); persistPreferences();};
 renderer.domElement.addEventListener('wheel', (event) => {
-  if (event.ctrlKey || !event.deltaY) return;
+  if (mode === 'pilot' || event.ctrlKey || !event.deltaY) return;
   event.preventDefault();
   setCameraZoom(preferences.cameraZoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15));
   persistPreferences();
@@ -398,12 +402,12 @@ document.getElementById('cameraRear').onclick = () => {setCameraAngle(20); persi
 let orbitDrag = null;
 renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
 renderer.domElement.addEventListener('pointerdown', (event) => {
-  if (event.button !== 2) return;
+  if (mode === 'pilot' || event.button !== 2) return;
   orbitDrag = {id: event.pointerId, x: event.clientX};
   renderer.domElement.setPointerCapture(event.pointerId);
 });
 renderer.domElement.addEventListener('pointermove', (event) => {
-  if (orbitDrag?.id !== event.pointerId) return;
+  if (mode === 'pilot' || orbitDrag?.id !== event.pointerId) return;
   setCameraAngle((preferences.cameraAngle + (event.clientX - orbitDrag.x) * 0.35 + 360) % 360);
   orbitDrag.x = event.clientX;
 });
@@ -460,6 +464,11 @@ for (const button of document.querySelectorAll('[data-key]')) {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(pressedCode));
 }
 document.getElementById('camera').onclick = toggleCamera;
+document.getElementById('cameraView').value = mode;
+document.getElementById('cameraView').onchange = (event) => {
+  mode = event.target.value; preferences.camera = mode;
+  elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`; persistPreferences(); snapCamera();
+};
 document.getElementById('floodingDrill').onclick = () => {
   if (race.phase !== 'explore' || preferences.sinkingMode === 'off') return;
   voyage.hull = preferences.sinkingMode === 'arcade' ? 0 : 0.08;
@@ -638,6 +647,9 @@ function frame(now) {
     if (race.phase === 'explore' && state.z <= END_Z + 8) complete = true;
   }
   boat.position.set(state.x, state.y, state.z);
+  boat.visible = mode !== 'pilot';
+  document.getElementById('pilotHint').hidden = mode !== 'pilot';
+  for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto', 'cameraZoom', 'zoomIn', 'zoomOut', 'zoomPreset', 'cameraAngle', 'cameraRear']) document.getElementById(id).disabled = mode === 'pilot';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   const weather = weatherState(preferences, simTime - weatherEpoch);
   const displayedHour = Math.floor(weather.hour * 60);
@@ -682,8 +694,8 @@ function frame(now) {
     gateLine.scale.x = gate.halfWidth * 2;
   }
   cameraGoal();
-  camera.position.lerp(cameraPosition, 1 - Math.exp(-5 * elapsed));
-  smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
+  camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
+  smoothLook.lerp(lookTarget, 1 - Math.exp(-(mode === 'pilot' ? 18 : 7) * elapsed));
   camera.lookAt(smoothLook);
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
     traffic.boats, !complete && race.phase !== 'ready' && (!exploring || voyage.flooding < 0.75));

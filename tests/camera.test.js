@@ -2,6 +2,29 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cameraPose, clampCameraZoom, CAMERA_ZOOM_PRESETS} from '../src/camera.js';
 import {readPreferences, savePreferences} from '../src/preferences.js';
+import {createState} from '../src/physics.js';
+import {VESSEL_PROFILES} from '../src/vessel-profiles.js';
+
+test('pilot eye follows every helm and heading while exterior orbit/zoom do not move it', () => {
+  for (const model of Object.keys(VESSEL_PROFILES)) for (const heading of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+    const state = {...createState(model), heading, pitch: 0.4, roll: 0.3};
+    const pose = cameraPose(state, 'pilot', 0, 16 / 9);
+    const adjusted = cameraPose(state, 'pilot', 180, 16 / 9, false, 400, 8, {height: 300, elevation: 80});
+    assert.deepEqual(pose, adjusted);
+    assert.ok(Object.values(pose).every(Number.isFinite));
+    assert.equal(pose.y, state.y + state.helmHeight);
+    assert.ok(Math.abs((pose.lookX - pose.x) + Math.sin(heading) * 70) < 1e-8);
+    assert.ok(Math.abs((pose.lookZ - pose.z) + Math.cos(heading) * 70) < 1e-8);
+    assert.ok(Math.abs(pose.lookY - pose.y) < 12);
+  }
+  assert.ok(createState('boat-house-a').helmHeight > createState('boat-cat-42').helmHeight);
+});
+
+test('pilot mode persists and portrait POV stays within a bounded field of view', () => {
+  assert.equal(readPreferences({getItem: () => JSON.stringify({camera: 'pilot'})}).camera, 'pilot');
+  const pose = cameraPose(createState(), 'pilot', 0, 9 / 16, true);
+  assert.equal(pose.fov, 88);
+});
 
 test('manual camera respects water height, requested angle, full orbit and hull clearance', () => {
   const state = {x: 10, y: 1, z: 20, heading: 0.5, speed: 20, length: 12};

@@ -4,6 +4,14 @@ export const clampCameraZoom = (zoom) => Number.isFinite(zoom) ? Math.max(0.5, M
 export function cameraPose(state, mode, angle, aspect, portrait = false, channelWidth = 400, zoom = 1, manual = null) {
   zoom = clampCameraZoom(zoom);
   const speed = Math.max(0, Math.min(70, state.speed));
+  if (mode === 'pilot') {
+    const forward = state.helmForward ?? 0.2; const side = state.helmSide ?? -0.35;
+    const eyeX = state.x - Math.sin(state.heading) * forward + Math.cos(state.heading) * side;
+    const eyeZ = state.z - Math.cos(state.heading) * forward - Math.sin(state.heading) * side;
+    const eyeY = state.y + (state.helmHeight ?? 1.45);
+    const pitch = Math.max(-0.16, Math.min(0.16, (state.pitch ?? 0) * 0.35));
+    return {x: eyeX, y: eyeY, z: eyeZ, lookX: eyeX - Math.sin(state.heading) * 70, lookY: eyeY + Math.sin(pitch) * 70, lookZ: eyeZ - Math.cos(state.heading) * 70, fov: portrait ? 88 : 76};
+  }
   const fov = mode === 'arcade' ? (portrait ? 90 : 55) : (portrait ? 78 : 58) + speed / 70 * 10;
   const height = mode === 'arcade' ? Math.max(20, Math.max(210, channelWidth / (2 * Math.tan(fov * Math.PI / 360) * aspect * 0.8)) / zoom) : Math.max(2.5, (5.2 + speed * 0.018) / Math.sqrt(zoom));
   const back = mode === 'arcade' ? height * 0.48 : Math.max((state.length ?? 7.4) * 0.8 + 2, (15 + speed * 0.025) / zoom);
