@@ -11,7 +11,7 @@ import {createTraffic, updateTraffic, collideTraffic} from './traffic.js';
 import {createSpray} from './spray.js';
 import {createAtmosphere, SUN_DIRECTION} from './atmosphere.js';
 import {createCinema} from './cinema.js';
-import {cameraPose} from './camera.js';
+import {cameraPose, CAMERA_ZOOM_PRESETS, clampCameraZoom} from './camera.js';
 import {createPerformanceOverlay} from './performance.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
 import {DEFAULT_BINDINGS, readPreferences, savePreferences, remap, readGamepad, advanceLesson} from './preferences.js';
@@ -42,6 +42,14 @@ document.getElementById('app').innerHTML = `
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
       <button id="camera">CAMERA / ARCADE</button>
+      <label for="cameraZoom">CAMERA ZOOM <output id="cameraZoomValue"></output></label>
+      <input id="cameraZoom" type="range" min="0.5" max="8" step="0.1" value="1">
+      <button id="zoomIn">ZOOM IN +</button><button id="zoomOut">ZOOM OUT −</button>
+      <label for="zoomPreset">ZOOM PRESET</label>
+      <select id="zoomPreset" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit" aria-label="Zoom preset">
+        <option value="custom">Custom</option>${CAMERA_ZOOM_PRESETS.map((preset) => `<option value="${preset.zoom}">${preset.name} · ${preset.zoom}×</option>`).join('')}
+      </select>
+      <small>Scroll over the water to zoom. Wide shows the channel; Close and Detail enlarge the boat. Chase stops at a safe hull distance.</small>
       <label for="cameraAngle">CAMERA ORBIT <output id="cameraAngleValue"></output></label>
       <input id="cameraAngle" type="range" min="0" max="360" step="1" value="20">
       <small>0° rear · 90° side · 180° front · 270° side. Or right-drag the water. Steering stays boat-relative.</small>
@@ -267,7 +275,7 @@ function togglePause() {
   elements.pause.textContent = paused ? 'RESUME' : 'PAUSE';
 }
 function cameraGoal() {
-  const pose = cameraPose(state, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2);
+  const pose = cameraPose(state, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom);
   cameraPosition.set(pose.x, pose.y, pose.z);
   lookTarget.set(pose.lookX, pose.lookY, pose.lookZ);
   if (Math.abs(camera.fov - pose.fov) > 0.01) {
@@ -289,6 +297,27 @@ function setCameraAngle(angle) {
   document.getElementById('cameraAngleValue').textContent = `${Math.round(angle)}°`;
 }
 setCameraAngle(preferences.cameraAngle);
+function setCameraZoom(zoom) {
+  preferences.cameraZoom = Math.round(clampCameraZoom(zoom) * 10) / 10;
+  document.getElementById('cameraZoom').value = preferences.cameraZoom;
+  document.getElementById('cameraZoomValue').textContent = `${preferences.cameraZoom.toFixed(1)}×`;
+  document.getElementById('zoomPreset').value = CAMERA_ZOOM_PRESETS.some((preset) => preset.zoom === preferences.cameraZoom) ? String(preferences.cameraZoom) : 'custom';
+}
+setCameraZoom(preferences.cameraZoom);
+document.getElementById('cameraZoom').oninput = (event) => setCameraZoom(Number(event.target.value));
+document.getElementById('cameraZoom').onchange = persistPreferences;
+document.getElementById('zoomPreset').onchange = (event) => {
+  if (event.target.value === 'custom') return;
+  setCameraZoom(Number(event.target.value)); persistPreferences();
+};
+document.getElementById('zoomIn').onclick = () => {setCameraZoom(preferences.cameraZoom * 1.25); persistPreferences();};
+document.getElementById('zoomOut').onclick = () => {setCameraZoom(preferences.cameraZoom / 1.25); persistPreferences();};
+renderer.domElement.addEventListener('wheel', (event) => {
+  if (event.ctrlKey || !event.deltaY) return;
+  event.preventDefault();
+  setCameraZoom(preferences.cameraZoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15));
+  persistPreferences();
+}, {passive: false});
 document.getElementById('cameraAngle').oninput = (event) => setCameraAngle(Number(event.target.value));
 document.getElementById('cameraAngle').onchange = persistPreferences;
 document.getElementById('cameraRear').onclick = () => {setCameraAngle(20); persistPreferences();};

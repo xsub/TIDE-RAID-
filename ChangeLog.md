@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Camera zoom and distance presets
+
+- Added persistent 0.5–8× zoom, zoom-in/out buttons, and Wide / Closer / Close / Detail presets beside the camera controls. Mouse wheel over the water zooms without scrolling the settings; browser Ctrl-wheel remains available.
+- Arcade zoom reduces camera height and forward look-ahead together, keeping the player framed while making the boat substantially larger. Chase zoom has a vessel-length-dependent minimum distance and height to avoid entering the hull. Zoom changes rendering only, not physics, world scale or replay.
+- Settings panel scrolls within the viewport so the new controls remain reachable. All 99 tests and production build pass; browser verified presets and zoom buttons without runtime errors. Existing bundle-size advisory remains. Very close zoom intentionally sacrifices full-channel visibility.
+
 ## 2026-10-18 — Independent TIDE RAID GitHub Pages deployment
 
 - Added main-branch/manual Pages workflow with clean dependency installation, full tests, production build, artifact upload and a separate least-privilege deployment job. No history rewriting or changes to another game's repository/site.

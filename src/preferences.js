@@ -8,8 +8,10 @@ export function readPreferences(storage) {
   try {saved = JSON.parse(storage.getItem('tide-raid-preferences-v1'));} catch {}
   const defaults = {detail: 75, camera: 'chase', cameraAngle: 20, sensitivity: 1, volume: 0.65, music: 0.32, effects: 0.65, traffic: 0.65, ambience: 0.55, cinema: true, hints: true, bindings: {...DEFAULT_BINDINGS}};
   defaults.playerBoat = 'boat-speed-c';
+  defaults.cameraZoom = 1;
   if (!saved || typeof saved !== 'object') return defaults;
   if (isPlayerBoat(saved.playerBoat)) defaults.playerBoat = saved.playerBoat;
+  if (Number.isFinite(saved.cameraZoom) && saved.cameraZoom >= 0.5 && saved.cameraZoom <= 8) defaults.cameraZoom = saved.cameraZoom;
   if (Number.isFinite(saved.detail) && saved.detail >= 0 && saved.detail <= 100) defaults.detail = saved.detail;
   if (['chase', 'arcade'].includes(saved.camera)) defaults.camera = saved.camera;
   if (Number.isFinite(saved.cameraAngle) && saved.cameraAngle >= 0 && saved.cameraAngle <= 360) defaults.cameraAngle = saved.cameraAngle;
