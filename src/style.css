@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+#hullLabel[hidden],#fuelLabel[hidden]{display:none}
+#damageMode,#sinkingMode,#fuelMode{width:100%;padding:10px 3px;background:#15383c;color:#eef4e8;font:inherit;font-size:10px}#hullMeter,#fuelMeter{width:110px;accent-color:#63ffc1}#voyageStatus{font-size:10px;color:#a9e9cc}
 aside{max-height:calc(100dvh - 130px);overflow-y:auto;overscroll-behavior:contain}
 #playerBoat{width:100%;margin:10px 0;padding:10px 5px;font:inherit;font-size:10px;color:#eef4e8;background:#15383c;border:1px solid #b6d5ce55}#playerBoat:focus-visible{outline:2px solid #ff8051}
 #performanceStats{position:fixed;left:50%;bottom:54px;transform:translateX(-50%);z-index:5;margin:0;padding:14px 18px;border:1px solid #9bc9bd66;border-radius:8px;background:#08232aeb;color:#d9f7e8;font:11px/1.7 monospace;pointer-events:none;max-width:94vw;white-space:pre-wrap;box-shadow:0 8px 30px #0005}#performanceStats[hidden]{display:none}

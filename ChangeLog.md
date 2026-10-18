@@ -1,5 +1,14 @@
 # ChangeLog
 
+## 2026-10-18 — Exploration damage, fuel and service harbors
+
+- Added independent Arcade/Realistic damage, disallowed/Arcade/Realistic sinking, and unlimited/Arcade/Realistic fuel settings. Preferences persist; changing rules restarts exploration. Defaults are forgiving damage, no sinking, arcade fuel. Time trials keep their existing physics, records and replay rules.
+- Energy-per-mass impacts and severe landings cause wear; grounding adds gradual damage. Hull/fuel meters and warnings stay visible. Player-only geometry gets bounded reversible dents plus scratch marks; traffic geometry is not mutated. Realistic wear reduces engine power. Wrecked/out-of-fuel/flooded boats lose propulsion.
+- Arcade sinking starts only at zero hull; realistic rules flood critically damaged boats progressively. Sinking tilts/lowers the rendered hull and disables propulsion at full flooding; it is not a coupled flood/buoyancy solver or break-apart destruction. No-sinking mode stays afloat but does not grant unlimited engine use.
+- Added 16 deterministic green-plus fuel/repair pontoons about 1.2 km apart, shared geometry/materials, distance visibility culling, collision boxes, scanner icons and nearest-harbor distance. Stop within 22 m, below 1.5 m/s and release throttle/reverse for 1.5 s to receive free repair/refuel/pumping. Recovery grants 40% hull/20% fuel minimum and clears flooding so no run is permanently stranded.
+- Realistic fuel estimates consumption from rated power/load and a length-based tank; these are unvalidated game approximations, not manufacturer specifications. Arcade fuel creates shorter planning intervals. Repairs and refueling are deliberately accelerated and free; no economy, saved voyage, breakable components or missions yet. Voyage replay export is explicitly blocked rather than exporting an incomplete physics-only replay.
+- All 107 tests and production build pass, including deterministic rule evolution, energy scaling, sinking disabled, fuel modes, stopped service, restored/isolation-safe mesh wear and obstacle-clear station placement/collisions. Browser verified selectable rules, driving, live hull/fuel meters and service scanner icons without runtime errors. Existing bundle-size advisory remains; enjoyment and fuel/service balance require playtesting.
+
 ## 2026-10-18 — Softer water re-entry audio
 
 - Replaced the landing's reused collision-style one-second descending bass/noise burst with two short water-specific layers: a softened hull slap and delayed, high-passed spray settling over 0.16–0.44 seconds. Smooth attacks avoid the old instantaneous gain onset; no pitched impact oscillator is added.

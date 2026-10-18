@@ -1,6 +1,7 @@
 import {channel, START_Z, CHUNK_SIZE, CHUNK_COUNT, chunkIndex} from './world.js';
 import {contactImpulse} from './collision.js';
 import {capsuleBox} from './capsule.js';
+import {SERVICE_STATIONS} from './voyage.js';
 
 const layouts=new Map();
 export function harborLayout(index) {
@@ -45,6 +46,14 @@ export function reservedHarborSpace(x, z, index, layout = harborLayout(index)) {
 export function resolveHarborCollision(state) {
   const sector = chunkIndex(state.z);
   let hit = false;
+  if (state.serviceDocks === 1) for (const station of SERVICE_STATIONS) {
+    if (Math.abs(station.z - state.z) > 40) continue;
+    const contact = capsuleBox(state, {x: station.x + 9, z: station.z, width: 5, depth: 10});
+    if (!contact) continue;
+    state.x += contact.normalX * (contact.depth + 1e-6); state.z += contact.normalZ * (contact.depth + 1e-6);
+    contactImpulse(state, null, contact.normalX, contact.normalZ, 0.08, 0.3, contact);
+    state.impactMaterial = 3; state.collision = 0.5; state.speed = Math.hypot(state.vx, state.vz); hit = true;
+  }
   for (let index = Math.max(0, sector - 1); index <= Math.min(CHUNK_COUNT - 1, sector + 1); index++) {
     for (const dock of harborLayout(index).docks) {
       const contact = capsuleBox(state,dock);

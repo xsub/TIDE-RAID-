@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import {createState, step, recover} from './physics.js';
+import {createVoyage, tickVoyage, voyageDrive, SERVICE_STATIONS} from './voyage.js';
+import {createServiceView, createWearView} from './voyage-view.js';
 import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
 import {loadFleet, createTrafficView} from './fleet.js';
@@ -27,11 +29,20 @@ document.getElementById('app').innerHTML = `
   <section id="telemetry"><div><b id="speed">000</b><span>KM/H</span></div><p id="air">WATERBORNE</p>
     <div class="progress"><i id="progress"></i></div><small id="distance">0 / 18.78 KM</small>
     <p id="raceClock">0:00.00</p><small id="checkpoint">COASTAL SPRINT</small><p id="passes">CLEAN PASSES / 0</p><small id="fleetStatus">LOADING WATERCRAFT…</small>
-    <label>BOOST <meter id="boost" min="0" max="1" value="1"></meter></label></section>
+    <label>BOOST <meter id="boost" min="0" max="1" value="1"></meter></label>
+    <p id="voyageStatus" style="max-width:240px;line-height:1.6"></p>
+    <label id="hullLabel">HULL <meter id="hullMeter" min="0" max="1" value="1"></meter></label>
+    <label id="fuelLabel">FUEL <meter id="fuelMeter" min="0" max="1" value="1"></meter></label></section>
   <aside><canvas id="map" width="220" height="240" aria-label="Local river navigation map"></canvas>
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
       <button id="beauty">BEAUTY PRESET</button>
+      <details><summary>DAMAGE & FUEL / EXPLORATION</summary>
+        <label for="damageMode">DAMAGE MODEL</label><select id="damageMode"><option value="arcade">Arcade · forgiving wear</option><option value="realistic">Realistic · harsher impacts</option></select>
+        <label for="sinkingMode">SINKING</label><select id="sinkingMode"><option value="off">Disallowed · stay afloat</option><option value="arcade">Arcade · sink only when wrecked</option><option value="realistic">Realistic · progressive flooding</option></select>
+        <label for="fuelMode">FUEL CONSUMPTION</label><select id="fuelMode"><option value="off">Unlimited fuel</option><option value="arcade">Arcade · shorter fuel strategy</option><option value="realistic">Realistic · estimated engine load</option></select>
+        <small>Exploration only. Realistic means game approximation. Green + stations repair/refuel free: stop below 5 km/h, release throttle for 1.5 seconds. H / Recover provides rescue and emergency fuel. Changing rules restarts exploration. Time trials keep original rules.</small>
+      </details>
       <button id="exportReplay">EXPORT PHYSICS REPLAY</button><small>Up to 10 minutes, local input/state diagnostics only. No upload.</small>
       <label for="playerBoat">YOUR BOAT</label>
       <select id="playerBoat" disabled>${PLAYER_BOATS.map((boat) => `<option value="${boat.model}">${boat.name}</option>`).join('')}</select>
@@ -109,6 +120,9 @@ loadRealScenery().then((assets)=>{
 elements.quality.textContent = water.setDetail(preferences.detail);
 document.getElementById('detail').value = preferences.detail;
 const boat = createBoat();
+const serviceView = createServiceView(scene);
+let wearView = null;
+let voyage = createVoyage();
 scene.add(boat);
 const spray = createSpray(scene);
 let state = createState(preferences.playerBoat);
@@ -116,6 +130,7 @@ state.mass = VESSEL_MASS[preferences.playerBoat];
 let traffic = createTraffic(state);
 let replayTape=createReplayTape(state,traffic);
 document.getElementById('exportReplay').onclick=()=>{
+  if (race.phase === 'explore') {alert('Voyage replay is not supported yet. Trial replay is available.'); return;}
   const url=URL.createObjectURL(new Blob([JSON.stringify(replayTape.export())],{type:'application/json'}));
   const link=document.createElement('a');link.href=url;link.download='tide-raid-physics-replay.json';link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -237,6 +252,7 @@ scene.add(gateGroup);
 function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   if (phase !== 'explore' && !trafficView) return;
   state = createState(preferences.playerBoat);
+  voyage = createVoyage();
   state.mass = VESSEL_MASS[preferences.playerBoat];
   traffic = createTraffic(state);
   replayTape=createReplayTape(state,traffic);
@@ -261,6 +277,10 @@ function rescue() {
   if (complete || race.phase === 'ready' || race.phase === 'countdown') return;
   recoverRace(race, state);
   recover(state, simTime, roughness);
+  if (race.phase === 'explore') {
+    voyage.hull = Math.max(0.4, voyage.hull); voyage.fuel = Math.max(0.2, voyage.fuel);
+    voyage.flooding = 0; voyage.mooring = 0; voyage.servicing = false;
+  }
 }
 function toggleCamera() {
   mode = mode === 'arcade' ? 'chase' : 'arcade';
@@ -386,6 +406,14 @@ for (const button of document.querySelectorAll('[data-key]')) {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(pressedCode));
 }
 document.getElementById('camera').onclick = toggleCamera;
+for (const name of ['damageMode', 'sinkingMode', 'fuelMode']) {
+  const control = document.getElementById(name);
+  control.value = preferences[name];
+  control.onchange = () => {
+    preferences[name] = control.value; persistPreferences();
+    if (race.phase === 'explore') reset('explore');
+  };
+}
 document.getElementById('reset').onclick = () => reset();
 document.getElementById('pause').onclick = togglePause;
 document.getElementById('recover').onclick = rescue;
@@ -462,6 +490,13 @@ function drawMap() {
     map.fillText(`GATE ${race.next + 1} / ${Math.max(0, Math.round(state.z - gate.z))}m`, 8, gateY + 14);
   }
   map.save(); map.translate(110, 190); map.rotate(-state.heading);
+  if (race.phase === 'explore') for (const station of SERVICE_STATIONS) {
+    const positionY = mapY(station.z);
+    if (positionY < 5 || positionY > 235) continue;
+    map.save(); map.resetTransform();
+    map.fillStyle = '#63ffc1'; map.font = 'bold 16px monospace';
+    map.fillText('+', mapX(station.x) - 5, positionY + 5); map.restore();
+  }
   map.beginPath(); map.moveTo(0, -8); map.lineTo(5, 6); map.lineTo(-5, 6); map.closePath();
   map.fillStyle = '#ff7b49'; map.fill(); map.restore();
 }
@@ -494,14 +529,22 @@ function frame(now) {
       simTime += 1 / 120;
       const before = {x: state.x, z: state.z, collision: state.collision};
       const boosting = useBoost(race, input.boost, input.throttle && !input.brake, 1 / 120);
-      replayTape.record({...input,boost:boosting},simTime,roughness);
-      step(state, {...input, boost: boosting}, 1 / 120, simTime, roughness, trafficView ? (body) => {
+      const exploring = race.phase === 'explore';
+      if (exploring) state.serviceDocks = 1;
+      const canDrive = !exploring || voyageDrive(voyage);
+      const driveInput = {...input, throttle: input.throttle && canDrive, reverse: input.reverse && canDrive, boost: boosting && canDrive};
+      if (!exploring) replayTape.record(driveInput,simTime,roughness);
+      const fullPower = state.power;
+      if (exploring && preferences.damageMode === 'realistic') state.power *= 0.35 + 0.65 * voyage.hull;
+      step(state, driveInput, 1 / 120, simTime, roughness, trafficView ? (body) => {
         let hit=false;
         for(const ship of traffic.boats) hit=collideTraffic(body,ship)||hit;
         return hit;
       } : null);
+      state.power = fullPower;
+      if (exploring) tickVoyage(voyage, state, driveInput, preferences, 1 / 120);
       if (trafficView) updateTraffic(traffic, state, 1 / 120);
-      replayTape.seal(state,traffic);
+      if (!exploring) replayTape.seal(state,traffic);
       spray.update(state, simTime, 1 / 120, roughness);
       advanceLesson(lesson, {...input, boost: boosting}, state, race.next, 1 / 120);
       if (updateRace(race, before, state, 1 / 120)) {
@@ -518,6 +561,20 @@ function frame(now) {
   }
   boat.position.set(state.x, state.y, state.z);
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
+  const exploring = race.phase === 'explore';
+  if (trafficView && !wearView) wearView = createWearView(boat);
+  wearView?.update(voyage, state, exploring);
+  if (exploring) {boat.position.y -= voyage.flooding * 3; boat.rotation.z += voyage.flooding * 0.65;}
+  serviceView.update(state.z, exploring);
+  document.getElementById('hullLabel').hidden = !exploring;
+  document.getElementById('fuelLabel').hidden = !exploring;
+  document.getElementById('hullMeter').value = voyage.hull;
+  document.getElementById('fuelMeter').value = voyage.fuel;
+  if (exploring) {
+    const nearest = SERVICE_STATIONS.reduce((best, candidate) => Math.hypot(candidate.x - state.x, candidate.z - state.z) < Math.hypot(best.x - state.x, best.z - state.z) ? candidate : best);
+    const status = voyage.flooding >= 1 ? 'SUNK · H / RECOVER' : voyage.servicing ? 'MOORED · REPAIRING + REFUELING' : voyage.flooding > 0.1 ? `FLOODING ${Math.round(voyage.flooding * 100)}% · SEEK SERVICE / H` : !voyageDrive(voyage) ? 'STRANDED · H / RECOVER' : voyage.fuel < 0.2 ? 'LOW FUEL · SEEK GREEN +' : 'VOYAGE';
+    document.getElementById('voyageStatus').textContent = `${status} · HULL ${Math.round(voyage.hull * 100)}% · FUEL ${Math.round(voyage.fuel * 100)}% · ${nearest.name} ${Math.round(Math.hypot(nearest.x - state.x, nearest.z - state.z))} m`;
+  } else document.getElementById('voyageStatus').textContent = '';
   water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed);
   const chunks = scenery.update(state.z, simTime,state.x);
   trafficView?.(traffic, simTime, roughness);

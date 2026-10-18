@@ -1,5 +1,13 @@
 # TIDE RAID 2.0
 
+## Damage, sinking and fuel voyages
+
+Choose **Explore the Coast**, then **Helm Settings → Damage & Fuel / Exploration**. Damage has independent Arcade/Realistic rules; sinking can be disallowed or use Arcade/Realistic flooding; fuel can be unlimited or use Arcade/Realistic consumption. Changing rules restarts exploration. Defaults: forgiving damage, no sinking, arcade fuel. Time trials remain unchanged and do not use these rules.
+
+Hull condition/fuel meters, dents, scratches and flooding warnings show wear. Hard collisions, severe landings and grounding damage the boat; realistic damage reduces power. Empty fuel or a wreck disables propulsion. Green **+** symbols mark 16 repair/refuel pontoons, roughly 1.2 km apart, with the nearest harbor distance in the HUD. Stop within 22 m, below 1.5 m/s, and release throttle/reverse for 1.5 seconds; service automatically restores fuel, hull and flooding for free. **H / Recover** provides emergency fuel, partial repairs and clears flooding. Explore without fear of an unrecoverable save.
+
+These are prototype gameplay approximations: estimated load-based fuel, accelerated service, cosmetic bounded mesh dents and visual sinking/engine shutdown, not calibrated marine engineering, hull fragmentation or a coupled compartment-flooding solver. Voyage persistence/economy/missions and voyage-aware replay are not implemented; exploration replay export is blocked. Player trials retain physics replay. Enjoyment and service/fuel balance still require player testing.
+
 ## GitHub Pages
 
 TIDE RAID publishes independently at https://xsub.github.io/TIDE-RAID-/ through `.github/workflows/pages.yml`. Every main-branch push runs tests and a production build before deployment; failed checks do not publish. Enable **Settings → Pages → Source → GitHub Actions** once. Relative build URLs and base-aware photographic asset paths support the repository subdirectory. Local development remains `npm run dev`.
