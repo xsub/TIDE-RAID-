@@ -55,6 +55,10 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+Press **?** (Shift + / on US keyboards) to show or hide performance statistics. FPS uses uncapped browser frame intervals over the most recent 120 samples; P95 shows slow-frame cadence, not GPU execution time. Draw counts include shadow and cinematic passes. The overlay updates four times per second while visible. Cinema adds edge smoothing and half-resolution bloom; turn it off for a cheaper render path. Fine cosmetic ripples fade with pixel footprint to reduce distant shimmer; the physical wave field is unchanged.
+
+Spray uses seeded randomness, resets on restart, and emits at the fixed simulation rate. Procedural audio noise is seeded as well. World generation and physics remain deterministic for the same simulation inputs; browser input timing, frame catch-up limits, audio devices and GPU pixels are not guaranteed bit-identical across machines.
+
 `src/waves.js` preserves the prototype's analytical wave components. Both CPU hull samples and generated GPU displacement/normal code use these same coefficients in world coordinates. The GPU handles water displacement; there is no per-frame CPU vertex deformation or normal recomputation. Twenty-five recycled water tiles share two geometries and one shader material: the inner nine tiles have twice the grid resolution. The surface slider selects five tessellation budgets (10.4k–426k triangles), with faceted shading below 55 and analytical smooth normals above. It does not change the simulation timestep, wave equations or collision sampling. It is not an SPH/FLIP particle-fluid solver.
 
 Water shading adds cosmetic small ripples, Fresnel sky color, sun highlights, shallow-water tint, shore/crest foam and an analytical V wake. These shading effects do not add hull forces; shore foam currently follows the river banks rather than every island. Spray uses a fixed 384-particle cosmetic pool with fade and ballistic motion. Reflections are procedural sky approximations, not real-time scene reflections.

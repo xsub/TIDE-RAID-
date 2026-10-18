@@ -77,8 +77,10 @@ export function createAudio(contextFactory = () => new AudioContext()) {
     noise = context.createBuffer(1, context.sampleRate * 3, context.sampleRate);
     const samples = noise.getChannelData(0);
     let smooth = 0;
+    let seed = 9041;
     for (let index = 0; index < samples.length; index++) {
-      smooth = smooth * 0.65 + (Math.random() * 2 - 1) * 0.35;
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      smooth = smooth * 0.65 + (seed / 4294967296 * 2 - 1) * 0.35;
       samples[index] = smooth;
     }
     motor = engine(buses.effects);

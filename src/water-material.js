@@ -41,9 +41,10 @@ export function createWaterMaterial(uniforms) {
         float warp = sin(point.x * 0.19 + sin(point.y * 0.13)) * 1.8;
         float rippleA = dot(point, vec2(1.7, 0.8)) + warp + sin(point.y * 0.49 + uTime * 0.15) - uTime * 3.3;
         float rippleB = dot(point, vec2(-0.9, 2.2)) + sin(point.y * 0.23) * 1.2 + sin(point.x * 0.37) - uTime * 4.1;
-        float rippleC = dot(point, vec2(4.1, 1.6)) + warp * 0.8 - uTime * 5.8;
         float microDetail = 1.0 - smoothstep(80.0, 350.0, distance(cameraPosition, vWorld));
-        slope += uSwell * microDetail * (surfaceNoise(point * 0.7 + vec2(uTime * 0.08, -uTime * 0.06)) * 0.12 + surfaceNoise(point * 1.9 + vec2(-uTime * 0.12, uTime * 0.08)) * 0.04);
+        float rippleFootprint = max(length(dFdx(point)), length(dFdy(point)));
+        float fineRipples = 1.0 - smoothstep(0.12, 0.45, rippleFootprint);
+        slope += uSwell * microDetail * (surfaceNoise(point * 1.25 + vec2(uTime * 0.08, -uTime * 0.06)) * 0.085 + surfaceNoise(point * 3.8 + vec2(-uTime * 0.12, uTime * 0.08)) * 0.028 * fineRipples);
         vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
         if (uFaceted > 0.5) {
           vec3 face = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
@@ -63,7 +64,10 @@ export function createWaterMaterial(uniforms) {
         float caustic = pow(max(0.0, sin(rippleA * 0.3 + sin(rippleB * 0.25))), 12.0) * (1.0 - deep);
         waterColor += vec3(0.1, 0.21, 0.1) * caustic;
         vec3 sky = mix(vec3(0.87, 0.76, 0.6), vec3(0.16, 0.35, 0.54), pow(max(0.0,reflection.y),0.42));
-        float glint = pow(max(dot(reflection, sunDirection), 0.0), 180.0);
+        vec2 cloudPoint = reflection.xz / max(0.18, reflection.y) * 2.4 + vec2(uTime * 0.0017, uTime * 0.0006);
+        float reflectedCloud = sin(cloudPoint.x + sin(cloudPoint.y * 1.7)) * sin(cloudPoint.y * 0.8 + sin(cloudPoint.x * 1.3));
+        sky = mix(sky, vec3(0.82,0.85,0.83), smoothstep(0.1,0.7,reflectedCloud) * smoothstep(0.03,0.2,reflection.y) * 0.32);
+        float glint = pow(max(dot(reflection, sunDirection), 0.0), mix(180.0,65.0,smoothstep(0.1,0.8,rippleFootprint)));
         float broadGlint = pow(max(dot(reflection, sunDirection), 0.0), 16.0);
         vec3 color = mix(waterColor, sky, fresnel) + vec3(1.0, 0.86, 0.59) * (glint * 0.7 + broadGlint * 0.1);
         float crest = smoothstep(0.17, 0.29, length(slope)) * smoothstep(0.65, 1.5, height) * 0.17;

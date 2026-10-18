@@ -38,8 +38,13 @@ export function createSpray(scene) {
   scene.add(points);
   let cursor = 0;
   let accumulator = 0;
+  let seed = 731;
+  function random() {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
   return {
-    reset() {birth.fill(-100); geometry.attributes.aBirth.needsUpdate = true; accumulator = 0;},
+    reset() {birth.fill(-100); geometry.attributes.aBirth.needsUpdate = true; accumulator = 0; cursor = 0; seed = 731;},
     update(state, time, dt, swell) {
       uniforms.uTime.value = time;
       if (state.speed < 5 || state.airtime > 0.15) return;
@@ -53,7 +58,7 @@ export function createSpray(scene) {
         const x = state.x + sine * 2 + side * cosine * 1.2;
         const z = state.z + cosine * 2 - side * sine * 1.2;
         positions.set([x, sampleWave(x, z, time, swell).h + 0.15, z], index * 3);
-        velocities.set([side * cosine * 3 + sine * 3, 1 + Math.random() * 2.5, -side * sine * 3 + cosine * 3], index * 3);
+        velocities.set([side * cosine * 3 + sine * 3, 1 + random() * 2.5, -side * sine * 3 + cosine * 3], index * 3);
         birth[index] = time;
       }
       for (const attribute of Object.values(geometry.attributes)) attribute.needsUpdate = true;

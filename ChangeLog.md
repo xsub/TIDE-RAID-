@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Water polish and performance visibility
+
+- Finer two-scale cosmetic ripples with screen-footprint filtering, softer distant sun glints and inexpensive cloud-color reflections. Physical wave displacement and hull forces are unchanged; cloud reflections remain artistic approximations.
+- Added postprocess edge smoothing and half-resolution bloom to trade a small fullscreen pass for cleaner boat/foliage edges and cheaper glow buffers. Cinematic mode remains optional; no automatic quality changes affect repeatability.
+- Press `?` to toggle a lightweight diagnostic overlay: rolling FPS, mean/P95 frame intervals, whole-frame draw calls/triangles, resident geometries/textures, drawing-buffer resolution and loaded sectors. Statistics refresh four times per second only while visible; frame timings are not GPU timings.
+- Moved spray emission into fixed simulation steps and seeded/reset its random sequence. Audio noise is now seeded too. This improves repeatability, not cross-device bit-exact replays or deterministic wall-clock input timing.
+- Added tests for rolling statistics and exact spray restart repeatability. Production build and automated tests pass; the existing bundle-size advisory remains.
+
 ## 2026-10-18 — Covered helms
 
 - Replaced the exposed driving spaces on sport, runabout and classic boats with compact hardtops, opaque tinted glazing, corner frames and side trim. Covered the cruiser's upper helm as well; the sailboat already uses an enclosed cabin.

@@ -8,6 +8,7 @@ import {resolveHarborCollision} from './harbor-layout.js';
 import {createSpray} from './spray.js';
 import {createAtmosphere, SUN_DIRECTION} from './atmosphere.js';
 import {createCinema} from './cinema.js';
+import {createPerformanceOverlay} from './performance.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
 import {DEFAULT_BINDINGS, readPreferences, savePreferences, remap, readGamepad, advanceLesson} from './preferences.js';
 import {createWater, createScenery} from './scenery.js';
@@ -55,6 +56,8 @@ try {storage = localStorage;} catch {}
 const preferences = readPreferences(storage);
 document.querySelector('details').open = innerWidth > 900;
 const renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.info.autoReset = false;
+const performanceOverlay = createPerformanceOverlay(renderer);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -248,6 +251,11 @@ addEventListener('keydown', (event) => {
     return;
   }
   if (event.target.matches('input, textarea, select')) return;
+  if (event.key === '?') {
+    event.preventDefault();
+    if (!event.repeat) performanceOverlay.toggle();
+    return;
+  }
   if (event.code.startsWith('Arrow') || event.code === 'Space') event.preventDefault();
   keys.add(event.code);
   if (event.repeat) return;
@@ -354,7 +362,8 @@ function drawMap() {
 
 function frame(now) {
   requestAnimationFrame(frame);
-  const elapsed = Math.min((now - lastFrame) / 1000, 0.05);
+  const frameMilliseconds = now - lastFrame;
+  const elapsed = Math.min(frameMilliseconds / 1000, 0.05);
   lastFrame = now;
   const pad = readGamepad(navigator.getGamepads?.() ?? []);
   if (pad.camera && !previousPad.camera) toggleCamera();
@@ -377,6 +386,7 @@ function frame(now) {
       step(state, {...input, boost: boosting}, 1 / 120, simTime, roughness);
       resolveHarborCollision(state);
       if (trafficView) updateTraffic(traffic, state, 1 / 120);
+      spray.update(state, simTime, 1 / 120, roughness);
       advanceLesson(lesson, {...input, boost: boosting}, state, race.next, 1 / 120);
       if (updateRace(race, before, state, 1 / 120)) {
         complete = true;
@@ -389,7 +399,6 @@ function frame(now) {
       accumulator -= 1 / 120;
     }
     if (race.phase === 'explore' && state.z <= END_Z + 8) complete = true;
-    spray.update(state, simTime, elapsed, roughness);
   }
   boat.position.set(state.x, state.y, state.z);
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
@@ -414,7 +423,9 @@ function frame(now) {
   sun.target.position.set(state.x, 0, state.z);
   sun.position.copy(sun.target.position).addScaledVector(SUN_DIRECTION, 200);
   document.body.classList.toggle('impact', state.collision > 0 && !paused);
+  renderer.info.reset();
   cinema.render(preferences.cinema);
+  performanceOverlay.update(frameMilliseconds, now, chunks, preferences.cinema);
   hudTimer += elapsed;
   if (hudTimer > 0.1) {
     hudTimer = 0;
