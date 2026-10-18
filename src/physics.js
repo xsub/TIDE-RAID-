@@ -3,15 +3,16 @@ import {START_Z, channel, chunkFeatures, chunkIndex} from './world.js';
 import {settleContacts} from './contacts.js';
 import {advanceHull} from './motion.js';
 import {applyRudder} from './steering.js';
+import {vesselProfile,propulsionAcceleration} from './vessel-profiles.js';
 
 export function channelHeading(z) {
   return Math.atan((channel(z + 1).center - channel(z - 1).center) / 2);
 }
 
-export function createState() {
-  return {x: channel(START_Z - 20).center, z: START_Z - 20, y: 1.5,
+export function createState(model='boat-speed-c') {
+  return {...vesselProfile(model),x: channel(START_Z - 20).center, z: START_Z - 20, y: 1.5,
     vx: 0, vz: 0, vy: 0, heading: channelHeading(START_Z - 20), pitch: 0, roll: 0,
-    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0, mass: 1400, impactEnergy: 0, yawRate: 0};
+    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0, impactEnergy: 0, yawRate: 0};
 }
 
 export function recover(state, time, roughness = 1) {
@@ -34,7 +35,8 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   let back = 0;
   let left = 0;
   let right = 0;
-  for (const [localX, localZ] of [[-0.9, -1.9], [0.9, -1.9], [-0.9, 1.9], [0.9, 1.9]]) {
+  const contactWidth=state.beam*0.32; const contactLength=state.length*0.257;
+  for (const [localX, localZ] of [[-contactWidth,-contactLength],[contactWidth,-contactLength],[-contactWidth,contactLength],[contactWidth,contactLength]]) {
     const worldX = state.x + localX * cosine + localZ * sine;
     const worldZ = state.z - localX * sine + localZ * cosine;
     const wave = sampleWave(worldX, worldZ, time, roughness);
@@ -49,21 +51,20 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   support *= 0.25;
   const wet = Math.min(1, support / 9.81);
   const forwardBefore = -sine * state.vx - cosine * state.vz;
-  const braking = Math.sign(forwardBefore) * Math.min(Math.abs(forwardBefore) / dt, 30);
-  const thrust = input.brake ? -braking : input.throttle ? (input.boost ? 29 : 20) : 0;
+  const thrust = propulsionAcceleration(state,input,forwardBefore,wet,dt);
   state.vx -= sine * thrust * wet * dt;
   state.vz -= cosine * thrust * wet * dt;
   const forward = -sine * state.vx - cosine * state.vz;
   const lateral = cosine * state.vx - sine * state.vz;
-  const grip = 1 - Math.exp(-2.6 * wet * dt);
+  const grip = 1 - Math.exp(-state.lateralGrip * wet * dt);
   state.vx -= cosine * lateral * grip;
   state.vz += sine * lateral * grip;
-  const drag = Math.exp(-((0.1 + speed * 0.0045) * wet + 0.025) * dt);
+  const drag = Math.exp(-((0.1 + speed * state.waterDrag) * wet + 0.025) * dt);
   state.vx *= drag;
   state.vz *= drag;
   applyRudder(state,input.turn,forward,wet,dt);
-  const planing = Math.min(speed / 45, 1) * wet;
-  state.vy += (support * (1 + planing * 0.06) - 9.81) * dt;
+  const planing = Math.min(speed / state.planingSpeed, 1) * wet;
+  state.vy += (support * (1 + planing * state.planingLift) - 9.81) * dt;
   state.vy = Math.max(-12, Math.min(3.0, state.vy));
   let impact=false;
   advanceHull(state,dt,0,(body) => {

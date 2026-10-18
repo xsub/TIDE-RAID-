@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {PLAYER_BOATS, PLAYER_LENGTH} from '../src/player-boats.js';
+import {PLAYER_BOATS} from '../src/player-boats.js';
+import {vesselProfile} from '../src/vessel-profiles.js';
 import {VESSEL_STYLES} from '../src/vessels.js';
 import {loadFleet} from '../src/fleet.js';
 import {readPreferences, savePreferences} from '../src/preferences.js';
@@ -12,9 +13,10 @@ test('every fleet vessel is selectable and fits the shared player length', async
   const geometries = new Set();
   const materials = new Set();
   for (const entry of PLAYER_BOATS) {
-    const model = factory(entry.model, PLAYER_LENGTH);
+    const length=vesselProfile(entry.model).length;
+    const model = factory(entry.model, length);
     const bounds = new THREE.Box3().setFromObject(model);
-    assert.ok(Math.abs(bounds.max.z - bounds.min.z - PLAYER_LENGTH) < 1e-6);
+    assert.ok(Math.abs(bounds.max.z - bounds.min.z - length) < 1e-6);
     model.traverse((child) => {
       if (!child.isMesh) return;
       geometries.add(child.geometry); materials.add(child.material);

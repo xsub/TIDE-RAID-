@@ -55,6 +55,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+Player vessels now have distinct size/mass/power/drag/rudder/planing profiles. Cruiser length is 11 m and sailboat 12 m with matching physics dimensions; smaller craft remain 7.4 m. Acceleration uses bounded thrust/power divided by mass. **B** (remappable) or gamepad **B** engages reduced reverse; **S** remains braking. Values are tuned gameplay approximations. Earlier shared-size descriptions below are historical; current profiles live in `src/vessel-profiles.js`.
+
 ### Collision impulses
 
 Player steering now generates rudder torque rather than directly changing heading. Authority depends on forward water flow, immersion, rudder angle and yaw inertia; water resistance damps both steering and impact spin. The same input therefore turns heavier hulls more slowly. Effective flow is capped for stability; coefficients are tuned gameplay approximations, not measured naval data. Traffic retains its navigation controller, and dedicated reverse propulsion remains unimplemented.

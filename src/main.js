@@ -3,7 +3,8 @@ import {createState, step, recover} from './physics.js';
 import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
 import {loadFleet, createTrafficView} from './fleet.js';
-import {PLAYER_BOATS, PLAYER_LENGTH} from './player-boats.js';
+import {PLAYER_BOATS} from './player-boats.js';
+import {vesselProfile} from './vessel-profiles.js';
 import {VESSEL_MASS} from './collision.js';
 import {createTraffic, updateTraffic, collideTraffic} from './traffic.js';
 import {createSpray} from './spray.js';
@@ -31,7 +32,7 @@ document.getElementById('app').innerHTML = `
       <button id="beauty">BEAUTY PRESET</button>
       <label for="playerBoat">YOUR BOAT</label>
       <select id="playerBoat" disabled>${PLAYER_BOATS.map((boat) => `<option value="${boat.model}">${boat.name}</option>`).join('')}</select>
-      <small>All fleet boats are playable. Shared propulsion and 7.4 m race hull; different collision masses. Sailboat uses auxiliary power. Changing boat restarts the run.</small>
+      <small>Native hull sizes, mass, power and handling. Sailboat uses auxiliary power. Changing boat restarts the run. Reverse: B / gamepad B (keyboard remappable).</small>
       <label for="detail">WATER SURFACE <output id="quality"></output></label>
       <input id="detail" type="range" min="0" max="100" value="25">
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
@@ -94,7 +95,7 @@ document.getElementById('detail').value = preferences.detail;
 const boat = createBoat();
 scene.add(boat);
 const spray = createSpray(scene);
-let state = createState();
+let state = createState(preferences.playerBoat);
 state.mass = VESSEL_MASS[preferences.playerBoat];
 let traffic = createTraffic(state);
 let trafficView = null;
@@ -122,7 +123,7 @@ loadFleet().then((factory) => {
     child.geometry.dispose();
     for (const material of Array.isArray(child.material) ? child.material : [child.material]) {material.map?.dispose(); material.dispose();}
   });
-  for (const entry of PLAYER_BOATS) playerModels.set(entry.model, factory(entry.model, PLAYER_LENGTH));
+  for (const entry of PLAYER_BOATS) playerModels.set(entry.model, factory(entry.model, vesselProfile(entry.model).length));
   showPlayerBoat();
   playerBoatSelect.disabled = false;
   trafficView = createTrafficView(scene, factory, traffic);
@@ -212,7 +213,7 @@ scene.add(gateGroup);
 
 function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   if (phase !== 'explore' && !trafficView) return;
-  state = createState();
+  state = createState(preferences.playerBoat);
   state.mass = VESSEL_MASS[preferences.playerBoat];
   traffic = createTraffic(state);
   race = createRace(phase);
@@ -432,7 +433,7 @@ function frame(now) {
     else togglePause();
   }
   previousPad = pad;
-  const input = {throttle: held('throttle', 'ArrowUp') || pad.throttle, brake: held('brake', 'ArrowDown') || pad.brake,
+  const input = {throttle: held('throttle', 'ArrowUp') || pad.throttle, brake: held('brake', 'ArrowDown') || pad.brake, reverse: held('reverse') || pad.reverse,
     turn: Math.max(-1, Math.min(1, Number(held('right', 'ArrowRight')) - Number(held('left', 'ArrowLeft')) + pad.turn)) * preferences.sensitivity,
     boost: held('boost', 'ShiftRight') || pad.boost};
   if (!paused && race.phase === 'countdown') tickCountdown(race, elapsed);

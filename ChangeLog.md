@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Handling roadmap 2: distinct vessel profiles and reverse
+
+- Player cruiser/sailboat now use native 11/12 m lengths with matching capsule, inertia and buoyancy sampling dimensions. Added per-vessel power, thrust ceiling, drag, lateral grip, rudder area, planing thresholds/lift and draft parameters.
+- Thrust is force/mass with a power-limited envelope. Dedicated remappable reverse (B; gamepad B) is weaker and speed-limited; braking still stops without reversing. Existing keyboard preferences migrate the additional binding.
+- All 70 tests and production build pass, including each hull's forward/reverse stability and rendering sizes. Profiles are tuned game values, not manufacturer data. Per-vessel record/medal balancing remains pending; this handling key preserves prior times.
+
 ## 2026-10-18 — Handling roadmap 1: rudder-driven yaw
 
 - Replaced direct player heading changes with a rudder-force approximation using water density, effective rudder area, squared water-relative forward speed, rudder angle and stern lever arm. Torque acts through hull yaw inertia; heavier vessels respond more slowly.

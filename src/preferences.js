@@ -1,6 +1,6 @@
 import {isPlayerBoat} from './player-boats.js';
 
-export const DEFAULT_BINDINGS = {throttle: 'KeyW', brake: 'KeyS', left: 'KeyA', right: 'KeyD', boost: 'ShiftLeft', recover: 'KeyH', camera: 'KeyC', pause: 'KeyP', reset: 'KeyR'};
+export const DEFAULT_BINDINGS = {throttle: 'KeyW', brake: 'KeyS', left: 'KeyA', right: 'KeyD', boost: 'ShiftLeft', recover: 'KeyH', camera: 'KeyC', pause: 'KeyP', reset: 'KeyR', reverse: 'KeyB'};
 export const isBindable = (code) => /^(Key[A-Z]|Digit[0-9]|Arrow(Up|Down|Left|Right)|Shift(Left|Right)|Space)$/.test(code);
 
 export function readPreferences(storage) {
@@ -18,6 +18,7 @@ export function readPreferences(storage) {
   if (Number.isFinite(saved.volume) && saved.volume >= 0 && saved.volume <= 1) defaults.volume = saved.volume;
   for (const name of ['music', 'effects', 'traffic', 'ambience']) if (Number.isFinite(saved[name]) && saved[name] >= 0 && saved[name] <= 1) defaults[name] = saved[name];
   if (typeof saved.cinema === 'boolean') defaults.cinema = saved.cinema;
+  if(saved.bindings && !saved.bindings.reverse) saved.bindings.reverse=['KeyB','KeyV','KeyN'].find((code)=>!Object.values(saved.bindings).includes(code));
   if (saved.bindings && Object.keys(DEFAULT_BINDINGS).every((action) => isBindable(saved.bindings[action]))) {
     const codes = Object.keys(DEFAULT_BINDINGS).map((action) => saved.bindings[action]);
     if (new Set(codes).size === codes.length) defaults.bindings = Object.fromEntries(Object.keys(DEFAULT_BINDINGS).map((action) => [action, saved.bindings[action]]));
@@ -43,7 +44,7 @@ export function readGamepad(pads) {
   const pressed = (index) => Boolean(pad?.buttons[index]?.pressed || pad?.buttons[index]?.value > 0.25);
   const axis = Number.isFinite(pad?.axes[0]) ? Math.max(-1, Math.min(1, pad.axes[0])) : 0;
   return {connected: Boolean(pad), turn: Math.abs(axis) < 0.15 ? 0 : Math.sign(axis) * (Math.abs(axis) - 0.15) / 0.85,
-    throttle: pressed(7), brake: pressed(6), boost: pressed(0), recover: pressed(2), camera: pressed(3), pause: pressed(9)};
+    throttle: pressed(7), brake: pressed(6), reverse: pressed(1), boost: pressed(0), recover: pressed(2), camera: pressed(3), pause: pressed(9)};
 }
 
 export function advanceLesson(lesson, input, state, checkpoints, dt) {
