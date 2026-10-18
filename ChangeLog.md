@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — River, under-hull and camera depth gauge
+
+- Added a compact always-visible TIDE RAID gauge for river depth under the boat, minimum estimated keel clearance across five hull samples, and actual camera depth beneath its local wave surface. Above-water cameras are labeled explicitly; missing data shows an unavailable reading, not a safe zero.
+- Reads the shared scaled depth field at 10 Hz. Clearance accounts for effective flooded draft, vertical hull position, pitch and roll; low-clearance/ground-contact warnings are highlighted. HUD is not underwater-tinted and works in all TIDE RAID camera modes. Cargo Lab is unchanged.
+- These are game estimates, not a sonar/navigation instrument: five-point hull/draft approximation, decorative underwater rocks excluded, and negative estimated clearance displayed as ground contact / 0 m.
+- All 144 tests and both production builds pass, including independent river/keel/camera readings, flood draft/heave/roll effects, shallow hull samples and unavailable data. Existing shared-bundle warning remains.
+- Browser verified the 2× river reading (~33 m), decreasing clearance while sinking, positive underwater camera depth, and 0 m / GROUND CONTACT at the bed without runtime errors.
+
 ## 2026-10-18 — Configurable deeper exploration river
 
 - Added saved River Depth multiplier (0.5–4×), defaulting exploration to 2× deeper than the original field, with an 80 m cap. Shoreline minimum depth remains unchanged. Changing the parameter restarts exploration; trials retain their original fixed depth and existing records/replays.

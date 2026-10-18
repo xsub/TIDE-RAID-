@@ -1,5 +1,11 @@
 # TIDE RAID 2.0
 
+## Depth gauge
+
+The bottom-center TIDE RAID gauge displays **River** (water surface to the bed beneath the boat), **Under hull** (minimum estimated keel clearance across center/bow/stern/port/starboard samples), and **Camera below water** (actual eye submersion, or Above Water). Readings use the shared scaled river field and local analytical wave surface and update at 10 Hz. Clearance includes flooded effective draft, hull height and pitch/roll. Low clearance and ground contact are highlighted; unavailable data shows a dash instead of a false safe reading.
+
+This is an approximate gameplay instrument, not sonar or maritime navigation equipment. Decorative underwater rocks are excluded, the keel is approximated from the physical draft/reference height rather than the rendered mesh, and contact/negative clearance displays as 0 m. Camera depth follows the smoothed eye rather than the target pose. Trials, exploration and all TIDE RAID camera views share the gauge; Cargo Lab remains separate.
+
 ## Underwater seabed and external wreck inspection
 
 Choose **Camera View → Wreck inspection · underwater orbit** to follow the visible hull underwater, independent of the driver sink checkbox. Orbit and zoom work; manual height/tilt is inactive. C / gamepad Y now cycles Chase → Pilot → Arcade → Wreck. The inspection camera has terrain clearance; normal Chase/Arcade retain their above-water safeguard. Underwater fog/tint/audio also apply to the inspection camera.

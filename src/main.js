@@ -5,6 +5,8 @@ import {createSinkingBubbles} from './sinking-bubbles.js';
 import {underwaterBlend} from './underwater-model.js';
 import {createUnderwaterView} from './underwater-view.js';
 import {createSeabed, seabedHeight} from './seabed.js';
+import {waterDepth} from './depth.js';
+import {depthReadings} from './depth-gauge.js';
 import {weatherState} from './weather.js';
 import {createRain} from './weather-view.js';
 import {createVesselLights} from './vessel-lights.js';
@@ -42,6 +44,7 @@ document.getElementById('app').innerHTML = `
     <p id="voyageStatus" style="max-width:240px;line-height:1.6"></p>
     <label id="hullLabel">HULL <meter id="hullMeter" min="0" max="1" value="1"></meter></label>
     <label id="fuelLabel">FUEL <meter id="fuelMeter" min="0" max="1" value="1"></meter></label></section>
+  <section id="depthGauge" aria-label="Estimated depth gauge"><small>ESTIMATED DEPTH · METRES</small><div class="depth-values"><div>RIVER<strong id="gaugeDepth">—</strong></div><div>UNDER HULL<strong id="gaugeClearance">—</strong></div><div>CAMERA BELOW WATER<strong id="gaugeCamera">—</strong></div></div><small id="gaugeStatus">DEPTH UNAVAILABLE</small></section>
   <aside><canvas id="map" width="220" height="240" aria-label="Local river navigation map"></canvas>
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
@@ -742,6 +745,13 @@ function frame(now) {
   performanceOverlay.update(frameMilliseconds, now, chunks, preferences.cinema);
   hudTimer += elapsed;
   if (hudTimer > 0.1) {
+    const readings = depthReadings(state, camera.position, sampleWave(state.x, state.z, simTime, roughness).h, cameraSurface, (x, z) => waterDepth(x, z, state.depthScale), state.draft + (exploring ? voyage.flooding * 0.5 : 0));
+    const metres = (value) => value === null ? '—' : `${Math.max(0, value).toFixed(1)} m`;
+    document.getElementById('gaugeDepth').textContent = metres(readings.river);
+    document.getElementById('gaugeClearance').textContent = metres(readings.clearance);
+    document.getElementById('gaugeCamera').textContent = readings.cameraDepth === 0 ? 'ABOVE WATER' : metres(readings.cameraDepth);
+    document.getElementById('gaugeStatus').textContent = readings.status;
+    document.getElementById('depthGauge').dataset.warning = String(readings.status !== 'CLEAR');
     hudTimer = 0;
     elements.speed.textContent = Math.round(state.speed * 3.6).toString().padStart(3, '0');
     elements.air.textContent = state.grounded>0 ? `GROUNDING / ${state.depth.toFixed(1)} M DEPTH · REVERSE / RECOVER` : state.collision ? `IMPACT / ${(state.impactEnergy / 1000).toFixed(1)} kJ · ${keyName('recover')} TO RECOVER` : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
