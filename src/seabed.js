@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {waterDepth} from './depth.js';
 import {createSeagrass} from './seagrass.js';
+import {createFish} from './fish.js';
 
 export function seabedHeight(x, z, scale = 1) {return -waterDepth(x, z, scale);}
 export function createSeabed(scene) {
@@ -38,6 +39,7 @@ export function createSeabed(scene) {
   });
   const rays = new THREE.Mesh(rayGeometry, rayMaterial); group.add(rays);
   const grass = createSeagrass(group);
+  const fish = createFish(group);
   const transform = new THREE.Object3D(); let lastCell = ''; let centerX = 0; let centerZ = 0;
   function hash(x, z) {return Math.sin(x * 127.1 + z * 311.7) * 43758.5453 % 1 + 1;}
   return {
@@ -52,6 +54,7 @@ export function createSeabed(scene) {
       if (!group.visible) return;
       uniforms.uSeaTime.value = time; uniforms.uSeaSun.value = weather.sun;
       grass.animate(time);
+      fish.update(state, camera, time);
       rays.visible = weather.sun > 0.05;
       rays.position.set(state.x, 0, state.z);
       const cellX = Math.round(state.x / 32); const cellZ = Math.round(state.z / 32);

@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Underwater fish schools
+
+- Added six small schools, capped at 48 silver/green fish, with shaped bodies, tail/dorsal fins, varied sizes and shader-driven tail movement. Hidden with above-water scenery; no extra lights, shadows or assets.
+- One instanced draw batch reuses geometry and buffers. Deterministic local school paths update at most 20 Hz with seabed/surface clearance checks. Decorative only: not fish AI, boat avoidance or fish collisions. Local schools reposition when crossing camera cells.
+- All 152 tests and both production entry builds pass, including bounded fish counts, repeatable transforms, buffer reuse and bed clearance. Existing shared-bundle advisory remains. Visual appearance and device-specific performance still need in-game playtesting.
+
 ## 2026-10-18 — Waterline immersion and underwater vegetation
 
 - Added a short dark blue-green immersion veil on entering/leaving the water, hiding the abrupt surface switch without a white flash or full black frame. Waterline hysteresis prevents repeated wave-edge flickering; reduced-motion preferences reduce its intensity. HUD stays readable.
