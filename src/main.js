@@ -4,6 +4,7 @@ import {floodedHandling, resetSinking, settleFloodedHull} from './sinking.js';
 import {createSinkingBubbles} from './sinking-bubbles.js';
 import {underwaterBlend} from './underwater-model.js';
 import {createUnderwaterView} from './underwater-view.js';
+import {createSeabed, seabedHeight} from './seabed.js';
 import {weatherState} from './weather.js';
 import {createRain} from './weather-view.js';
 import {createVesselLights} from './vessel-lights.js';
@@ -74,7 +75,8 @@ document.getElementById('app').innerHTML = `
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
       <button id="camera">CAMERA / ARCADE</button>
-      <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option></select>
+      <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
+      <small>Wreck inspection follows the hull underwater. Orbit/zoom work; manual height/tilt is ignored in this view.</small>
       <small id="pilotHint" hidden>Pilot view: forward-facing helm height, steadied horizon. Exterior player hull is hidden for an unobstructed view; no detailed cockpit interior yet. Orbit, zoom and manual height/tilt apply only to exterior views. C / gamepad Y cycles cameras.</small>
       <label><input id="pilotSinkWithBoat" type="checkbox" style="width:auto"> DRIVER POV: SINK WITH BOAT</label>
       <label><input id="manualCamera" type="checkbox" style="width:auto"> MANUAL CAMERA HEIGHT / TILT</label>
@@ -133,6 +135,7 @@ renderer.toneMappingExposure = 0.98;
 document.getElementById('view').append(renderer.domElement);
 const scene = new THREE.Scene();
 const atmosphere = createAtmosphere(scene, renderer);
+const seabed = createSeabed(scene);
 const underwaterView = createUnderwaterView(scene, document.getElementById('view'));
 let underwater = 0;
 const hemisphere = new THREE.HemisphereLight(0xc6d8e2, 0x343b2e, 0.65); scene.add(hemisphere);
@@ -149,6 +152,7 @@ let scenery = createScenery(scene);
 const sceneryStatus=document.createElement('small');sceneryStatus.id='sceneryStatus';sceneryStatus.textContent='PHOTO ASSETS / LOADING';
 document.getElementById('fleetStatus').after(sceneryStatus);
 loadRealScenery().then((assets)=>{
+  seabed.setAssets(assets);
   scenery.dispose();scenery=createScenery(scene,assets);sceneryStatus.textContent='PHOTO ASSETS / READY · POLY HAVEN CC0';
 }).catch(()=>{sceneryStatus.textContent='PHOTO ASSETS / FAILED · FALLBACK ACTIVE · RELOAD TO RETRY';});
 elements.quality.textContent = water.setDetail(preferences.detail);
@@ -325,7 +329,7 @@ function rescue() {
   }
 }
 function toggleCamera() {
-  mode = ({chase: 'pilot', pilot: 'arcade', arcade: 'chase'})[mode];
+  mode = ({chase: 'pilot', pilot: 'arcade', arcade: 'wreck', wreck: 'chase'})[mode];
   elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`;
   preferences.camera = mode;
   document.getElementById('cameraView').value = mode;
@@ -340,9 +344,10 @@ function togglePause() {
 }
 function cameraGoal() {
   const waterHeight = sampleWave(state.x, state.z, simTime, roughness).h;
-  const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 && !(mode === 'pilot' && preferences.pilotSinkWithBoat) ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
+  const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 && mode !== 'wreck' && !(mode === 'pilot' && preferences.pilotSinkWithBoat) ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
   const pose = cameraPose(cameraState, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
     preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null);
+  if (mode === 'wreck') pose.y = Math.max(pose.y, seabedHeight(pose.x, pose.z) + 1.5);
   const horizontal = Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ);
   document.getElementById('cameraActual').textContent = `Actual: ${(pose.y - waterHeight).toFixed(1)} m · ${(Math.atan2(pose.y - pose.lookY, horizontal) * 180 / Math.PI).toFixed(1)}°`;
   cameraPosition.set(pose.x, pose.y, pose.z);
@@ -657,6 +662,7 @@ function frame(now) {
   boat.visible = mode !== 'pilot';
   document.getElementById('pilotHint').hidden = mode !== 'pilot';
   for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto', 'cameraZoom', 'zoomIn', 'zoomOut', 'zoomPreset', 'cameraAngle', 'cameraRear']) document.getElementById(id).disabled = mode === 'pilot';
+  for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto']) document.getElementById(id).disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   const weather = weatherState(preferences, simTime - weatherEpoch);
   const displayedHour = Math.floor(weather.hour * 60);
@@ -705,7 +711,8 @@ function frame(now) {
   smoothLook.lerp(lookTarget, 1 - Math.exp(-(mode === 'pilot' ? 18 : 7) * elapsed));
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
-  underwater = underwaterBlend(underwater, cameraSurface - camera.position.y, mode === 'pilot' && preferences.pilotSinkWithBoat && exploring, elapsed);
+  underwater = underwaterBlend(underwater, cameraSurface - camera.position.y, ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring, elapsed);
+  seabed.update(state, camera, simTime, underwater, weather);
   underwaterView.update(simTime, camera, underwater, voyage.sinking.air, roughness);
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
     traffic.boats, !complete && race.phase !== 'ready' && (!exploring || voyage.flooding < 0.75), underwater);

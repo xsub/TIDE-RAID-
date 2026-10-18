@@ -55,6 +55,6 @@ export function floodedHandling(voyage, state) {
 export function settleFloodedHull(state, voyage, surface, dt) {
   const drag = Math.exp(-voyage.flooding * 0.8 * dt);
   state.vx *= drag; state.vz *= drag; state.speed = Math.hypot(state.vx, state.vz);
-  const floor = surface - Math.max(0.4, Math.min(state.depth - 0.5, state.length * 0.8 + 3));
+  const floor = -Math.max(0.5, Math.min(80, state.depth)) + Math.min(0.6, state.draft);
   if (state.y < floor) {state.y = floor; state.vy = Math.max(0, state.vy);}
 }

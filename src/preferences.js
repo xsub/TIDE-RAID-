@@ -26,7 +26,7 @@ export function readPreferences(storage) {
   for (const name of ['sinkingMode', 'fuelMode']) if (['off', 'arcade', 'realistic'].includes(saved[name])) defaults[name] = saved[name];
   if (Number.isFinite(saved.cameraZoom) && saved.cameraZoom >= 0.5 && saved.cameraZoom <= 8) defaults.cameraZoom = saved.cameraZoom;
   if (Number.isFinite(saved.detail) && saved.detail >= 0 && saved.detail <= 100) defaults.detail = saved.detail;
-  if (['chase', 'arcade', 'pilot'].includes(saved.camera)) defaults.camera = saved.camera;
+  if (['chase', 'arcade', 'pilot', 'wreck'].includes(saved.camera)) defaults.camera = saved.camera;
   if (Number.isFinite(saved.cameraAngle) && saved.cameraAngle >= 0 && saved.cameraAngle <= 360) defaults.cameraAngle = saved.cameraAngle;
   if (Number.isFinite(saved.sensitivity) && saved.sensitivity >= 0.5 && saved.sensitivity <= 1.5) defaults.sensitivity = saved.sensitivity;
   if (typeof saved.hints === 'boolean') defaults.hints = saved.hints;

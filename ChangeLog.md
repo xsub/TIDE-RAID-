@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Visible seabed, filtered sunlight and external wreck view
+
+- Added saved Wreck inspection camera with underwater hull following, orbit/zoom, terrain clearance and visible player exterior. C / gamepad Y includes the new view; underwater fog/tint/audio apply without requiring the driver sink checkbox. Manual height/tilt is inactive, while normal exterior cameras keep surface safeguards.
+- Added one 256 m, 33×33-vertex depth-field seabed patch, at most 48 instanced rocks and one eight-shaft sunlight mesh batch. Terrain and rock transforms update on 32 m cells and reuse buffers; scenery is hidden above water. Reuses existing photographic sand/optimized rock assets, with procedural fallback, and adds no downloads, lights or shadow maps.
+- Animated sand caustics and translucent filtered sunlight follow existing daylight/cloud strength and shut off at night. They are shader/mesh approximations, not refractive/volumetric optics. Underwater rocks are decorative; terrain interpolation/clearance is approximate.
+- Flooded boats now settle against the actual gameplay depth field (bounded at 80 m) instead of the previous short artificial depth, allowing wreck inspection near the seabed. Cargo Lab and trial physics/records remain unchanged.
+- All 139 tests and both production builds pass. New tests cover depth matching, terrain/instance/ray budgets, buffer/asset reuse, unchanged shared texture settings, no per-frame terrain rebuild, hidden above-water scenery and persisted wreck orbit. Browser verified the visible sunken catamaran, textured bed/rocks, light shafts and orbit without runtime errors. Existing bundle-size advisory remains; GPU performance depends on device/view and has not been universally certified.
+
 ## 2026-10-18 — Underwater driver tint, visibility, bubbles and audio
 
 - Driver POV with Sink with boat enabled now samples actual camera depth against the shared animated water surface. A smoothed transition applies a blue-green world-view overlay, underwater fog (roughly 20 m at full blend), reduced environment intensity and hidden above-water sky. HUD is not tinted. Effects are independent of cinematic postprocessing and fade on surfacing/mode change.

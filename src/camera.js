@@ -4,6 +4,12 @@ export const clampCameraZoom = (zoom) => Number.isFinite(zoom) ? Math.max(0.5, M
 export function cameraPose(state, mode, angle, aspect, portrait = false, channelWidth = 400, zoom = 1, manual = null) {
   zoom = clampCameraZoom(zoom);
   const speed = Math.max(0, Math.min(70, state.speed));
+  if (mode === 'wreck') {
+    const orbit = state.heading + angle * Math.PI / 180;
+    const distance = Math.max(state.beam * 1.4 + 3, (state.length * 1.2 + 4) / Math.sqrt(zoom));
+    return {x: state.x + Math.sin(orbit) * distance, y: state.y + Math.max(2.5, state.beam * 0.8), z: state.z + Math.cos(orbit) * distance,
+      lookX: state.x, lookY: state.y + 0.3, lookZ: state.z, fov: portrait ? 80 : 62};
+  }
   if (mode === 'pilot') {
     const forward = state.helmForward ?? 0.2; const side = state.helmSide ?? -0.35;
     const eyeX = state.x - Math.sin(state.heading) * forward + Math.cos(state.heading) * side;

@@ -65,7 +65,7 @@ test('every hull floods, loses flotation and settles within bounded depth determ
       tickVoyage(voyage, state, {}, {damageMode: 'realistic', fuelMode: 'off', sinkingMode: 'realistic'}, 1 / 120, surface);
       settleFloodedHull(state, voyage, surface, 1 / 120);
       assert.ok(Object.values(state).every(Number.isFinite));
-      assert.ok(state.y >= surface - state.length * 0.8 - 3 - 1e-8);
+      assert.ok(state.y >= -Math.min(80, state.depth) - 1e-8);
     }
     assert.equal(voyage.flooding, 1); assert.ok(state.y < -1, model);
     assert.equal(floodedHandling(voyage, state).power, 0);

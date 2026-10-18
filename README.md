@@ -1,5 +1,13 @@
 # TIDE RAID 2.0
 
+## Underwater seabed and external wreck inspection
+
+Choose **Camera View → Wreck inspection · underwater orbit** to follow the visible hull underwater, independent of the driver sink checkbox. Orbit and zoom work; manual height/tilt is inactive. C / gamepad Y now cycles Chase → Pilot → Arcade → Wreck. The inspection camera has terrain clearance; normal Chase/Arcade retain their above-water safeguard. Underwater fog/tint/audio also apply to the inspection camera.
+
+A local 256 m seabed patch follows the existing gameplay depth field (up to 80 m), with photographic sand and an instanced low-detail rock asset from the already bundled scenery pack. It reuses a 33×33 vertex grid, at most 48 rocks and one batch of eight sunlight shafts, rebuilding terrain/rock placement on 32 m cell changes rather than each frame. Sun/weather controls ray and animated seabed-caustic brightness; night removes the sunlight effect. Scenery is hidden above water. No new asset download, shadow map or reflection capture is added.
+
+Flooded hulls now settle against the depth field instead of stopping at a hull-length-derived artificial depth. Terrain sampling and hull clearance are approximate; seabed rocks are decorative and do not add new underwater collision shapes. Caustics/shafts are cheap shader/mesh approximations, not refractive water optics or volumetric scattering. The sand/rock source assets remain the existing licensed photographic pack; procedural fallbacks remain if loading fails. Cargo Lab and trial mechanics are unchanged.
+
 ## Submerged driver POV
 
 Enable **Driver POV: Sink with boat**, choose Pilot view, then sink during exploration (the flooding drill is available). Actual camera depth below the shared wave surface smoothly activates blue-green tint, fog reducing visibility to roughly 20 m, nearby rising air bubbles and a master audio low-pass/attenuation effect. Surfacing, Recover or switching to an exterior camera restores the normal view/sound. The HUD stays readable; effects work even with cinematic postprocessing disabled.
