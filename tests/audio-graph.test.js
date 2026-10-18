@@ -2,6 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAudio} from '../src/audio.js';
 
+test('clearance warning reuses one voice and obeys mute, pause and active gates', async () => {
+  const context = mockContext(); const audio = createAudio(() => context);
+  audio.setMix('music', 0); await audio.toggle();
+  const state = {x: 0, z: 0, vx: 0, vz: 0, heading: 0, speed: 0, airtime: 0, collision: 0, landing: 0};
+  const before = context.created.length;
+  audio.setClearanceWarning(0.3, 1, false, true);
+  audio.update(state, false, false);
+  const voice = context.created.slice(before);
+  assert.equal(voice.filter((node) => node.kind === 'oscillator').length, 1);
+  const envelope = voice.find((node) => node.kind === 'gain');
+  assert.ok(envelope.gain.value > 0);
+  const count = context.created.length;
+  for (let frame = 0; frame < 120; frame++) audio.update(state, false, false);
+  assert.equal(context.created.length, count);
+  context.currentTime = 0.2; audio.update(state, false, false);
+  assert.equal(envelope.gain.value, 0);
+  for (const [clearance, muted, active, paused] of [[0.3, true, true, false], [0.3, false, true, true], [0.3, false, false, false], [null, false, true, false], [2, false, true, false]]) {
+    audio.setClearanceWarning(clearance, 1, muted, active); audio.update(state, paused, false);
+    assert.equal(envelope.gain.value, 0);
+  }
+  audio.setClearanceWarning(0.3, 1, false, true); audio.update(state, false, false);
+  assert.ok(envelope.gain.value > 0);
+  await audio.toggle(); audio.update(state, false, false);
+  assert.equal(envelope.gain.value, 0);
+});
+
 function mockContext() {
   const created = [];
   const parameter = () => ({value: 0, setValueAtTime(value) {assert.ok(Number.isFinite(value)); this.value = value;},

@@ -108,6 +108,8 @@ document.getElementById('app').innerHTML = `
       <button id="sound">SOUND / OFF</button><button id="recover">RECOVER BOAT / H</button><button id="reset">RESTART RUN</button>
       <label for="volume">SOUND VOLUME</label><input id="volume" type="range" min="0" max="100" value="65">
       <details id="soundMix"><summary>CALM SOUND MIX</summary>
+        <label for="shallowThreshold">SHALLOW-WATER ALARM THRESHOLD <output id="shallowThresholdValue"></output></label><input id="shallowThreshold" type="range" min="0.2" max="5" step="0.1">
+        <label><input id="shallowMuted" type="checkbox" style="width:auto"> MUTE SHALLOW-WATER WARNING</label><small>Uses estimated under-hull clearance. Master sound must be on; alarm respects effects volume and pauses. Cadence increases near contact; a release margin prevents chatter. Suppressed after severe flooding.</small>
         <label for="music">AMBIENT MUSIC</label><input id="music" type="range" min="0" max="100" value="32">
         <label for="effects">YOUR BOAT & WATER</label><input id="effects" type="range" min="0" max="100" value="65">
         <label for="traffic">NEARBY BOATS</label><input id="traffic" type="range" min="0" max="100" value="65">
@@ -238,6 +240,11 @@ const cameraPosition = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
 const smoothLook = new THREE.Vector3();
 const audio = createAudio();
+document.getElementById('shallowThreshold').value = preferences.shallowThreshold;
+document.getElementById('shallowThresholdValue').textContent = `${preferences.shallowThreshold.toFixed(1)} m`;
+document.getElementById('shallowMuted').checked = preferences.shallowMuted;
+document.getElementById('shallowThreshold').oninput = (event) => {preferences.shallowThreshold = Number(event.target.value); document.getElementById('shallowThresholdValue').textContent = `${preferences.shallowThreshold.toFixed(1)} m`; persistPreferences();};
+document.getElementById('shallowMuted').onchange = (event) => {preferences.shallowMuted = event.target.checked; persistPreferences();};
 audio.setVolume(preferences.volume);
 document.getElementById('volume').value = preferences.volume * 100;
 for (const name of ['music', 'effects', 'traffic', 'ambience']) {
@@ -301,6 +308,7 @@ gateGroup.add(gateLine);
 scene.add(gateGroup);
 
 function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
+  audio.setClearanceWarning(null, preferences.shallowThreshold, preferences.shallowMuted, false);
   if (phase !== 'explore' && !trafficView) return;
   state = createState(preferences.playerBoat);
   voyage = createVoyage();
@@ -752,6 +760,7 @@ function frame(now) {
     document.getElementById('gaugeCamera').textContent = readings.cameraDepth === 0 ? 'ABOVE WATER' : metres(readings.cameraDepth);
     document.getElementById('gaugeStatus').textContent = readings.status;
     document.getElementById('depthGauge').dataset.warning = String(readings.status !== 'CLEAR');
+    audio.setClearanceWarning(readings.clearance, preferences.shallowThreshold, preferences.shallowMuted, !complete && (race.phase === 'explore' || race.phase === 'racing') && (!exploring || voyage.flooding < 0.75));
     hudTimer = 0;
     elements.speed.textContent = Math.round(state.speed * 3.6).toString().padStart(3, '0');
     elements.air.textContent = state.grounded>0 ? `GROUNDING / ${state.depth.toFixed(1)} M DEPTH · REVERSE / RECOVER` : state.collision ? `IMPACT / ${(state.impactEnergy / 1000).toFixed(1)} kJ · ${keyName('recover')} TO RECOVER` : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';

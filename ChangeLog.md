@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Adjustable shallow-water warning sound
+
+- Added a saved 0.2–5 m under-hull clearance alarm threshold (default 1 m) and independent mute checkbox in Calm Sound Mix. Uses existing five-point clearance estimates, not river-center depth.
+- Soft 130 ms sine pulses accelerate near contact. Release hysteresis prevents threshold chatter. One lazily allocated reusable voice follows the effects/master/underwater audio path, pause and gameplay state; missing data and severe flooding suppress warnings. Cargo Lab and physics remain unchanged.
+- Added threshold, hysteresis, invalid-data, cadence and audio-graph reuse/mute/pause tests. Alarm remains an approximate gameplay aid; decorative underwater rocks are excluded, and subjective listening/device loudness require player feedback.
+- All 149 tests and both production entry builds pass. Existing shared Three.js bundle-size advisory remains.
+
 ## 2026-10-18 — River, under-hull and camera depth gauge
 
 - Added a compact always-visible TIDE RAID gauge for river depth under the boat, minimum estimated keel clearance across five hull samples, and actual camera depth beneath its local wave surface. Above-water cameras are labeled explicitly; missing data shows an unavailable reading, not a safe zero.

@@ -2,6 +2,7 @@ import {createMusic} from './music.js';
 import {impactFeedback} from './impact-feedback.js';
 import {landingSound} from './landing-sound.js';
 import {underwaterAudio} from './underwater-model.js';
+import {clearanceWarning} from './clearance-warning.js';
 
 export function engineMix(speed, throttle, airborne, boost) {
   const load = Math.min(1, Math.max(0, speed) / 55);
@@ -43,6 +44,8 @@ export function createAudio(contextFactory = () => new AudioContext()) {
   let lastLanding = false;
   let lastSplashTime = -Infinity;
   let splashIndex = 0;
+  let warningConfig = {clearance: null, threshold: 1, muted: false, active: false};
+  let warningActive = false; let warningStart = 0; let warningVoice;
   function gain(destination, value = 0) {
     const node = context.createGain(); node.gain.value = value; node.connect(destination); return node;
   }
@@ -136,6 +139,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
     }
   }
   return {
+    setClearanceWarning(clearance, threshold, muted, active) {warningConfig = {clearance, threshold, muted, active};},
     setVolume(value) {volume = Math.max(0, Math.min(1, value));},
     setMix(name, value) {if (Object.hasOwn(levels, name)) levels[name] = Math.max(0, Math.min(1, value));},
     async toggle() {
@@ -149,6 +153,19 @@ export function createAudio(contextFactory = () => new AudioContext()) {
       if (!context) return;
       const time = context.currentTime;
       const audible = enabled && !paused;
+      const warning = clearanceWarning(warningActive, warningConfig.clearance, warningConfig.threshold, audible && warningConfig.active && !warningConfig.muted);
+      if (warning.active && !warningActive) warningStart = time;
+      warningActive = warning.active;
+      if (warning.active && !warningVoice) {
+        const oscillator = context.createOscillator(); oscillator.type = 'sine';
+        const envelope = gain(buses.effects); oscillator.connect(envelope); oscillator.start();
+        warningVoice = {oscillator, envelope};
+      }
+      if (warningVoice) {
+        const pulse = warning.active && (time - warningStart) % warning.period < 0.13;
+        warningVoice.envelope.gain.setTargetAtTime(pulse ? 0.035 : 0, time, pulse ? 0.012 : 0.035);
+        warningVoice.oscillator.frequency.setTargetAtTime(720 + warning.urgency * 160, time, 0.04);
+      }
       const submerged = underwaterAudio(underwater);
       master.gain.setTargetAtTime(audible ? volume * submerged.gain : 0, time, 0.22);
       underwaterFilter.frequency.setTargetAtTime(submerged.cutoff, time, 0.18);

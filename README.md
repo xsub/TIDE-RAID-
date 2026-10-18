@@ -2,6 +2,8 @@
 
 ## Depth gauge
 
+In **Calm Sound Mix**, set the saved **Shallow-water alarm threshold** (0.2–5 m, default 1 m) and independent **Mute shallow-water warning** checkbox. With master sound on, a soft repeating tone warns when estimated under-hull clearance reaches the threshold, becoming faster near contact. It follows effects volume, pauses with gameplay, and stops above a small release margin to avoid chatter. Missing readings, menus, completed runs and severe flooding suppress the alarm. This is a gameplay aid, not a navigation instrument; its threshold is independent of the gauge's visual caution limit.
+
 The bottom-center TIDE RAID gauge displays **River** (water surface to the bed beneath the boat), **Under hull** (minimum estimated keel clearance across center/bow/stern/port/starboard samples), and **Camera below water** (actual eye submersion, or Above Water). Readings use the shared scaled river field and local analytical wave surface and update at 10 Hz. Clearance includes flooded effective draft, hull height and pitch/roll. Low clearance and ground contact are highlighted; unavailable data shows a dash instead of a false safe reading.
 
 This is an approximate gameplay instrument, not sonar or maritime navigation equipment. Decorative underwater rocks are excluded, the keel is approximated from the physical draft/reference height rather than the rendered mesh, and contact/negative clearance displays as 0 m. Camera depth follows the smoothed eye rather than the target pose. Trials, exploration and all TIDE RAID camera views share the gauge; Cargo Lab remains separate.
