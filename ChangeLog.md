@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Collision roadmap 1: oriented capsule hulls
+
+- Replaced player/traffic circular overlap tests with heading-aligned capsules sized from vessel length and beam. Player defaults remain the normalized 7.4×2.8 m race hull; traffic beam scales with rendered vessel length. Narrow side clearances no longer collide merely because bounding circles overlap; bow/stern reach follows heading.
+- Added constant-work capsule/capsule, capsule/circle and capsule/rectangle queries, fixed-order closest-segment calculations, bounding rejection and deterministic fallback axes for coincident/crossed spines. Nearby world-sector checks remain bounded; no mesh traversal or iterative general physics engine is involved.
+- Contact points now come from capsule geometry for player/traffic, scenery circles and player docks. Existing mass-based linear/angular impulse and friction equations are retained. Bank checks use both capsule end caps; traffic gets a post-heading scenery check because turning changes the occupied shape.
+- Added tests for bow/side discrimination, rotated/parallel/crossed/coincident hulls, circle and box nonpenetration, tangency, circular degeneracy and fixed-input gameplay replay. Updated legacy assertions to check actual capsule clearance rather than the removed circular hull radius.
+- All 58 tests and production build pass. Best-time handling key advances while older records remain intact. This is discrete collision detection: swept collision/anti-tunnelling and improved simultaneous-contact solving remain the next verticals. Banks use local endpoint approximations and capsules are not exact hull meshes; traffic-to-traffic contacts remain disabled.
+
 ## 2026-10-18 — Collision-induced yaw
 
 - Added yaw velocity and mass/length/beam-based inertia, I = m(L²+B²)/12. Contact-point velocities and rotational effective mass now enter normal and friction impulses; torque follows the contact lever arm. Energy diagnostics include both planar translation and yaw rotation.

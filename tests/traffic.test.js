@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createTraffic, updateTraffic, collideTraffic} from '../src/traffic.js';
 import {createState} from '../src/physics.js';
 import {channel, resolveCollision} from '../src/world.js';
+import {capsulePair} from '../src/capsule.js';
 
 test('traffic is deterministic, slower than the racer and stays clear of banks and obstacles', () => {
   const player = createState();
@@ -31,7 +32,7 @@ test('boat impacts separate hulls without NaN, slow closing velocity and mark an
   const ship = {...createTraffic(player).boats[0], x: player.x, z: player.z - 5, vz: -8, vx: 0};
   player.vz = -40;
   assert.equal(collideTraffic(player, ship), true);
-  assert.ok(Math.hypot(player.x - ship.x, player.z - ship.z) >= ship.radius + 2.79);
+  assert.equal(capsulePair(player,ship),null);
   assert.ok(player.vz > -40);
   assert.equal(ship.contacted, true);
   player.x = ship.x; player.z = ship.z;

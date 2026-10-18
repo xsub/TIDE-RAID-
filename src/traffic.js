@@ -1,5 +1,6 @@
 import {channel, chunkFeatures, chunkIndex, resolveCollision, END_Z} from './world.js';
-import {contactImpulse, hullContact, bodyMass, VESSEL_MASS} from './collision.js';
+import {contactImpulse, bodyMass, VESSEL_MASS} from './collision.js';
+import {capsulePair} from './capsule.js';
 
 export const TRAFFIC_TYPES = [
   {model: 'boat-speed-a', length: 7.4, radius: 3.8, speed: 13},
@@ -33,29 +34,25 @@ export function createTraffic(player, count = 18) {
     const z = player.z - 55 - index * 40;
     const lane = LANES[index % LANES.length];
     const x = targetX(z, lane, type.radius);
-    traffic.boats.push({...type, mass: VESSEL_MASS[type.model], id: traffic.serial++, x, z, lane, vx: 0, vz: -type.speed,
+    traffic.boats.push({...type, beam: 2.8*type.length/7.4, mass: VESSEL_MASS[type.model], id: traffic.serial++, x, z, lane, vx: 0, vz: -type.speed,
       heading: 0, yawRate: 0, active: z > END_Z + 30, passed: false, contacted: false, gap: player.z - z});
   }
   return traffic;
 }
 
 export function collideTraffic(player, ship) {
-  const deltaX = player.x - ship.x;
-  const deltaZ = player.z - ship.z;
-  const distance = Math.hypot(deltaX, deltaZ);
-  const clearance = ship.radius + 2.8;
-  if (!ship.active || distance >= clearance) return false;
-  const normalX = distance > 0.001 ? deltaX / distance : 1;
-  const normalZ = distance > 0.001 ? deltaZ / distance : 0;
+  if (!ship.active) return false;
+  const contact = capsulePair(player,ship);
+  if (!contact) return false;
+  const {normalX,normalZ} = contact;
   const playerShare = bodyMass(ship)/(bodyMass(player)+bodyMass(ship));
-  const correction = clearance-distance+0.000001;
+  const correction = contact.depth+0.000001;
   player.x += normalX*correction*playerShare;
   player.z += normalZ*correction*playerShare;
   ship.x -= normalX*correction*(1-playerShare);
   ship.z -= normalZ*correction*(1-playerShare);
-  const firstContact = hullContact(player,normalX,normalZ);
-  const secondContact = hullContact(ship,-normalX,-normalZ);
-  const contact = {x:(firstContact.x+secondContact.x)/2,z:(firstContact.z+secondContact.z)/2};
+  contact.x += normalX*correction*(playerShare-0.5);
+  contact.z += normalZ*correction*(playerShare-0.5);
   contactImpulse(player,ship,normalX,normalZ,0.12,0.2,contact);
   player.collision = 0.5;
   player.speed = Math.hypot(player.vx, player.vz);
@@ -91,6 +88,7 @@ export function updateTraffic(traffic, player, dt) {
     ship.yawRate *= Math.exp(-1.6*dt);
     ship.heading += ship.yawRate*dt + difference*Math.min(1,dt*3/(1+Math.abs(ship.yawRate)*5));
     hit = collideTraffic(player, ship) || hit;
+    resolveCollision(ship);
     const gap = player.z - ship.z;
     if (!ship.passed && ship.gap > 0 && gap <= 0) {
       ship.passed = true;

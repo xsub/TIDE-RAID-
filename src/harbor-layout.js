@@ -1,5 +1,6 @@
 import {channel, START_Z, CHUNK_SIZE, CHUNK_COUNT, chunkIndex} from './world.js';
-import {contactImpulse, hullContact} from './collision.js';
+import {contactImpulse} from './collision.js';
+import {capsuleBox} from './capsule.js';
 
 export function harborLayout(index) {
   const buildings = [];
@@ -34,34 +35,16 @@ export function reservedHarborSpace(x, z, index, layout = harborLayout(index)) {
     || docks.some((dock) => Math.abs(x - dock.x) < dock.width / 2 + 4 && Math.abs(z - dock.z) < dock.depth / 2 + 4);
 }
 
-export function resolveHarborCollision(state, radius = 2.8) {
+export function resolveHarborCollision(state) {
   const sector = chunkIndex(state.z);
   let hit = false;
   for (let index = Math.max(0, sector - 1); index <= Math.min(CHUNK_COUNT - 1, sector + 1); index++) {
     for (const dock of harborLayout(index).docks) {
-      const lowX = dock.x - dock.width / 2;
-      const highX = dock.x + dock.width / 2;
-      const lowZ = dock.z - dock.depth / 2;
-      const highZ = dock.z + dock.depth / 2;
-      const nearestX = Math.max(lowX, Math.min(highX, state.x));
-      const nearestZ = Math.max(lowZ, Math.min(highZ, state.z));
-      const deltaX = state.x - nearestX;
-      const deltaZ = state.z - nearestZ;
-      const distance = Math.hypot(deltaX, deltaZ);
-      if (distance >= radius) continue;
-      let normalX;
-      let normalZ;
-      if (distance > 0.00001) {
-        normalX = deltaX / distance; normalZ = deltaZ / distance;
-        state.x = nearestX + normalX * radius; state.z = nearestZ + normalZ * radius;
-      } else {
-        const edges = [{gap: state.x - lowX, x: -1, z: 0, value: lowX - radius}, {gap: highX - state.x, x: 1, z: 0, value: highX + radius},
-          {gap: state.z - lowZ, x: 0, z: -1, value: lowZ - radius}, {gap: highZ - state.z, x: 0, z: 1, value: highZ + radius}];
-        edges.sort((first, second) => first.gap - second.gap);
-        const edge = edges[0]; normalX = edge.x; normalZ = edge.z;
-        if (normalX) state.x = edge.value; else state.z = edge.value;
-      }
-      contactImpulse(state,null,normalX,normalZ,0.08,0.3,hullContact(state,normalX,normalZ));
+      const contact = capsuleBox(state,dock);
+      if (!contact) continue;
+      state.x += contact.normalX*(contact.depth+1e-6);
+      state.z += contact.normalZ*(contact.depth+1e-6);
+      contactImpulse(state,null,contact.normalX,contact.normalZ,0.08,0.3,contact);
       state.collision = 0.5;
       state.speed = Math.hypot(state.vx, state.vz);
       hit = true;

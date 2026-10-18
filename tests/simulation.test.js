@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sampleWave, components, waveGLSL} from '../src/waves.js';
+import {capsuleCircle} from '../src/capsule.js';
 import {createState, step, recover} from '../src/physics.js';
 import {channel, chunkFeatures, resolveCollision, CHUNK_COUNT, CHUNK_SIZE, START_Z, END_Z} from '../src/world.js';
 
@@ -46,7 +47,7 @@ test('obstacle center and chunk seams resolve without NaN or penetration', () =>
     for (const feature of chunkFeatures(index)) {
       const state = {x: feature.x, z: feature.z, vx: 10, vz: -20};
       assert.equal(resolveCollision(state), true);
-      assert.ok(Math.hypot(state.x - feature.x, state.z - feature.z) >= feature.radius + 2.79);
+      assert.equal(capsuleCircle(state,feature),null);
       assert.ok(Object.values(state).every(Number.isFinite));
     }
     const z = START_Z - index * CHUNK_SIZE;

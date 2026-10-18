@@ -1,4 +1,5 @@
-import {contactImpulse, hullContact} from './collision.js';
+import {contactImpulse} from './collision.js';
+import {hullCapsule, capsuleCircle} from './capsule.js';
 
 export const WORLD_SIZE = 18800;
 export const START_Z = 200;
@@ -41,31 +42,29 @@ export function chunkFeatures(index) {
   return separated;
 }
 
-export function resolveCollision(state, radius = 2.8) {
-  const banks = channel(state.z);
+export function resolveCollision(state) {
   let hit = false;
-  if (state.x < banks.left + radius || state.x > banks.right - radius) {
-    state.x = Math.max(banks.left + radius, Math.min(banks.right - radius, state.x));
-    const side = state.x < banks.center ? -1 : 1;
-    const centerDerivative = 0.585*Math.cos((state.z-START_Z)*0.0009)+0.651*Math.cos((state.z-START_Z)*0.0031);
-    const widthDerivative = 0.15*Math.cos(state.z*0.005)+0.234*Math.cos(state.z*0.013);
-    const normalZ = widthDerivative+side*centerDerivative;
-    contactImpulse(state,null,-side,normalZ,0.08,0.35,hullContact(state,-side,normalZ));
-    hit = true;
+  for (const end of [0,1]) {
+    const capsule = hullCapsule(state);
+    const x = end ? capsule.bx : capsule.ax; const z = end ? capsule.bz : capsule.az;
+    const banks = channel(z);
+    if (x < banks.left+capsule.radius || x > banks.right-capsule.radius) {
+      const corrected = Math.max(banks.left+capsule.radius,Math.min(banks.right-capsule.radius,x));
+      state.x += corrected-x;
+      const side = x < banks.center ? -1 : 1;
+      const normalZ = 0.15*Math.cos(z*0.005)+0.234*Math.cos(z*0.013)+side*(0.585*Math.cos((z-START_Z)*0.0009)+0.651*Math.cos((z-START_Z)*0.0031));
+      contactImpulse(state,null,-side,normalZ,0.08,0.35,{x:corrected+side*capsule.radius,z});
+      hit = true;
+    }
   }
   const current = chunkIndex(state.z);
   for (let index = Math.max(0, current - 1); index <= Math.min(CHUNK_COUNT - 1, current + 1); index++) {
     for (const feature of chunkFeatures(index)) {
-      const deltaX = state.x - feature.x;
-      const deltaZ = state.z - feature.z;
-      const distance = Math.hypot(deltaX, deltaZ);
-      const clearance = feature.radius + radius;
-      if (distance >= clearance) continue;
-      const normalX = distance > 0.001 ? deltaX / distance : 1;
-      const normalZ = distance > 0.001 ? deltaZ / distance : 0;
-      state.x = feature.x + normalX * clearance;
-      state.z = feature.z + normalZ * clearance;
-      contactImpulse(state,null,normalX,normalZ,feature.kind === 'rock' ? 0.15 : 0.03,feature.kind === 'rock' ? 0.25 : 0.5,hullContact(state,normalX,normalZ));
+      const contact = capsuleCircle(state,feature);
+      if (!contact) continue;
+      state.x += contact.normalX*(contact.depth+1e-6);
+      state.z += contact.normalZ*(contact.depth+1e-6);
+      contactImpulse(state,null,contact.normalX,contact.normalZ,feature.kind === 'rock' ? 0.15 : 0.03,feature.kind === 'rock' ? 0.25 : 0.5,contact);
       hit = true;
     }
   }

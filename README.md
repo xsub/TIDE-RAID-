@@ -57,11 +57,13 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ### Collision impulses
 
+Hull overlap now uses oriented capsules (a longitudinal segment plus rounded beam-radius ends), not circular ship bounds. Player/traffic contacts use closest capsule features; scenery remains circular and player docks rectangular. The geometry queries have bounded work, deterministic fallback axes and no rendered-mesh searches. Bow reach and side clearance follow heading. Bank handling checks the end caps against local bank samples. Swept collision detection and a multi-contact solver are not implemented yet; extreme speeds can still tunnel, and bank geometry remains approximate.
+
 Collisions use a planar mass-based impulse solver with restitution and Coulomb-limited sliding friction. Boat contacts apply equal/opposite impulses and inverse-mass overlap correction; banks, rocks and docks are fixed bodies. Tuned collision masses range from 1400 kg (sport) to 4200 kg (cruiser), not certified vessel specifications. The HUD displays dissipated planar collision energy in kJ, not predicted hull damage. Traffic retains impact velocity and returns toward its route under bounded acceleration. Propulsion/navigation and water forces exchange energy separately; instantaneous closed two-boat contacts conserve linear momentum and do not create kinetic energy.
 
 Off-centre contacts now produce yaw torque using I = m(L²+B²)/12 and the estimated impact lever arm. Both contact velocity and effective impulse mass include rotation; energy diagnostics include yaw kinetic energy. Fixed-step yaw integration and water damping let the boat turn after impact without sustained artificial spin. Boat-to-boat impulses share a contact point and conserve isolated linear/angular momentum. Rescue/restart clear yaw, and navigation eases heading correction while traffic is spinning.
 
-This is not full rigid-body ship dynamics: overlap detection remains circular/rectangular, with oriented elliptical hull support points estimating impact location rather than an exact mesh contact manifold. There is no collision-induced pitch/roll torque, deformation, capsizing, swept continuous collision detection or mutual traffic collision. Steering/navigation remain external arcade controls. All player models still use the shared propulsion/planing model and race-size hull. Trial records use a separate yaw-handling version key.
+This is not full rigid-body ship dynamics: capsule hulls, circular scenery and rectangular docks approximate the visible meshes. There is no collision-induced pitch/roll torque, deformation, capsizing, swept continuous collision detection or mutual traffic collision. Steering/navigation remain external arcade controls. All player models still use the shared propulsion/planing model and race-size hull. Trial records use a separate capsule-handling version key.
 
 ### Boundary-aware water
 
