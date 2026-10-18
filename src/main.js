@@ -5,6 +5,7 @@ import {createBoat} from './boat.js';
 import {loadFleet, createTrafficView} from './fleet.js';
 import {PLAYER_BOATS} from './player-boats.js';
 import {vesselProfile} from './vessel-profiles.js';
+import {createReplayTape,finitePhysicsState} from './replay.js';
 import {VESSEL_MASS} from './collision.js';
 import {createTraffic, updateTraffic, collideTraffic} from './traffic.js';
 import {createSpray} from './spray.js';
@@ -30,6 +31,7 @@ document.getElementById('app').innerHTML = `
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
       <button id="beauty">BEAUTY PRESET</button>
+      <button id="exportReplay">EXPORT PHYSICS REPLAY</button><small>Up to 10 minutes, local input/state diagnostics only. No upload.</small>
       <label for="playerBoat">YOUR BOAT</label>
       <select id="playerBoat" disabled>${PLAYER_BOATS.map((boat) => `<option value="${boat.model}">${boat.name}</option>`).join('')}</select>
       <small>Native hull sizes, mass, power and handling. Sailboat uses auxiliary power. Changing boat restarts the run. Reverse: B / gamepad B (keyboard remappable).</small>
@@ -98,6 +100,12 @@ const spray = createSpray(scene);
 let state = createState(preferences.playerBoat);
 state.mass = VESSEL_MASS[preferences.playerBoat];
 let traffic = createTraffic(state);
+let replayTape=createReplayTape(state,traffic);
+document.getElementById('exportReplay').onclick=()=>{
+  const url=URL.createObjectURL(new Blob([JSON.stringify(replayTape.export())],{type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download='tide-raid-physics-replay.json';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 let trafficView = null;
 let fleetError = false;
 const playerModels = new Map();
@@ -216,6 +224,7 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   state = createState(preferences.playerBoat);
   state.mass = VESSEL_MASS[preferences.playerBoat];
   traffic = createTraffic(state);
+  replayTape=createReplayTape(state,traffic);
   race = createRace(phase);
   lesson = {stage: 0, steering: 0};
   paused = false;
@@ -440,15 +449,22 @@ function frame(now) {
   if (!paused && !complete && (race.phase === 'racing' || race.phase === 'explore')) {
     accumulator += elapsed;
     while (accumulator >= 1 / 120) {
+      if(!finitePhysicsState(state)) {
+        reset('ready');
+        document.getElementById('fleetStatus').textContent='INVALID STATE · SAFELY RESET TO START';
+        break;
+      }
       simTime += 1 / 120;
       const before = {x: state.x, z: state.z, collision: state.collision};
       const boosting = useBoost(race, input.boost, input.throttle && !input.brake, 1 / 120);
+      replayTape.record({...input,boost:boosting},simTime,roughness);
       step(state, {...input, boost: boosting}, 1 / 120, simTime, roughness, trafficView ? (body) => {
         let hit=false;
         for(const ship of traffic.boats) hit=collideTraffic(body,ship)||hit;
         return hit;
       } : null);
       if (trafficView) updateTraffic(traffic, state, 1 / 120);
+      replayTape.seal(state,traffic);
       spray.update(state, simTime, 1 / 120, roughness);
       advanceLesson(lesson, {...input, boost: boosting}, state, race.next, 1 / 120);
       if (updateRace(race, before, state, 1 / 120)) {

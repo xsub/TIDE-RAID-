@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Robustness roadmap: bounded replay diagnostics
+
+- Added local physics replay export: up to 72,000 fixed ticks (10 minutes), exact numeric steering/time/swell, discrete controls, initial hull/traffic state and periodic state checksums. Recording stops at capacity rather than growing indefinitely; no telemetry is uploaded.
+- Added a replay runner with format/input validation and checksum verification, plus exact record/replay and tamper tests. It replays physics/traffic, not UI, race scoring, audio or GPU pixels; code-version compatibility is limited to the current format/model.
+- Main loop detects invalid numeric hull state and resets safely to the start rather than feeding NaNs into rendering. All tests and production build pass. Exported files contain local gameplay diagnostics; there is no in-game import UI yet.
+
 ## 2026-10-18 — Feedback roadmap: energy/material-aware sound
 
 - Impact and landing noise envelopes now scale smoothly with recorded dissipated/entry energy while retaining strict calm gain limits. Soft ground, wooden docks and hard contacts use distinct filtering; grounding adds a quiet speed-dependent scrape wash.
