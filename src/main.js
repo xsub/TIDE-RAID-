@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import {createState, step, recover} from './physics.js';
 import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
+import {loadFleet, createTrafficView} from './fleet.js';
+import {createTraffic, updateTraffic} from './traffic.js';
 import {createSpray} from './spray.js';
 import {createAtmosphere} from './atmosphere.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
@@ -16,7 +18,7 @@ document.getElementById('app').innerHTML = `
     <button id="quickSound">SOUND / OFF</button><button id="pause" aria-label="Pause game">PAUSE</button></header>
   <section id="telemetry"><div><b id="speed">000</b><span>KM/H</span></div><p id="air">WATERBORNE</p>
     <div class="progress"><i id="progress"></i></div><small id="distance">0 / 18.78 KM</small>
-    <p id="raceClock">0:00.00</p><small id="checkpoint">COASTAL SPRINT</small>
+    <p id="raceClock">0:00.00</p><small id="checkpoint">COASTAL SPRINT</small><p id="passes">CLEAN PASSES / 0</p><small id="fleetStatus">LOADING WATERCRAFT…</small>
     <label>BOOST <meter id="boost" min="0" max="1" value="1"></meter></label></section>
   <aside><canvas id="map" width="220" height="240" aria-label="Local river navigation map"></canvas>
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
@@ -64,6 +66,24 @@ const boat = createBoat();
 scene.add(boat);
 const spray = createSpray(scene);
 let state = createState();
+let traffic = createTraffic(state);
+let trafficView = null;
+let fleetError = false;
+loadFleet().then((factory) => {
+  const oldParts = [...boat.children];
+  boat.clear();
+  for (const part of oldParts) part.traverse((child) => {
+    if (!child.isMesh) return;
+    child.geometry.dispose();
+    for (const material of Array.isArray(child.material) ? child.material : [child.material]) {material.map?.dispose(); material.dispose();}
+  });
+  boat.add(factory('boat-speed-c', 7.4));
+  trafficView = createTrafficView(scene, factory, traffic);
+  document.getElementById('fleetStatus').textContent = 'KENNEY WATERCRAFT / 18 BOATS';
+}).catch(() => {
+  fleetError = true;
+  document.getElementById('fleetStatus').textContent = 'FLEET LOAD FAILED · RELOAD TO RETRY';
+});
 let simTime = 0;
 let roughness = 1;
 let mode = preferences.camera;
@@ -121,7 +141,9 @@ gateGroup.add(gateLine);
 scene.add(gateGroup);
 
 function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
+  if (phase !== 'explore' && !trafficView) return;
   state = createState();
+  traffic = createTraffic(state);
   race = createRace(phase);
   lesson = {stage: 0, steering: 0};
   paused = false;
@@ -266,6 +288,12 @@ function drawMap() {
       map.fill();
     }
   }
+  if (trafficView) for (const ship of traffic.boats) {
+    if (!ship.active) continue;
+    map.save(); map.translate(mapX(ship.x), mapY(ship.z)); map.rotate(-ship.heading);
+    map.fillStyle = '#ffe5a0';
+    map.beginPath(); map.moveTo(0, -4); map.lineTo(3, 3); map.lineTo(-3, 3); map.closePath(); map.fill(); map.restore();
+  }
   if (race.phase === 'racing' || race.phase === 'countdown') {
     const gate = gates[race.next];
     const gateY = Math.max(10, Math.min(230, mapY(gate.z)));
@@ -307,6 +335,7 @@ function frame(now) {
       const before = {x: state.x, z: state.z, collision: state.collision};
       const boosting = useBoost(race, input.boost, input.throttle && !input.brake, 1 / 120);
       step(state, {...input, boost: boosting}, 1 / 120, simTime, roughness);
+      if (trafficView) updateTraffic(traffic, state, 1 / 120);
       advanceLesson(lesson, {...input, boost: boosting}, state, race.next, 1 / 120);
       if (updateRace(race, before, state, 1 / 120)) {
         complete = true;
@@ -325,6 +354,7 @@ function frame(now) {
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed);
   const chunks = scenery.update(state.z);
+  trafficView?.(traffic, simTime, roughness);
   gateGroup.visible = race.phase === 'racing' || race.phase === 'countdown';
   if (gateGroup.visible) {
     const gate = gates[race.next];
@@ -353,13 +383,14 @@ function frame(now) {
     const missed = race.phase === 'racing' && state.z <= gates[race.next].z;
     elements.checkpoint.textContent = race.phase === 'explore' ? 'FREE EXPLORATION' : missed ? `MISSED GATE · ${keyName('recover')} TO RECOVER` : `GATES ${race.next}/${gates.length} · +${race.penalty}s PENALTY`;
     elements.boost.value = race.boost;
+    document.getElementById('passes').textContent = `CLEAN PASSES / ${traffic.overtakes}`;
     elements.chunks.textContent = `${chunks} SECTORS`;
-    const actions = '<button data-action="trial">START TIME TRIAL / ENTER</button><button data-action="explore">EXPLORE THE COAST</button>';
+    const actions = `<button data-action="trial" ${trafficView ? '' : 'disabled'}>${trafficView ? 'START TIME TRIAL / ENTER' : fleetError ? 'TRIAL NEEDS FLEET · RELOAD TO RETRY' : 'LOADING BOATS…'}</button><button data-action="explore">EXPLORE THE COAST</button>`;
     const best = personalBest === null ? 'Set your first personal best' : `PERSONAL BEST ${formatTime(personalBest)}`;
     let message = paused ? `PAUSED · ${keyName('pause')} / START TO RESUME` : '';
-    if (!paused && race.phase === 'ready') message = `<h2>COASTAL SPRINT</h2><p>4 km · 5 gates · One clean run.</p><p>Steer through orange gates. ${keyName('boost')} / A boosts; release to recharge.<br>Impacts +2s · ${keyName('recover')} / X recovery +5s.</p><small>${best}<br>Gold 2:10 · Silver 2:50 · Bronze 3:40</small>${actions}`;
+    if (!paused && race.phase === 'ready') message = `<h2>COASTAL SPRINT</h2><p>4 km · 5 gates · Traffic to overtake.</p><p>Steer through orange gates. ${keyName('boost')} / A boosts; release to recharge.<br>Boat/shore impacts +2s · ${keyName('recover')} / X recovery +5s.</p><small>${best}<br>Gold 2:10 · Silver 2:50 · Bronze 3:40</small>${actions}`;
     if (!paused && race.phase === 'countdown') message = `<h2>${Math.ceil(race.countdown)}</h2><p>FOLLOW THE CHANNEL · AIM FOR ORANGE GATES</p>`;
-    if (!paused && race.phase === 'finished') message = `<h2>${race.result.medal} · ${formatTime(race.result.time)}</h2><p>${race.collisions} impacts · ${race.penalty}s penalties<br>Best jump ${state.longestJump.toFixed(1)}s</p><p>${best}${bestSaved ? '' : ' · SESSION ONLY (saving unavailable)'}</p>${actions}`;
+    if (!paused && race.phase === 'finished') message = `<h2>${race.result.medal} · ${formatTime(race.result.time)}</h2><p>${traffic.overtakes} clean passes · ${race.collisions} impacts · ${race.penalty}s penalties<br>Best jump ${state.longestJump.toFixed(1)}s</p><p>${best}${bestSaved ? '' : ' · SESSION ONLY (saving unavailable)'}</p>${actions}`;
     if (!paused && complete && race.phase === 'explore') message = `EXPEDITION COMPLETE · BEST JUMP ${state.longestJump.toFixed(1)}s${actions}`;
     if (elements.message.innerHTML !== message) elements.message.innerHTML = message;
     document.getElementById('controller').textContent = `CONTROLLER / ${pad.connected ? 'CONNECTED' : 'NOT CONNECTED'}`;

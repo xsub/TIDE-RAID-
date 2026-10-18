@@ -53,14 +53,14 @@ export function createWater(scene) {
 export function createScenery(scene) {
   const grass = new THREE.MeshStandardMaterial({color: 0xffffff, vertexColors: true, roughness: 1, side: THREE.DoubleSide});
   const islandGrass = new THREE.MeshStandardMaterial({color: 0x56704b, roughness: 1});
-  const sand = new THREE.MeshStandardMaterial({color: 0xdec58a, roughness: 1, side: THREE.DoubleSide});
+  const sand = new THREE.MeshStandardMaterial({color: 0xecc787, roughness: 1, flatShading: true, side: THREE.DoubleSide});
   const rock = new THREE.MeshStandardMaterial({color: 0x60777d, roughness: 1, flatShading: true});
   const stone = new THREE.DodecahedronGeometry(1, 0);
   const cylinder = new THREE.CylinderGeometry(0.86, 1, 1, 12);
   const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.7, 7, 5);
   const crownGeometry = new THREE.IcosahedronGeometry(1, 0);
   const trunkMaterial = new THREE.MeshStandardMaterial({color: 0x68553d, roughness: 1});
-  const crownMaterial = new THREE.MeshStandardMaterial({color: 0x244d3d, roughness: 1});
+  const crownMaterial = new THREE.MeshStandardMaterial({color: 0x4a8551, roughness: 1, flatShading: true});
   const sharedGeometry = new Set([stone, cylinder, trunkGeometry, crownGeometry]);
   function elevation(x, z, distance) {
     return 1.1 + distance * 0.045 + Math.sin(x * 0.017) * Math.sin(z * 0.012) * Math.min(12, distance * 0.15);
@@ -82,7 +82,7 @@ export function createScenery(scene) {
         const x = inner + (outer - inner) * fraction;
         positions.push(x, beach ? -0.45 + fraction * 1.55 : elevation(x, z, fraction * 691), z);
         const shade = 0.85 + 0.15 * Math.sin(x * 0.023 + z * 0.011);
-        colors.push(0.26 * shade, 0.39 * shade, 0.22 * shade);
+        colors.push(0.32 * shade, 0.55 * shade, 0.30 * shade);
       }
       if (row < 20) {
         for (let column = 0; column < columns; column++) {

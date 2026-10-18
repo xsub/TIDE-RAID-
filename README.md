@@ -31,6 +31,12 @@ The next acceptance gate is observing 8–12 new players on this course: can the
 
 ## World
 
+### Boats and traffic
+
+The player and traffic use actual low-poly models from [Watercraft Kit 2.1 by Kenney](https://kenney.nl/assets/watercraft-kit), licensed CC0. Five models and their shared palette texture are bundled under `public/assets/watercraft/`, along with the original `License.txt`. Assets load locally; no third-party asset server is needed during play. The procedural TR-07 remains a temporary loading/exploration fallback.
+
+Eighteen traffic boats form a recycled pool: slower speedboats, cabin boats and tugs follow downstream lanes and use local obstacle avoidance. They bob with the shared wave field, leave wakes and appear on the scanner. Overtake within 100 units without touching a boat to count a clean pass, once per traffic encounter. Boat impacts use approximate circular collision bounds and the existing +2s trial penalty. Traffic is kinematic and does not simulate mutual hull dynamics. Trial bests use a new traffic-course key; previous traffic-free records are preserved separately. Trial start waits for fleet loading; a visible error reports unavailable assets and exploration remains usable.
+
 The expedition is a finite 18.78 km route through a 304–496 unit wide winding river. Integrating channel width over the full route gives approximately 100× the water corridor area of the supplied prototype's 840-unit scenery section (before subtracting obstacles). The automated test measures this ratio against the supplied bank formula. The original Wake Circuit export was not available, so this comparison uses the actual repository baseline. Islands create passages on both sides; sandbanks and rocks add obstacles. There are 94 deterministic terrain sectors. At most seven nearby sectors are resident, with disposal on unload. A scanner shows upcoming channels. Reaching the south boundary completes the expedition; restarting begins a new run in the same world.
 
 ## Water and hull
