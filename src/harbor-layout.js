@@ -1,5 +1,5 @@
 import {channel, START_Z, CHUNK_SIZE, CHUNK_COUNT, chunkIndex} from './world.js';
-import {contactImpulse} from './collision.js';
+import {contactImpulse, hullContact} from './collision.js';
 
 export function harborLayout(index) {
   const buildings = [];
@@ -61,7 +61,7 @@ export function resolveHarborCollision(state, radius = 2.8) {
         const edge = edges[0]; normalX = edge.x; normalZ = edge.z;
         if (normalX) state.x = edge.value; else state.z = edge.value;
       }
-      contactImpulse(state,null,normalX,normalZ,0.08,0.3);
+      contactImpulse(state,null,normalX,normalZ,0.08,0.3,hullContact(state,normalX,normalZ));
       state.collision = 0.5;
       state.speed = Math.hypot(state.vx, state.vz);
       hit = true;

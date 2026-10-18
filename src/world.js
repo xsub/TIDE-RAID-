@@ -1,4 +1,4 @@
-import {contactImpulse} from './collision.js';
+import {contactImpulse, hullContact} from './collision.js';
 
 export const WORLD_SIZE = 18800;
 export const START_Z = 200;
@@ -49,7 +49,8 @@ export function resolveCollision(state, radius = 2.8) {
     const side = state.x < banks.center ? -1 : 1;
     const centerDerivative = 0.585*Math.cos((state.z-START_Z)*0.0009)+0.651*Math.cos((state.z-START_Z)*0.0031);
     const widthDerivative = 0.15*Math.cos(state.z*0.005)+0.234*Math.cos(state.z*0.013);
-    contactImpulse(state,null,-side,widthDerivative+side*centerDerivative,0.08,0.35);
+    const normalZ = widthDerivative+side*centerDerivative;
+    contactImpulse(state,null,-side,normalZ,0.08,0.35,hullContact(state,-side,normalZ));
     hit = true;
   }
   const current = chunkIndex(state.z);
@@ -64,7 +65,7 @@ export function resolveCollision(state, radius = 2.8) {
       const normalZ = distance > 0.001 ? deltaZ / distance : 0;
       state.x = feature.x + normalX * clearance;
       state.z = feature.z + normalZ * clearance;
-      contactImpulse(state,null,normalX,normalZ,feature.kind === 'rock' ? 0.15 : 0.03,feature.kind === 'rock' ? 0.25 : 0.5);
+      contactImpulse(state,null,normalX,normalZ,feature.kind === 'rock' ? 0.15 : 0.03,feature.kind === 'rock' ? 0.25 : 0.5,hullContact(state,normalX,normalZ));
       hit = true;
     }
   }

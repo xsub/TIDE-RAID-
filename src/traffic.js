@@ -1,5 +1,5 @@
 import {channel, chunkFeatures, chunkIndex, resolveCollision, END_Z} from './world.js';
-import {contactImpulse, bodyMass, VESSEL_MASS} from './collision.js';
+import {contactImpulse, hullContact, bodyMass, VESSEL_MASS} from './collision.js';
 
 export const TRAFFIC_TYPES = [
   {model: 'boat-speed-a', length: 7.4, radius: 3.8, speed: 13},
@@ -34,7 +34,7 @@ export function createTraffic(player, count = 18) {
     const lane = LANES[index % LANES.length];
     const x = targetX(z, lane, type.radius);
     traffic.boats.push({...type, mass: VESSEL_MASS[type.model], id: traffic.serial++, x, z, lane, vx: 0, vz: -type.speed,
-      heading: 0, active: z > END_Z + 30, passed: false, contacted: false, gap: player.z - z});
+      heading: 0, yawRate: 0, active: z > END_Z + 30, passed: false, contacted: false, gap: player.z - z});
   }
   return traffic;
 }
@@ -53,7 +53,10 @@ export function collideTraffic(player, ship) {
   player.z += normalZ*correction*playerShare;
   ship.x -= normalX*correction*(1-playerShare);
   ship.z -= normalZ*correction*(1-playerShare);
-  contactImpulse(player,ship,normalX,normalZ,0.12,0.2);
+  const firstContact = hullContact(player,normalX,normalZ);
+  const secondContact = hullContact(ship,-normalX,-normalZ);
+  const contact = {x:(firstContact.x+secondContact.x)/2,z:(firstContact.z+secondContact.z)/2};
+  contactImpulse(player,ship,normalX,normalZ,0.12,0.2,contact);
   player.collision = 0.5;
   player.speed = Math.hypot(player.vx, player.vz);
   ship.contacted = true;
@@ -73,6 +76,7 @@ export function updateTraffic(traffic, player, dt) {
       ship.contacted = false;
       ship.gap = player.z - ship.z;
       ship.vx = 0; ship.vz = -ship.speed;
+      ship.yawRate = 0;
     }
     const target = targetX(ship.z - 30, ship.lane, ship.radius);
     const targetVelocity = Math.max(-ship.speed,Math.min(ship.speed,(target-ship.x)*0.8));
@@ -84,7 +88,8 @@ export function updateTraffic(traffic, player, dt) {
     resolveCollision(ship, ship.radius);
     const heading = Math.atan2(-ship.vx, -ship.vz);
     const difference = Math.atan2(Math.sin(heading - ship.heading), Math.cos(heading - ship.heading));
-    ship.heading += difference * Math.min(1, dt * 3);
+    ship.yawRate *= Math.exp(-1.6*dt);
+    ship.heading += ship.yawRate*dt + difference*Math.min(1,dt*3/(1+Math.abs(ship.yawRate)*5));
     hit = collideTraffic(player, ship) || hit;
     const gap = player.z - ship.z;
     if (!ship.passed && ship.gap > 0 && gap <= 0) {

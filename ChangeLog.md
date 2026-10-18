@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Collision-induced yaw
+
+- Added yaw velocity and mass/length/beam-based inertia, I = m(L²+B²)/12. Contact-point velocities and rotational effective mass now enter normal and friction impulses; torque follows the contact lever arm. Energy diagnostics include both planar translation and yaw rotation.
+- Static impacts use an oriented elliptical hull support point; boat-to-boat impulses share one estimated contact point so equal/opposite impulses conserve total linear and angular momentum in the isolated solve. Centred normal contacts produce no spin; bow/stern glancing contacts turn in opposite directions.
+- Player and traffic integrate collision yaw at fixed simulation steps with dissipative water damping. Traffic navigation corrects heading less aggressively while spinning. Rescue/restart/recycled traffic clear yaw. No random effects, iterative rigid-body engine or per-frame mesh collision searches were added.
+- Added inertia, impact-side direction, angular/linear momentum, total kinetic energy, support-point orientation and deterministic replay tests. The prolonged-hull test now checks downstream progress reached rather than final downstream position, since collisions can turn the boat back upstream.
+- All 52 tests and production build pass. Handling-version records preserve earlier times. Limits: overlap detection remains circular with approximate elliptical contact points; no exact mesh manifold, pitch/roll collision torque, damage or capsizing. Steering/navigation remain external arcade controls.
+
 ## 2026-10-18 — Mass and energy collision response
 
 - Replaced arbitrary impact velocity cuts with a shared planar impulse solver: J = -(1+e) v_normal / (1/m1+1/m2), equal/opposite momentum transfer and Coulomb-limited tangential friction. Fixed scenery has zero inverse mass; contact-specific restitution/friction distinguishes hard rocks/docks and softer ground.

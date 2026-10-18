@@ -57,13 +57,15 @@ test('obstacle center and chunk seams resolve without NaN or penetration', () =>
 test('hull stays finite and near the surface over prolonged calm and rough runs', () => {
   for (const swell of [0, 1, 2]) {
     const state = createState();
+    let furthestZ = state.z;
     for (let tick = 0; tick < 120 * 90; tick++) {
       step(state, {throttle: true, brake: false, turn: Math.sin(tick / 200) * 0.4, boost: tick > 1000}, 1 / 120, tick / 120, swell);
       assert.ok(Object.values(state).every(Number.isFinite));
       assert.ok(state.y > -6 && state.y < 30, `height ${state.y} at swell ${swell}`);
       assert.ok(state.speed < 100);
+      furthestZ = Math.min(furthestZ,state.z);
     }
-    assert.ok(state.z < 100);
+    assert.ok(furthestZ < 100);
   }
 });
 
