@@ -8,6 +8,7 @@ import {resolveHarborCollision} from './harbor-layout.js';
 import {createSpray} from './spray.js';
 import {createAtmosphere, SUN_DIRECTION} from './atmosphere.js';
 import {createCinema} from './cinema.js';
+import {cameraPose} from './camera.js';
 import {createPerformanceOverlay} from './performance.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
 import {DEFAULT_BINDINGS, readPreferences, savePreferences, remap, readGamepad, advanceLesson} from './preferences.js';
@@ -32,7 +33,12 @@ document.getElementById('app').innerHTML = `
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
-      <button id="camera">CAMERA / ARCADE</button><button id="sound">SOUND / OFF</button><button id="recover">RECOVER BOAT / H</button><button id="reset">RESTART RUN</button>
+      <button id="camera">CAMERA / ARCADE</button>
+      <label for="cameraAngle">CAMERA ORBIT <output id="cameraAngleValue"></output></label>
+      <input id="cameraAngle" type="range" min="0" max="360" step="1" value="20">
+      <small>0° rear · 90° side · 180° front · 270° side. Or right-drag the water. Steering stays boat-relative.</small>
+      <button id="cameraRear">RESET CAMERA / REAR QUARTER</button>
+      <button id="sound">SOUND / OFF</button><button id="recover">RECOVER BOAT / H</button><button id="reset">RESTART RUN</button>
       <label for="volume">SOUND VOLUME</label><input id="volume" type="range" min="0" max="100" value="65">
       <details id="soundMix"><summary>CALM SOUND MIX</summary>
         <label for="music">AMBIENT MUSIC</label><input id="music" type="range" min="0" max="100" value="32">
@@ -221,12 +227,13 @@ function togglePause() {
   elements.pause.textContent = paused ? 'RESUME' : 'PAUSE';
 }
 function cameraGoal() {
-  const width = channel(state.z).width * 2;
-  const height = mode === 'arcade' ? Math.max(210, width / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect * 0.8)) : 12 + state.speed * 0.07;
-  const back = mode === 'arcade' ? height * 0.48 : 22 + state.speed * 0.15;
-  cameraPosition.set(state.x + Math.sin(state.heading) * back, state.y + height, state.z + Math.cos(state.heading) * back);
-  const ahead = mode === 'arcade' ? 35 : 10 + state.speed * 0.25;
-  lookTarget.set(state.x - Math.sin(state.heading) * ahead, state.y, state.z - Math.cos(state.heading) * ahead);
+  const pose = cameraPose(state, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2);
+  cameraPosition.set(pose.x, pose.y, pose.z);
+  lookTarget.set(pose.lookX, pose.lookY, pose.lookZ);
+  if (Math.abs(camera.fov - pose.fov) > 0.01) {
+    camera.fov = pose.fov;
+    camera.updateProjectionMatrix();
+  }
 }
 function snapCamera() {
   cameraGoal();
@@ -235,6 +242,36 @@ function snapCamera() {
   smoothLook.copy(lookTarget);
 }
 snapCamera();
+
+function setCameraAngle(angle) {
+  preferences.cameraAngle = angle;
+  document.getElementById('cameraAngle').value = angle;
+  document.getElementById('cameraAngleValue').textContent = `${Math.round(angle)}°`;
+}
+setCameraAngle(preferences.cameraAngle);
+document.getElementById('cameraAngle').oninput = (event) => setCameraAngle(Number(event.target.value));
+document.getElementById('cameraAngle').onchange = persistPreferences;
+document.getElementById('cameraRear').onclick = () => {setCameraAngle(20); persistPreferences();};
+let orbitDrag = null;
+renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (event.button !== 2) return;
+  orbitDrag = {id: event.pointerId, x: event.clientX};
+  renderer.domElement.setPointerCapture(event.pointerId);
+});
+renderer.domElement.addEventListener('pointermove', (event) => {
+  if (orbitDrag?.id !== event.pointerId) return;
+  setCameraAngle((preferences.cameraAngle + (event.clientX - orbitDrag.x) * 0.35 + 360) % 360);
+  orbitDrag.x = event.clientX;
+});
+function finishOrbit(event) {
+  if (orbitDrag?.id !== event.pointerId) return;
+  orbitDrag = null;
+  persistPreferences();
+}
+renderer.domElement.addEventListener('pointerup', finishOrbit);
+renderer.domElement.addEventListener('pointercancel', finishOrbit);
+renderer.domElement.addEventListener('lostpointercapture', finishOrbit);
 
 addEventListener('keydown', (event) => {
   if (pendingBinding) {

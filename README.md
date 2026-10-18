@@ -55,6 +55,10 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+### Camera orbit
+
+In Helm Settings, **Camera Orbit** sets a saved full-circle angle in either camera mode: 0° rear, 90° side, 180° front, 270° opposite side. Right-drag on the water to orbit with a mouse; the slider also supports touch and keyboard. Reset Camera restores the 20° rear-quarter angle. Chase is lower and closer, with modest speed-based FOV expansion; steering remains boat-relative and physics is unchanged. There is no terrain-occlusion avoidance, so front/side views near banks can be obstructed.
+
 The default physical sea now uses dense, low chop: four components total at most 0.44 m displacement (0.88 m at maximum swell), with approximately 3–29 m wavelengths. Hull buoyancy averages four contact patches with bounded lift and damping; upward speed is capped at 3 m/s to prevent arcade launches. Expect frequent short heaves/skips rather than long flight. These are tuned analytical waves and an arcade hull approximation, not measured real-sea hydrodynamics. Existing pre-chop time-trial bests remain stored separately.
 
 Press **?** (Shift + / on US keyboards) to show or hide performance statistics. FPS uses uncapped browser frame intervals over the most recent 120 samples; P95 shows slow-frame cadence, not GPU execution time. Draw counts include shadow and cinematic passes. The overlay updates four times per second while visible. Cinema adds edge smoothing and half-resolution bloom; turn it off for a cheaper render path. Fine cosmetic ripples fade with pixel footprint to reduce distant shimmer; the physical wave field is unchanged.

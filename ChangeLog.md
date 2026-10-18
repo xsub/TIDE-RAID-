@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Full-circle camera and lower chase perspective
+
+- Added a saved 0–360° camera orbit slider for chase and arcade views, right-button drag on the water, and a rear-quarter reset. Steering remains boat-relative; orbiting does not alter simulation inputs.
+- Lowered and tightened the chase camera, with a default 20° rear-quarter angle to reveal the hull rather than only the roof. Bounded speed-based field of view gives stronger motion cues without camera shake, blur or faster physics.
+- Added full-circle, portrait, chase-distance/FOV and preference-migration tests. Automated tests and production build pass. Orbit does not include terrain occlusion avoidance; side/front views near land can be obstructed.
+
 ## 2026-10-18 — Dense chop, grounded speedboat handling
 
 - Replaced the large long-period wave spectrum with four shorter low-amplitude components: combined maximum displacement at default swell is 0.44 m rather than 1.60 m; wavelengths are approximately 3–29 m. CPU hull samples and GPU water share the updated field.
