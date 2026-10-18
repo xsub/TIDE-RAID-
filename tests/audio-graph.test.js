@@ -20,6 +20,33 @@ function mockContext() {
     createBuffer(channels, length) {const data = Array.from({length: channels}, () => new Float32Array(length)); return {getChannelData: (channel) => data[channel]};}};
 }
 
+test('landing uses two bounded water layers, suppresses tiny/repeated contacts and cleans up', async () => {
+  const context = mockContext();
+  const audio = createAudio(() => context);
+  audio.setMix('music', 0);
+  await audio.toggle();
+  const state = {x: 0, z: 0, vx: 0, vz: 0, heading: 0, speed: 30, airtime: 0, collision: 0, landing: 0, landingEnergy: 4000};
+  const sources = () => context.created.filter((node) => node.kind === 'source').length;
+  const before = sources();
+  state.landing = 0.65;
+  audio.update(state, false, true);
+  assert.equal(sources(), before + 2);
+  audio.update(state, false, true);
+  assert.equal(sources(), before + 2);
+  state.landing = 0; audio.update(state, false, true);
+  state.landing = 0.65; context.currentTime = 0.1; audio.update(state, false, true);
+  assert.equal(sources(), before + 2);
+  state.landing = 0; audio.update(state, false, true);
+  state.landing = 0.65; context.currentTime = 1; state.landingEnergy = 10; audio.update(state, false, true);
+  assert.equal(sources(), before + 2);
+  state.landing = 0; audio.update(state, false, true);
+  state.landing = 0.65; state.landingEnergy = 5000; audio.update(state, true, true);
+  assert.equal(sources(), before + 2);
+  const transient = context.created.filter((node) => node.kind === 'source' && node.onended);
+  assert.equal(transient.length, 2);
+  for (const source of transient) assert.doesNotThrow(() => source.onended());
+});
+
 test('traffic audio reuses six stereo voices and master mute/pause/volume all silence the bus', async () => {
   const context = mockContext();
   const audio = createAudio(() => context);

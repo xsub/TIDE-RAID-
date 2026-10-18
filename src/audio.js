@@ -1,5 +1,6 @@
 import {createMusic} from './music.js';
 import {impactFeedback} from './impact-feedback.js';
+import {landingSound} from './landing-sound.js';
 
 export function engineMix(speed, throttle, airborne, boost) {
   const load = Math.min(1, Math.max(0, speed) / 55);
@@ -38,6 +39,8 @@ export function createAudio(contextFactory = () => new AudioContext()) {
   let voices;
   let lastImpact = false;
   let lastLanding = false;
+  let lastSplashTime = -Infinity;
+  let splashIndex = 0;
   function gain(destination, value = 0) {
     const node = context.createGain(); node.gain.value = value; node.connect(destination); return node;
   }
@@ -104,6 +107,31 @@ export function createAudio(contextFactory = () => new AudioContext()) {
     source.connect(filter).connect(envelope); source.start(); source.stop(context.currentTime + 1.1);
     source.onended = () => {source.disconnect(); filter.disconnect(); envelope.disconnect();};
   }
+  function splash(energy, speed) {
+    const mix = landingSound(energy, speed);
+    const time = context.currentTime;
+    if (!mix.gain || time - lastSplashTime < 0.14) return;
+    lastSplashTime = time;
+    splashIndex++;
+    for (const sprayLayer of [false, true]) {
+      const source = context.createBufferSource(); source.buffer = noise;
+      const highpass = context.createBiquadFilter(); highpass.type = 'highpass';
+      highpass.frequency.value = sprayLayer ? 650 : 120; highpass.Q.value = 0.45;
+      const lowpass = context.createBiquadFilter(); lowpass.type = 'lowpass'; lowpass.Q.value = 0.45;
+      const start = time + (sprayLayer ? 0.018 : 0);
+      const duration = sprayLayer ? mix.duration : 0.11;
+      lowpass.frequency.setValueAtTime(sprayLayer ? mix.cutoff : 750, start);
+      lowpass.frequency.exponentialRampToValueAtTime(sprayLayer ? 700 : 320, start + duration);
+      const envelope = gain(buses.effects);
+      envelope.gain.setValueAtTime(0, start);
+      envelope.gain.linearRampToValueAtTime(mix.gain * (sprayLayer ? 0.8 : 0.55), start + (sprayLayer ? 0.035 : 0.008));
+      envelope.gain.exponentialRampToValueAtTime(0.00001, start + duration);
+      source.connect(highpass).connect(lowpass).connect(envelope);
+      source.start(start, (splashIndex * 0.173 + (sprayLayer ? 0.7 : 0)) % 2);
+      source.stop(start + duration + 0.015);
+      source.onended = () => {source.disconnect(); highpass.disconnect(); lowpass.disconnect(); envelope.disconnect();};
+    }
+  }
   return {
     setVolume(value) {volume = Math.max(0, Math.min(1, value));},
     setMix(name, value) {if (Object.hasOwn(levels, name)) levels[name] = Math.max(0, Math.min(1, value));},
@@ -143,7 +171,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
       });
       music.update(time, audible && levels.music > 0);
       if (audible && engineActive && state.collision > 0 && !lastImpact) burst(true,state.impactEnergy,state.impactMaterial);
-      if (audible && engineActive && state.landing > 0 && !lastLanding) burst(false,state.landingEnergy);
+      if (audible && engineActive && state.landing > 0 && !lastLanding) splash(state.landingEnergy, state.speed);
       lastImpact = state.collision > 0; lastLanding = state.landing > 0;
     },
   };

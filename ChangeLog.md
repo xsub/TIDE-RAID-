@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Softer water re-entry audio
+
+- Replaced the landing's reused collision-style one-second descending bass/noise burst with two short water-specific layers: a softened hull slap and delayed, high-passed spray settling over 0.16–0.44 seconds. Smooth attacks avoid the old instantaneous gain onset; no pitched impact oscillator is added.
+- Landing energy scales volume without a fixed minimum bang; contacts below 80 J are silent. Speed affects spray brightness/tail. Deterministic noise offsets vary consecutive splashes; 140 ms retrigger protection bounds overlap. Each layer disconnects after finishing. Effects volume, mute and pause still route through the existing shared bus; collision sounds and physics are unchanged.
+- This is synthesized water audio, not a recording. Listening feedback is still needed to judge realism across speakers/headphones.
+- All 101 tests and production build pass. New tests cover bounded energy/speed response, two-layer scheduling, retrigger protection, silent tiny contacts, pause suppression and cleanup. Existing bundle-size advisory remains.
+
 ## 2026-10-18 — Camera zoom and distance presets
 
 - Added persistent 0.5–8× zoom, zoom-in/out buttons, and Wide / Closer / Close / Detail presets beside the camera controls. Mouse wheel over the water zooms without scrolling the settings; browser Ctrl-wheel remains available.
