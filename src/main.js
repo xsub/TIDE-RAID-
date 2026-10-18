@@ -9,7 +9,7 @@ import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
 import {loadFleet, createTrafficView} from './fleet.js';
 import {PLAYER_BOATS} from './player-boats.js';
-import {vesselProfile} from './vessel-profiles.js';
+import {vesselProfile, VESSEL_HANDLING} from './vessel-profiles.js';
 import {createReplayTape,finitePhysicsState} from './replay.js';
 import {VESSEL_MASS} from './collision.js';
 import {createTraffic, updateTraffic, collideTraffic} from './traffic.js';
@@ -59,6 +59,7 @@ document.getElementById('app').innerHTML = `
       <button id="exportReplay">EXPORT PHYSICS REPLAY</button><small>Up to 10 minutes, local input/state diagnostics only. No upload.</small>
       <label for="playerBoat">YOUR BOAT</label>
       <select id="playerBoat" disabled>${PLAYER_BOATS.map((boat) => `<option value="${boat.model}">${boat.name}</option>`).join('')}</select>
+      <small id="handlingDescription"></small>
       <small>Native hull sizes, mass, power and handling. Sailboat uses auxiliary power. Changing boat restarts the run. Reverse: B / gamepad B (keyboard remappable).</small>
       <label for="detail">WATER SURFACE <output id="quality"></output></label>
       <input id="detail" type="range" min="0" max="100" value="25">
@@ -159,6 +160,7 @@ const playerModels = new Map();
 const playerBoatSelect = document.getElementById('playerBoat');
 playerBoatSelect.value = preferences.playerBoat;
 function showPlayerBoat() {
+  document.getElementById('handlingDescription').textContent = VESSEL_HANDLING[preferences.playerBoat];
   boat.clear();
   boat.add(playerModels.get(preferences.playerBoat));
   const selected = PLAYER_BOATS.find((entry) => entry.model === preferences.playerBoat);

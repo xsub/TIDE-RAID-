@@ -3,6 +3,7 @@ import {contactImpulse, bodyMass, VESSEL_MASS} from './collision.js';
 import {capsulePair} from './capsule.js';
 import {advanceHull} from './motion.js';
 import {trafficIntent} from './traffic-intent.js';
+import {vesselProfile} from './vessel-profiles.js';
 
 export const TRAFFIC_TYPES = [
   {model: 'boat-speed-a', length: 7.4, radius: 3.8, speed: 13},
@@ -36,7 +37,7 @@ export function createTraffic(player, count = 18) {
     const z = player.z - 55 - index * 40;
     const lane = LANES[index % LANES.length];
     const x = targetX(z, lane, type.radius);
-    traffic.boats.push({...type, beam: 2.8*type.length/7.4, mass: VESSEL_MASS[type.model], id: traffic.serial++, x, z, lane, vx: 0, vz: -type.speed,
+    traffic.boats.push({...type, beam: vesselProfile(type.model).beam, yawInertiaFactor: vesselProfile(type.model).yawInertiaFactor, mass: VESSEL_MASS[type.model], id: traffic.serial++, x, z, lane, vx: 0, vz: -type.speed,
       heading: 0, yawRate: 0, active: z > END_Z + 30, passed: false, contacted: false, gap: player.z - z});
   }
   return traffic;

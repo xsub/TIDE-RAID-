@@ -11,7 +11,7 @@ function kinetic(body, mass) {
 export function bodyInertia(body) {
   const length = body.length ?? 7.4;
   const beam = body.beam ?? 2.8;
-  return bodyMass(body)*(length*length+beam*beam)/12;
+  return bodyMass(body)*(length*length+beam*beam)/12 * (body.yawInertiaFactor ?? 1);
 }
 
 export function hullContact(body, normalX, normalZ) {

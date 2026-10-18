@@ -1,6 +1,6 @@
 import {step} from './physics.js';
 import {updateTraffic,collideTraffic} from './traffic.js';
-export const REPLAY_VERSION=1;
+export const REPLAY_VERSION=2;
 export function stateChecksum(state,traffic) {
   const text=JSON.stringify({state,traffic});let hash=2166136261;
   for(let index=0;index<text.length;index++)hash=Math.imul(hash^text.charCodeAt(index),16777619)>>>0;

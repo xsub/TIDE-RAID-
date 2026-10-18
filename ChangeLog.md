@@ -1,5 +1,14 @@
 # ChangeLog
 
+## 2026-10-18 — Hull shape, loading and inertia response
+
+- Expanded all six boat profiles with effective waterplane area, fore/aft load share, center-of-gravity height, deadrise, support spacing and three-axis inertia multipliers. Selector explains each hull's handling character.
+- Buoyancy stiffness now follows effective waterplane area / mass, with matching damping. Four bounded wave samples stay fixed-cost. Catamaran supports sit wider; front/rear loading weights support and trim. Pitch response depends on pitch inertia; righting/bank response depends on beam, CG height, stability tuning and roll inertia. Deadrise affects drag and per-hull planing trim remains distinct.
+- Rudder and collision torque use the same mass-distribution yaw inertia. Traffic now shares its hull beam/yaw factor, while retaining simplified navigation rather than full player hydrodynamics.
+- New trial revision v16 isolates old personal bests without deleting them. Replay v2 rejects old physics exports explicitly. These remain tuned approximations, not validated naval models or a true offset-COM rigid-body/pressure solver; capsule collision shape remains unchanged.
+- All 115 tests pass, including mass/CG/support effects, consistent steering/contact inertia, rough-water bounds and checksum-exact replay for every boat. Existing dense-chop/anti-flight, collision-energy and other tests remain green.
+- Production build passes with the existing bundle-size advisory. Local CPU-only benchmark (120 Hz hull + 18 traffic, 100 simulated seconds) measured 0.066 ms mean / 0.105 ms p95 per step, not a GPU or universal performance guarantee. Browser cruiser selection/propulsion and handling description worked without runtime errors.
+
 ## 2026-10-18 — Weather, day/night cycles and navigation lighting
 
 - Added persistent Sunny/Cloudy/Rain presets, 24-hour time control, optional 5–60 minute full-day cycle, wind strength/direction and optional luminous night wakes. Clock follows simulation time and pauses with the game. Wind/weather are visual only; swell, hull physics and trial replay remain unchanged.

@@ -1,5 +1,13 @@
 # TIDE RAID 2.0
 
+## Hull-specific handling
+
+Every selectable boat now defines effective waterplane area, front/rear load share, center-of-gravity height, deadrise, buoyancy support spacing and pitch/roll/yaw inertia factors, alongside existing mass, dimensions, power, draft, drag and rudder area. The boat selector describes its handling character.
+
+Four wave samples remain the fixed-cost support model: the catamaran samples wider twin-sponson positions, deep-V hulls use narrower support, and effective area/mass controls buoyant acceleration and damping. Fore/aft load share changes support weighting and static trim. Pitch inertia changes response speed; center-of-gravity height, beam and roll inertia change righting response and bank. Rudder and off-center collision impulses share the same yaw inertia. Traffic uses its hull's beam/yaw inertia, but retains simplified lane-following motion rather than full player buoyancy dynamics.
+
+These are tuned game approximations, not measured hull hydrostatics: no mesh-derived displacement, integrated pressure field, free-moving ballast, true shifted rigid-body center of mass, propeller torque or separate catamaran collision hulls. Mass distribution is represented by load shares and inertia multipliers. Physics updates invalidate old medal comparisons: trial records use course revision v16 without deleting existing saved records. Physics replay format is v2; old v1 exports are rejected rather than replayed under changed rules.
+
 ## Weather and night navigation
 
 **Helm Settings → Weather & Time** offers Sunny / Cloudy / Rain, a 24-hour time slider, optional 5–60 minute full-day cycles, wind strength/direction, and optional glowing night wakes. Controls persist. Cycles use simulation time, so pausing stops the clock. Weather is visual only: wind drives clouds and rain, while the existing Swell slider controls analytical waves independently; hull physics and trial replay are unchanged.

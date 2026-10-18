@@ -6,6 +6,7 @@ import {applyRudder} from './steering.js';
 import {vesselProfile,propulsionAcceleration} from './vessel-profiles.js';
 import {applyShallows} from './depth.js';
 import {dampedAttitude} from './attitude.js';
+import {hullResponse} from './hull-response.js';
 
 export function channelHeading(z) {
   return Math.atan((channel(z + 1).center - channel(z - 1).center) / 2);
@@ -38,7 +39,8 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   let back = 0;
   let left = 0;
   let right = 0;
-  const contactWidth=state.beam*0.32; const contactLength=state.length*0.257;
+  const response = hullResponse(state, speed);
+  const {contactWidth, contactLength} = response;
   for (const [localX, localZ] of [[-contactWidth,-contactLength],[contactWidth,-contactLength],[-contactWidth,contactLength],[contactWidth,contactLength]]) {
     const worldX = state.x + localX * cosine + localZ * sine;
     const worldZ = state.z - localX * sine + localZ * cosine;
@@ -46,9 +48,10 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
     const hullHeight = state.y - 0.6 - localZ * state.pitch + localX * state.roll;
     const immersion = wave.h - hullHeight;
     const relative = wave.dt + wave.dx * state.vx + wave.dz * state.vz - state.vy + localZ*state.pitchRate-localX*state.rollRate;
-    const force = immersion > -0.08 ? Math.min(28, Math.max(0, immersion * 48 + relative * 4.5)) : 0;
+    const load = localZ < 0 ? response.foreLoad * 2 : (1 - response.foreLoad) * 2;
+    const force = immersion > -0.08 ? Math.min(28, Math.max(0, immersion * response.spring + relative * response.damping)) * load : 0;
     support += force;
-    if (localZ < 0) front += force; else back += force;
+    if (localZ < 0) front += force / load; else back += force / load;
     if (localX < 0) left += force; else right += force;
   }
   support *= 0.25;
@@ -62,7 +65,7 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   const grip = 1 - Math.exp(-state.lateralGrip * wet * dt);
   state.vx -= cosine * lateral * grip;
   state.vz += sine * lateral * grip;
-  const drag = Math.exp(-((0.1 + speed * state.waterDrag) * wet + 0.025) * dt);
+  const drag = Math.exp(-((0.1 + speed * state.waterDrag * response.dragScale) * wet + 0.025) * dt);
   state.vx *= drag;
   state.vz *= drag;
   applyShallows(state,dt);
@@ -75,10 +78,10 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
     impact=settleContacts(body,resolveTraffic)||impact;
   });
   state.y += state.vy * dt;
-  const pitchTarget = Math.max(-0.45, Math.min(0.45, (front - back) / 110 + planing * 0.045));
-  const rollTarget = Math.max(-0.4, Math.min(0.4, (right - left) / 100 - input.turn * speed * 0.002));
-  const pitch=dampedAttitude(state.pitch,state.pitchRate,pitchTarget,5+planing,dt);
-  const roll=dampedAttitude(state.roll,state.rollRate,rollTarget,6,dt);
+  const pitchTarget = Math.max(-0.45, Math.min(0.45, (front - back) / 110 + planing * response.planingTrim + (0.5 - response.foreLoad) * 0.1));
+  const rollTarget = Math.max(-0.4, Math.min(0.4, (right - left) / 100 + response.bank));
+  const pitch=dampedAttitude(state.pitch,state.pitchRate,pitchTarget,response.pitchFrequency+planing,dt);
+  const roll=dampedAttitude(state.roll,state.rollRate,rollTarget,response.rollFrequency,dt);
   state.pitch=pitch.angle;state.pitchRate=pitch.rate;
   state.roll=roll.angle;state.rollRate=roll.rate;
   state.landing = Math.max(0, state.landing - dt);

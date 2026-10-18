@@ -1,7 +1,7 @@
 import {START_Z, channel, chunkFeatures, chunkIndex} from './world.js';
 import {isPlayerBoat} from './player-boats.js';
 
-export const COURSE_ID = 'coastal-sprint-traffic-v15';
+export const COURSE_ID = 'coastal-sprint-traffic-v16';
 export const COURSE_LENGTH = 4000;
 export const MEDALS = {gold: 130, silver: 170, bronze: 220};
 export const gates = [800, 1600, 2400, 3200, 4000].map((distance) => {
