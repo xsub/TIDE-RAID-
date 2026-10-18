@@ -1,5 +1,14 @@
 # ChangeLog
 
+## 2026-10-18 — Real photographic materials and authored scenery assets
+
+- Bundled CC0 Poly Haven photographic surface sets: Aerial Grass Rock, Coast Sand 01, Rock Boulder Dry and Bark Brown 02. Active terrain uses 1024px WebP albedo plus 512px packed height/roughness derived from the downloaded source maps, not synthesized replacements.
+- Imported actual Fir Sapling Medium, Tree Small 02 and Rock 07 model geometry. Optimized near trees contain 5,893/7,031 triangles; rocks use 1,798/160-triangle near/far meshes. Tree distance views are baked locally from the full original model, with three side views and an aerial canopy on four crossed quads (8 triangles), rather than procedural leaf drawings. Near models retain the same silhouette overlay.
+- Kept instanced rendering and seven-sector streaming. Near meshes are limited to eight instances per species/sector within 100 m; LOD batches are compacted so hidden near instances do not consume vertex work. Assignment refreshes on 20 m cells. Trees use shared materials across LODs and distant tree shadows are omitted.
+- Pack totals 4,905,983 bytes excluding the small provenance manifest. Includes CC0 legal text, original download URLs/MD5 checksums, author credits, optimization metadata and SHA-256 hashes of packaged files. Original ~170 MiB model sources and temporary optimization tools are not shipped. WebP glTF images explicitly declare EXT_texture_webp.
+- Added explicit loading/ready/failure UI. Photographic mode replaces the fallback scenery after successful load; failed downloads leave the procedural fallback with a visible warning. Model-based trees are static; very close impostors/LOD transitions remain visible and full photorealism is not claimed. Photographic maps are compressed downloads but consume larger decoded GPU memory.
+- All 94 tests and production build pass. Tests cover file hashes/CC0 provenance, self-contained glTF/extension/triangle budgets, shared materials/common normalization and compact LOD instance counts. Browser reported PHOTO ASSETS READY and no runtime errors; an overview sample after compaction showed ~0.76M submitted triangles versus ~12.6M before fixing hidden-instance submission. FPS is view/device dependent; the earlier local overview sample was ~132 FPS at 2240×1260, not a universal guarantee. Physics/replay remain unchanged.
+
 ## 2026-10-18 — Textured coast, cutout foliage and neutral lighting
 
 - Replaced solid pine/broadleaf crowns with shared 3D clusters of textured alpha-tested leaf/needle branches, including ground-level shrubs. Crowns use 168/176 triangles rather than the previous 512/~500; instancing, depth-writing cutouts and existing wind remain. Alpha testing introduces overdraw, so lower triangle counts alone do not guarantee faster rendering.

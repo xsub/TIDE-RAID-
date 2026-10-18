@@ -55,6 +55,16 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+### Bundled real photographic assets
+
+When the HUD says **PHOTO ASSETS / READY**, scenery uses actual CC0 Poly Haven material maps and authored models in `public/assets/real-scenery/`, not the older procedural substitutes described below. Materials: Aerial Grass Rock, Coast Sand 01, Rock Boulder Dry and Bark Brown 02. Models: Fir Sapling Medium, Tree Small 02 and Rock 07. `sources.json` records source URLs, author credits, original checksums and packaged SHA-256 hashes; `CC0-1.0.txt` contains the license. Asset license: https://polyhaven.com/license .
+
+Download payload is about 4.68 MiB plus provenance. Surface albedo is 1024px; packed height/roughness 512px. Trees use reduced authored near meshes plus original-model-rendered silhouette views; distant trees use three side planes and one aerial canopy plane (8 triangles total). Near meshes are capped at eight per species/sector within 100 m, with compact instance batches refreshed on 20 m cells. Rock LOD switches at 120 m. Materials and geometry are shared; seven-sector streaming remains bounded. Decoded GPU memory is larger than download size. Imported model normal/ORM maps were stripped for cost; terrain retains photographic bump/roughness.
+
+The baker in `scripts/bake-real-trees.html` renders the full original CC0 tree glTF sources—not website preview pictures—through the loopback-only server in `scripts/serve-asset-bake.py`. Set `TIDE_ASSET_SOURCE` to the source directory containing `<asset-id>/source.gltf` and its manifest-listed dependencies, and `TIDE_ASSET_OUTPUT` to an output folder; run the Python server and open `/scripts/bake-real-trees.html` under Vite. It produces four-view PNG atlases for conversion to WebP. Raw originals are not bundled; optimization tools/versions are listed in provenance.
+
+Loading is asynchronous. Failure keeps the old procedural scenery and reports **FALLBACK ACTIVE** rather than claiming photographic assets loaded. Imported trees are currently static; close-up cards and LOD transitions remain visible. Buildings, boats, physics and collision footprints are unchanged.
+
 ### Organic scenery
 
 Current scenery uses shared mipmapped albedo/height/roughness maps for meadow, sand, rock and bark; world-space mapping and derivative bump detail add lighting relief. Pine/broadleaf/shrub crowns use instanced alpha-tested branch/leaf cards rather than solid blobs. Base texture data is 2.125 MiB before mipmaps; texture generation is deterministic and happens once. More neutral sunlight, ambient fill and haze replace the earlier warm/saturated treatment. Cards reduce geometry but add alpha overdraw; device performance still needs measurement. These are procedural textures/cutouts, not photogrammetry or photographic foliage.

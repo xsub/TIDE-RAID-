@@ -3,7 +3,7 @@ import {natureLayout} from './nature.js';
 import {organicRock,naturalMaterial} from './natural-surfaces.js';
 import {foliageTexture,foliageCrown} from './land-textures.js';
 
-export function createNature() {
+export function createNature(realAssets=null) {
   const material = (color, doubleSide = false) => naturalMaterial({color, roughness: 1, side: doubleSide ? THREE.DoubleSide : THREE.FrontSide},0.8);
   const wood = naturalMaterial({color:0xffffff,roughness:1},1.5,'bark');
   const leaves = material(0xffffff,true);
@@ -81,6 +81,7 @@ export function createNature() {
   };
   birdMaterial.customProgramCacheKey=()=> 'natural-bird-0.8-v1';
   const shared = new Set([trunk, pine, broadleaf, palm, shrub, rock, log, reeds, flower, bird]);
+  if(realAssets)for(const model of Object.values(realAssets.models))for(const level of ['near','far'])for(const part of model[level])shared.add(part.geometry);
   const transform = new THREE.Object3D();
   const color = new THREE.Color();
   function instances(group, geometry, surface, items, scaleFor) {
@@ -98,17 +99,48 @@ export function createNature() {
       mesh.setColorAt(index, color);
     });
     if (geometry === bird) mesh.frustumCulled = false;
-    group.add(mesh);
+    group.add(mesh);return mesh;
+  }
+  function realInstances(group,model,items,scaleFor) {
+    if(!items.length)return;
+    const batches={items,scaleFor,near:[],far:[],cell:null};
+    for(const level of ['near','far'])for(const part of model[level]) {
+      const mesh=instances(group,part.geometry,part.material,items,scaleFor);
+      mesh.castShadow=level==='near';mesh.receiveShadow=true;
+      batches[level].push(mesh);
+    }
+    (group.userData.realBatches ??= []).push(batches);
   }
   return {
     shared,
     update(value) {time.value = value;},
+    updatePosition(group,x,z) {
+      for(const batch of group.userData.realBatches ?? []) {
+        const cell=`${Math.floor(x/20)},${Math.floor(z/20)}`;if(batch.cell===cell)continue;batch.cell=cell;
+        const near=new Set(batch.items.map((item,index)=>({index,distance:(item.x-x)**2+(item.z-z)**2})).filter((entry)=>entry.distance<100**2).sort((first,second)=>first.distance-second.distance||first.index-second.index).slice(0,8).map((entry)=>entry.index));
+        const counters={near:0,far:0};
+        batch.items.forEach((item,index)=>{
+          transform.position.set(item.x,item.y,item.z);transform.rotation.set(0,item.rotation,0);
+          const level=near.has(index) ? 'near' : 'far';const target=counters[level]++;
+          transform.scale.set(...batch.scaleFor(item));transform.updateMatrix();
+          color.setRGB(0.78+item.shade*0.22,0.85+item.shade*0.15,0.73+item.shade*0.2);
+          for(const mesh of batch[level]){mesh.setMatrixAt(target,transform.matrix);mesh.setColorAt(target,color);}
+        });
+        for(const level of ['near','far'])for(const mesh of batch[level]){mesh.count=counters[level];mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;mesh.computeBoundingSphere();}
+      }
+    },
     add(group, index) {
       const layout = natureLayout(index);
-      instances(group, trunk, wood, layout.trees, (item) => [item.scale, item.scale * (item.species === 'palm' ? 1.55 : 1), item.scale]);
-      for (const [species, geometry, surface] of [['pine', pine, pineLeaves], ['broadleaf', broadleaf, leaves], ['palm', palm, palmLeaves]]) instances(group, geometry, surface, layout.trees.filter((item) => item.species === species), (item) => [item.scale, item.scale, item.scale]);
+      if(realAssets) {
+        realInstances(group,realAssets.models.pine,layout.trees.filter((item)=>item.species==='pine'),(item)=>[item.scale*18,item.scale*18,item.scale*18]);
+        realInstances(group,realAssets.models.broadleaf,layout.trees.filter((item)=>item.species!=='pine'),(item)=>[item.scale*14,item.scale*14,item.scale*14]);
+        realInstances(group,realAssets.models.rock,layout.rocks,(item)=>[item.scale*2,item.scale*2,item.scale*2]);
+      } else {
+        instances(group, trunk, wood, layout.trees, (item) => [item.scale, item.scale * (item.species === 'palm' ? 1.55 : 1), item.scale]);
+        for (const [species, geometry, surface] of [['pine', pine, pineLeaves], ['broadleaf', broadleaf, leaves], ['palm', palm, palmLeaves]]) instances(group, geometry, surface, layout.trees.filter((item) => item.species === species), (item) => [item.scale, item.scale, item.scale]);
+        instances(group, rock, stone, layout.rocks, (item) => [item.scale * 1.6, item.scale, item.scale * 1.3]);
+      }
       instances(group, shrub, leaves, layout.shrubs, (item) => [item.scale * 0.45, item.scale * 0.22, item.scale * 0.4]);
-      instances(group, rock, stone, layout.rocks, (item) => [item.scale * 1.6, item.scale, item.scale * 1.3]);
       instances(group, reeds, grassMaterial, layout.grass, (item) => [item.scale * 1.4, item.scale, item.scale * 1.4]);
       instances(group, log, wood, layout.logs, (item) => [item.scale, item.scale, item.scale]);
       instances(group, flower, flowerMaterial, layout.flowers, (item) => [item.scale, item.scale, item.scale]);

@@ -59,7 +59,7 @@ export function createWater(scene) {
   };
 }
 
-export function createScenery(scene) {
+export function createScenery(scene,realAssets=null) {
   const grass = naturalMaterial({color: 0xc7cbb8, vertexColors: true, roughness: 1, side: THREE.DoubleSide},0.9,'grass');
   const islandGrass = naturalMaterial({color: 0xa6b292, roughness: 1, side: THREE.DoubleSide},0.9,'grass');
   const sand = naturalMaterial({color: 0xffffff, roughness: 1, side: THREE.DoubleSide},2,'sand');
@@ -68,10 +68,18 @@ export function createScenery(scene) {
   const rock = naturalMaterial({color: 0xffffff, roughness: 0.95},1.8,'rock');
   const stone = organicRock(20,14);
   const cylinder = sandyShore();
-  const nature = createNature();
+  const nature = createNature(realAssets);
   const harbors = createHarbors();
   const sharedGeometry = new Set([stone, cylinder, ...nature.shared, ...harbors.shared]);
   const loaded = new Map();
+  function sourcedRock(x,y,z,width,height) {
+    const group=new THREE.Group();const model=realAssets.models.rock;
+    for(const level of ['near','far'])for(const part of model[level]) {
+      const mesh=new THREE.Mesh(part.geometry,part.material);mesh.userData.rockLevel=level;group.add(mesh);
+    }
+    group.position.set(x,y,z);group.scale.set(width/(model.width/model.height),height,width/(model.width/model.height));
+    group.userData.realRock=true;return group;
+  }
   function strip(index, side, beach) {
     const positions = [];
     const indices = [];
@@ -136,9 +144,8 @@ export function createScenery(scene) {
     for (const feature of features) {
       const {x, z, radius, kind} = feature;
       if (kind === 'rock') {
-        const mesh = new THREE.Mesh(stone, rock);
-        mesh.position.set(x, 1.3, z);
-        mesh.scale.set(radius, radius * 0.8, radius);
+        const mesh = realAssets ? sourcedRock(x,-0.6,z,radius*2,radius*1.5) : new THREE.Mesh(stone, rock);
+        if(!realAssets){mesh.position.set(x, 1.3, z);mesh.scale.set(radius, radius * 0.8, radius);}
         group.add(mesh);
       } else {
         const rim = new THREE.Mesh(cylinder, sand);
@@ -149,9 +156,8 @@ export function createScenery(scene) {
           const top = islandSurface(radius * 0.86);
           top.position.set(x, 0, z);
           group.add(top);
-          const peak = new THREE.Mesh(stone, rock);
-          peak.position.set(x, 6, z);
-          peak.scale.set(radius * 0.3, 9, radius * 0.3);
+          const peak = realAssets ? sourcedRock(x,3,z,radius*0.6,9) : new THREE.Mesh(stone, rock);
+          if(!realAssets){peak.position.set(x, 6, z);peak.scale.set(radius * 0.3, 9, radius * 0.3);}
           group.add(peak);
         }
       }
@@ -167,7 +173,7 @@ export function createScenery(scene) {
     loaded.set(index, group);
   }
   return {
-    update(z, time = 0) {
+    update(z, time = 0, x=channel(z).center) {
       nature.update(time);
       harbors.update(time);
       const center = chunkIndex(z);
@@ -177,6 +183,13 @@ export function createScenery(scene) {
         if (!loaded.has(index)) load(index);
       }
       for (const [index, group] of loaded) {
+        if(realAssets) {
+          nature.updatePosition(group,x,z);
+          for(const child of group.children)if(child.userData.realRock) {
+            const level=Math.hypot(child.position.x-x,child.position.z-z)<120 ? 'near' : 'far';
+            for(const part of child.children)part.visible=part.userData.rockLevel===level;
+          }
+        }
         if (desired.has(index)) continue;
         scene.remove(group);
         harbors.forget(group);
@@ -187,6 +200,21 @@ export function createScenery(scene) {
         loaded.delete(index);
       }
       return loaded.size;
+    },
+    dispose() {
+      const materials=new Set();
+      for(const group of loaded.values()) {
+        scene.remove(group);harbors.forget(group);
+        group.traverse((child)=>{
+          if(!child.isMesh)return;
+          if(!sharedGeometry.has(child.geometry))child.geometry.dispose();
+          if(child.isInstancedMesh)child.dispose();
+          materials.add(child.material);
+        });
+      }
+      for(const geometry of sharedGeometry)geometry.dispose();
+      for(const material of materials)material.dispose();
+      loaded.clear();
     },
   };
 }

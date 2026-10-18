@@ -1,0 +1,30 @@
+<!doctype html><html><head><title>TIDE RAID asset baker</title></head><body><pre id="status">Baking original Poly Haven trees…</pre><script type="module">
+import * as THREE from '/node_modules/three/build/three.module.js';
+import {GLTFLoader} from '/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
+const status=document.getElementById('status');
+try {
+  const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setSize(512,512);renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+  for(const id of ['fir_sapling_medium','tree_small_02']) {
+    status.textContent=`Loading full source ${id}…`;
+    const base=`http://127.0.0.1:5174/${id}/`;
+    const json=await(await fetch(base+'source.gltf')).json();
+    for(const material of json.materials){delete material.normalTexture;delete material.occlusionTexture;delete material.pbrMetallicRoughness.metallicRoughnessTexture;material.pbrMetallicRoughness.metallicFactor=0;}
+    const gltf=await new GLTFLoader().parseAsync(JSON.stringify(json),base);
+    const scene=new THREE.Scene();const tree=gltf.scene.children[0];scene.add(tree);tree.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(tree);const center=bounds.getCenter(new THREE.Vector3());const height=bounds.max.y-bounds.min.y;
+    scene.add(new THREE.HemisphereLight(0xd8e5ee,0x777564,2));const sun=new THREE.DirectionalLight(0xfff2d7,2.2);scene.add(sun,sun.target);
+    const camera=new THREE.OrthographicCamera(-height*0.54,height*0.54,height*0.54,-height*0.54,0.01,height*10);
+    const atlas=document.createElement('canvas');atlas.width=2048;atlas.height=512;const context=atlas.getContext('2d');
+    for(let view=0;view<4;view++) {
+      const angle=view*Math.PI/3;camera.position.set(center.x+Math.sin(angle)*height*(view===3 ? 1.2 : 3),center.y+(view===3 ? height*3 : 0),center.z+Math.cos(angle)*height*(view===3 ? 1.2 : 3));camera.lookAt(center);
+      sun.position.copy(camera.position).add(new THREE.Vector3(height,-height*0.1,height*0.5));sun.target.position.copy(center);
+      renderer.render(scene,camera);context.drawImage(renderer.domElement,view*512,0);
+    }
+    const blob=await new Promise(resolve=>atlas.toBlob(resolve,'image/png'));
+    const response=await fetch(`http://127.0.0.1:5174/bake/${id}.png`,{method:'POST',body:blob});if(!response.ok)throw new Error('Bake save failed');
+    status.textContent=`Saved ${id} photographic model views`;
+    scene.traverse(child=>{if(!child.isMesh)return;child.geometry.dispose();for(const value of Object.values(child.material))if(value?.isTexture)value.dispose();child.material.dispose();});
+  }
+  status.textContent='BAKE COMPLETE · two original-model view atlases saved';
+} catch(error){status.textContent=`BAKE FAILED: ${error.message}`;console.error(error);}
+</script></body></html>

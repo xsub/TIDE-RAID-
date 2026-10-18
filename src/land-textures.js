@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 const cache=new Map();
+let photographicTextures=null;
+export function setPhotographicTextures(textures){photographicTextures=textures;}
 const fract=(value)=>value-Math.floor(value);
 function noise(x,y,frequency) {
   const cellX=Math.floor(x*frequency);const cellY=Math.floor(y*frequency);
@@ -16,6 +18,7 @@ function texture(data,size,color=false) {
   return result;
 }
 export function surfaceTextures(kind) {
+  if(photographicTextures?.[kind])return photographicTextures[kind];
   const key=`surface-${kind}`;if(cache.has(key))return cache.get(key);
   const size=256;const albedo=new Uint8Array(size*size*4);const detail=new Uint8Array(size*size*4);
   const palette=({rock:[155,151,139],sand:[203,188,153],grass:[123,137,90],bark:[148,127,101]})[kind];

@@ -16,6 +16,7 @@ import {createPerformanceOverlay} from './performance.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
 import {DEFAULT_BINDINGS, readPreferences, savePreferences, remap, readGamepad, advanceLesson} from './preferences.js';
 import {createWater, createScenery} from './scenery.js';
+import {loadRealScenery} from './real-scenery.js';
 import {channel, chunkFeatures, chunkIndex, START_Z, END_Z, WORLD_SIZE, CHUNK_COUNT} from './world.js';
 import './style.css';
 import './feedback.css';
@@ -91,7 +92,12 @@ scene.add(sun, sun.target);
 const camera = new THREE.PerspectiveCamera(innerWidth < innerHeight ? 90 : 55, innerWidth / innerHeight, 0.5, 1600);
 const cinema = createCinema(renderer, scene, camera);
 const water = createWater(scene);
-const scenery = createScenery(scene);
+let scenery = createScenery(scene);
+const sceneryStatus=document.createElement('small');sceneryStatus.id='sceneryStatus';sceneryStatus.textContent='PHOTO ASSETS / LOADING';
+document.getElementById('fleetStatus').after(sceneryStatus);
+loadRealScenery().then((assets)=>{
+  scenery.dispose();scenery=createScenery(scene,assets);sceneryStatus.textContent='PHOTO ASSETS / READY · POLY HAVEN CC0';
+}).catch(()=>{sceneryStatus.textContent='PHOTO ASSETS / FAILED · FALLBACK ACTIVE · RELOAD TO RETRY';});
 elements.quality.textContent = water.setDetail(preferences.detail);
 document.getElementById('detail').value = preferences.detail;
 const boat = createBoat();
@@ -484,7 +490,7 @@ function frame(now) {
   boat.position.set(state.x, state.y, state.z);
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed);
-  const chunks = scenery.update(state.z, simTime);
+  const chunks = scenery.update(state.z, simTime,state.x);
   trafficView?.(traffic, simTime, roughness);
   gateGroup.visible = race.phase === 'racing' || race.phase === 'countdown';
   if (gateGroup.visible) {
