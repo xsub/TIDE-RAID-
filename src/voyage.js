@@ -1,5 +1,21 @@
 import {START_Z, CHUNK_COUNT, channel, chunkFeatures} from './world.js';
-import {createSinking, tickSinking, pumpSinking} from './sinking.js';
+import {createSinking, tickSinking, pumpSinking, resetSinking} from './sinking.js';
+
+export function applyVoyageRule(settings, voyage, name, value) {
+  const choices = name === 'damageMode' ? ['arcade', 'realistic'] : ['fuelMode', 'sinkingMode'].includes(name) ? ['off', 'arcade', 'realistic'] : [];
+  if (!choices.includes(value)) return false;
+  settings[name] = value;
+  if (name === 'sinkingMode' && value === 'off') resetSinking(voyage);
+  return true;
+}
+
+export function sinkingStatus(voyage, mode) {
+  if (mode === 'off') return 'SINKING OFF · choose Arcade / Realistic to enable';
+  if (voyage.flooding >= 0.99) return 'FULLY FLOODED · H to recover · Wreck view to inspect';
+  if (voyage.flooding > 0.001) return `${mode.toUpperCase()} · FLOODING ${(voyage.flooding * 100).toFixed(1)}% · ${voyage.sinking.ingress.toFixed(1)} L/s`;
+  const threshold = mode === 'arcade' ? 0.12 : 0.3;
+  return voyage.hull < threshold ? `${mode.toUpperCase()} · BREACHED · ingress requires a submerged opening` : `${mode.toUpperCase()} · WATERTIGHT · leaks below ${Math.round(threshold * 100)}% hull · use Flooding Drill to practice`;
+}
 
 export const SERVICE_STATIONS = Object.freeze(Array.from({length: Math.ceil(CHUNK_COUNT / 6)}, (_, station) => {
   const index = station * 6;

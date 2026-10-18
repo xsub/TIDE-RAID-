@@ -22,7 +22,7 @@ import {weatherState} from './weather.js';
 import {createRain} from './weather-view.js';
 import {createVesselLights} from './vessel-lights.js';
 import {createState, step, recover} from './physics.js';
-import {createVoyage, tickVoyage, voyageDrive, SERVICE_STATIONS} from './voyage.js';
+import {createVoyage, tickVoyage, voyageDrive, SERVICE_STATIONS, applyVoyageRule, sinkingStatus} from './voyage.js';
 import {createServiceView, createWearView} from './voyage-view.js';
 import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
@@ -76,7 +76,8 @@ document.getElementById('app').innerHTML = `
         <label for="sinkingMode">SINKING</label><select id="sinkingMode"><option value="off">Disallowed · stay afloat</option><option value="arcade">Arcade · slower critical-damage flooding</option><option value="realistic">Realistic · progressive flooding</option></select>
         <label for="fuelMode">FUEL CONSUMPTION</label><select id="fuelMode"><option value="off">Unlimited fuel</option><option value="arcade">Arcade · shorter fuel strategy</option><option value="realistic">Realistic · estimated engine load</option></select>
         <button id="floodingDrill">START FLOODING DRILL</button><small>Exploration with sinking enabled only: damages the hull for practice. H / Recover ends the drill and pumps the water out.</small>
-        <small>Exploration only. Realistic means game approximation. Green + stations repair/refuel free: stop below 5 km/h, release throttle for 1.5 seconds. H / Recover provides rescue and emergency fuel. Changing rules restarts exploration. Time trials keep original rules.</small>
+        <output id="sinkingStatus" aria-live="polite"></output><small>Rule changes keep current damage and water. Explicitly disabling sinking pumps water out; Recover or Restart also clears flooding. Changing the boat or river depth starts a fresh voyage.</small>
+        <small>Exploration only. Realistic means game approximation. Green + stations repair/refuel free: stop below 5 km/h, release throttle for 1.5 seconds. H / Recover provides rescue and emergency fuel. Rule changes keep the current voyage. Time trials keep original rules.</small>
       </details>
       <button id="exportReplay">EXPORT PHYSICS REPLAY</button><small>Up to 10 minutes, local input/state diagnostics only. No upload.</small>
       <label for="playerBoat">YOUR BOAT</label>
@@ -601,8 +602,7 @@ for (const name of ['damageMode', 'sinkingMode', 'fuelMode']) {
   const control = document.getElementById(name);
   control.value = preferences[name];
   control.onchange = () => {
-    preferences[name] = control.value; persistPreferences();
-    if (race.phase === 'explore') reset('explore');
+    applyVoyageRule(preferences, voyage, name, control.value); persistPreferences();
   };
 }
 document.getElementById('reset').onclick = () => reset();
@@ -819,6 +819,7 @@ function frame(now) {
   wearView?.update(voyage, state, exploring);
   if (exploring) {boat.rotation.z += voyage.sinking.list; boat.rotation.x += voyage.sinking.trim;}
   document.getElementById('floodingDrill').disabled = !exploring || preferences.sinkingMode === 'off';
+  document.getElementById('sinkingStatus').textContent = exploring ? sinkingStatus(voyage, preferences.sinkingMode) : 'SINKING / FLOODING DRILL · EXPLORATION ONLY';
   serviceView.update(state.z, exploring);
   document.getElementById('hullLabel').hidden = !exploring;
   document.getElementById('fuelLabel').hidden = !exploring;

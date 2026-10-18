@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Preserve sinking during voyage rule changes
+
+- Removed the hidden voyage restart when changing damage/fuel/sinking rules: switching Arcade↔Realistic or fuel rules now preserves accumulated water and hull damage. Explicitly choosing Sinking Off still pumps water out; Recover/Restart retain their documented rescue behavior.
+- Added live sinking status distinguishing disabled, watertight, breached, active ingress and fully flooded states, with actual thresholds and exploration-only guidance. Existing saved sinking choices are preserved rather than silently enabling or disabling sinking.
+- All 189 tests and both builds pass, including a deterministic 60-second sink with current propulsion modifiers and 2× swell. Browser verified active ingress, unchanged flooding through a fuel-rule change, full flooding, ground contact and the driver camera ~27 m underwater, without console errors. Original fuel preference restored. Existing bundle advisory remains.
+
 ## 2026-10-18 — GitHub README gameplay screenshot
 
 - Added the latest gameplay screenshot to the README with descriptive alt text and a direct link to the published game. Image is stored in docs/images, outside the game's public asset bundle.
