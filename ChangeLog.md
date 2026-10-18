@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Collision roadmap 2: bounded anti-tunnelling motion
+
+- Added deterministic motion subdivision based on translation plus rotational tip speed. Ordinary 120 Hz motion normally needs one segment; faster motion checks smaller intervals against scenery, docks and player/traffic contacts.
+- Re-evaluates velocity after impulses instead of completing the original pre-impact displacement. A hard 32-segment budget discards excess movement time at absurd velocities rather than teleporting through obstacles or stalling a frame.
+- Tests cover a thin pier and small rock crossed at 400 m/s, rotational subdivision, work-cap behavior and exact replay. All 61 tests and production build pass.
+- This is bounded discrete anti-tunnelling, not an exact swept time-of-impact solver. Sequentially advanced moving boats, tangent grazing, simultaneous contacts and unusually small custom obstacles remain approximate. Handling records advance separately.
+
 ## 2026-10-18 — Collision roadmap 1: oriented capsule hulls
 
 - Replaced player/traffic circular overlap tests with heading-aligned capsules sized from vessel length and beam. Player defaults remain the normalized 7.4×2.8 m race hull; traffic beam scales with rendered vessel length. Narrow side clearances no longer collide merely because bounding circles overlap; bow/stern reach follows heading.

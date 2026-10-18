@@ -1,6 +1,7 @@
 import {channel, chunkFeatures, chunkIndex, resolveCollision, END_Z} from './world.js';
 import {contactImpulse, bodyMass, VESSEL_MASS} from './collision.js';
 import {capsulePair} from './capsule.js';
+import {advanceHull} from './motion.js';
 
 export const TRAFFIC_TYPES = [
   {model: 'boat-speed-a', length: 7.4, radius: 3.8, speed: 13},
@@ -80,13 +81,14 @@ export function updateTraffic(traffic, player, dt) {
     const acceleration = 3*dt;
     ship.vx += Math.max(-acceleration,Math.min(acceleration,targetVelocity-ship.vx));
     ship.vz += Math.max(-acceleration,Math.min(acceleration,-ship.speed-ship.vz));
-    ship.x += ship.vx*dt;
-    ship.z += ship.vz*dt;
-    resolveCollision(ship, ship.radius);
+    advanceHull(ship,dt,0,(body) => {
+      resolveCollision(body);
+      hit=collideTraffic(player,body)||hit;
+    });
     const heading = Math.atan2(-ship.vx, -ship.vz);
     const difference = Math.atan2(Math.sin(heading - ship.heading), Math.cos(heading - ship.heading));
     ship.yawRate *= Math.exp(-1.6*dt);
-    ship.heading += ship.yawRate*dt + difference*Math.min(1,dt*3/(1+Math.abs(ship.yawRate)*5));
+    ship.heading += difference*Math.min(1,dt*3/(1+Math.abs(ship.yawRate)*5));
     hit = collideTraffic(player, ship) || hit;
     resolveCollision(ship);
     const gap = player.z - ship.z;

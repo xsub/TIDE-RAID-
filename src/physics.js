@@ -1,5 +1,7 @@
 import {sampleWave} from './waves.js';
 import {START_Z, channel, resolveCollision, chunkFeatures, chunkIndex} from './world.js';
+import {resolveHarborCollision} from './harbor-layout.js';
+import {advanceHull} from './motion.js';
 
 export function channelHeading(z) {
   return Math.atan((channel(z + 1).center - channel(z - 1).center) / 2);
@@ -22,7 +24,7 @@ export function recover(state, time, roughness = 1) {
   state.y = sampleWave(state.x, state.z, time, roughness).h + 0.6;
 }
 
-export function step(state, input, dt, time, roughness = 1) {
+export function step(state, input, dt, time, roughness = 1, resolveTraffic = null) {
   const speed = Math.hypot(state.vx, state.vz);
   const cosine = Math.cos(state.heading);
   const sine = Math.sin(state.heading);
@@ -58,14 +60,17 @@ export function step(state, input, dt, time, roughness = 1) {
   const drag = Math.exp(-((0.1 + speed * 0.0045) * wet + 0.025) * dt);
   state.vx *= drag;
   state.vz *= drag;
-  state.heading -= input.turn * Math.min(0.25 + speed / 18, 1) * 0.9 * Math.max(0.12, wet) * dt * (forward < -1 ? -1 : 1);
+  const steeringRate = -input.turn * Math.min(0.25 + speed / 18, 1) * 0.9 * Math.max(0.12, wet) * (forward < -1 ? -1 : 1);
   state.yawRate *= Math.exp(-(0.15+1.8*wet)*dt);
-  state.heading += state.yawRate*dt;
   const planing = Math.min(speed / 45, 1) * wet;
   state.vy += (support * (1 + planing * 0.06) - 9.81) * dt;
   state.vy = Math.max(-12, Math.min(3.0, state.vy));
-  state.x += state.vx * dt;
-  state.z += state.vz * dt;
+  let impact=false;
+  advanceHull(state,dt,steeringRate,(body) => {
+    impact=resolveCollision(body)||impact;
+    impact=resolveHarborCollision(body)||impact;
+    if(resolveTraffic) impact=resolveTraffic(body)||impact;
+  });
   state.y += state.vy * dt;
   const pitchTarget = Math.max(-0.45, Math.min(0.45, (front - back) / 110 + planing * 0.045));
   const rollTarget = Math.max(-0.4, Math.min(0.4, (right - left) / 100 - input.turn * speed * 0.002));
@@ -81,6 +86,6 @@ export function step(state, input, dt, time, roughness = 1) {
     }
     state.airtime = 0;
   }
-  if (resolveCollision(state)) state.collision = 0.5;
+  if (impact) state.collision = 0.5;
   state.speed = Math.hypot(state.vx, state.vz);
 }
