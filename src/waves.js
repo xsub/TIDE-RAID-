@@ -1,9 +1,9 @@
 // Shared analytical water field. Rendered mesh and hull contact sample the same function.
 export const components = [
-  [0.82,0.082,0.9,0.435,1.12],
-  [0.42,0.151,-0.5,0.866,1.6],
-  [0.23,0.29,0.75,-0.66,2.15],
-  [0.13,0.49,-0.88,-0.47,2.65],
+  [0.22,0.22,0.9,0.435,1.47],
+  [0.12,0.65,-0.5,0.866,2.52],
+  [0.065,1.2,0.75,-0.66,3.43],
+  [0.035,1.95,-0.88,-0.47,4.37],
 ];
 export function sampleWave(x,z,t,roughness=1){
   let h=0,dx=0,dz=0,dt=0;

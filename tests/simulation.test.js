@@ -78,6 +78,30 @@ test('right steering turns the bow and thrust right; rest settles at buoyant equ
   assert.ok(state.x > startX + 3);
 });
 
+test('dense low chop produces frequent small heaves without launching the hull', () => {
+  assert.ok(components.reduce((total, component) => total + component[0], 0) < 0.45);
+  assert.ok(components.every((component) => component[1] >= 0.22));
+  for (const roughness of [1, 2]) {
+    for (const boost of [false, true]) {
+      const state = createState();
+      recover(state, 0, roughness);
+      let crests = 0;
+      let previousVelocity = 0;
+      for (let tick = 1; tick <= 120 * 60; tick++) {
+        const time = tick / 120;
+        step(state, {throttle: true, turn: Math.sin(tick / 200) * 0.4, boost}, 1 / 120, time, roughness);
+        const clearance = state.y - 0.6 - sampleWave(state.x, state.z, time, roughness).h;
+        assert.ok(clearance < 1.6, `clearance ${clearance}, swell ${roughness}, boost ${boost}`);
+        assert.ok(state.airtime < 0.85, `airtime ${state.airtime}`);
+        assert.ok(state.vy <= 3);
+        if (tick > 240 && previousVelocity > 0.05 && state.vy <= 0.05) crests++;
+        previousVelocity = state.vy;
+      }
+      assert.ok(crests >= 15, `expected frequent low heaves, got ${crests}`);
+    }
+  }
+});
+
 test('braking comes to rest without turning into reverse thrust', () => {
   const state = createState();
   state.heading = 0;

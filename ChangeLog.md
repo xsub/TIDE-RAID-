@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Dense chop, grounded speedboat handling
+
+- Replaced the large long-period wave spectrum with four shorter low-amplitude components: combined maximum displacement at default swell is 0.44 m rather than 1.60 m; wavelengths are approximately 3–29 m. CPU hull samples and GPU water share the updated field.
+- Averaged the four buoyancy patches, reduced their individual force ceiling, increased contact damping/stiffness, reduced planing amplification and limited upward velocity to 3 m/s. Short skips and water contact remain; this is an arcade stability guard, not a validated naval simulation.
+- Added normal/boosted 60-second chop regressions at default/maximum swell, checking frequent heaves, clearance below 1.6 m, airtime below 0.85 s and bounded vertical speed in these scenarios. Calm-water and derivative checks remain covered.
+- Time-trial bests now use a new handling-version key; older records are preserved separately. Tests and production build pass.
+
 ## 2026-10-18 — Water polish and performance visibility
 
 - Finer two-scale cosmetic ripples with screen-footprint filtering, softer distant sun glints and inexpensive cloud-color reflections. Physical wave displacement and hull forces are unchanged; cloud reflections remain artistic approximations.

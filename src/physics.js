@@ -38,11 +38,12 @@ export function step(state, input, dt, time, roughness = 1) {
     const hullHeight = state.y - 0.6 - localZ * state.pitch + localX * state.roll;
     const immersion = wave.h - hullHeight;
     const relative = wave.dt + wave.dx * state.vx + wave.dz * state.vz - state.vy;
-    const force = immersion > -0.18 ? Math.min(65, Math.max(0, immersion * 24 + relative * 3.8)) : 0;
+    const force = immersion > -0.08 ? Math.min(28, Math.max(0, immersion * 48 + relative * 4.5)) : 0;
     support += force;
     if (localZ < 0) front += force; else back += force;
     if (localX < 0) left += force; else right += force;
   }
+  support *= 0.25;
   const wet = Math.min(1, support / 9.81);
   const forwardBefore = -sine * state.vx - cosine * state.vz;
   const braking = Math.sign(forwardBefore) * Math.min(Math.abs(forwardBefore) / dt, 30);
@@ -59,8 +60,8 @@ export function step(state, input, dt, time, roughness = 1) {
   state.vz *= drag;
   state.heading -= input.turn * Math.min(0.25 + speed / 18, 1) * 0.9 * Math.max(0.12, wet) * dt * (forward < -1 ? -1 : 1);
   const planing = Math.min(speed / 45, 1) * wet;
-  state.vy += (support * (1 + planing * 0.12) - 9.81) * dt;
-  state.vy = Math.max(-35, Math.min(25, state.vy));
+  state.vy += (support * (1 + planing * 0.06) - 9.81) * dt;
+  state.vy = Math.max(-12, Math.min(3.0, state.vy));
   state.x += state.vx * dt;
   state.z += state.vz * dt;
   state.y += state.vy * dt;
