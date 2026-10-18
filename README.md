@@ -55,6 +55,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+Traffic now predicts near encounters up to four seconds ahead, yields laterally and slows behind nearby hulls. Planning is staggered over four fixed ticks; traffic pairs resolve capsule contacts in stable index order. This is local deterministic avoidance, not a global navigation or deadlock-free solver.
+
 Pitch/roll now have angular rates and critically damped response; patch-contact velocity includes hull angular motion. Landing energy records pre-response vertical entry kinetic energy for feedback, not structural damage. The attitude model remains an arcade approximation rather than full 6-DOF hydrodynamics.
 
 Procedural bank/island/sandbank depth slopes now drive draft-sensitive shallow drag and grounding friction, with three hull probes and a HUD warning. Deep-draft boats ground sooner. Friction removes energy without reversing stopped boats; reverse/recovery can free the boat. This is estimated bathymetry, not a surveyed bed mesh or tidal model.

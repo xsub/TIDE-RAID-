@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Traffic roadmap: predictive yielding and mutual contacts
+
+- Added four-second closest-approach predictions, vessel-length safety margins, bounded lateral yielding and following-speed reduction. Planning is staggered across four fixed ticks and ignores distant bodies.
+- Added fixed-index traffic-to-traffic capsule contacts using the same mass/angular impulse solver; nominal cruise settings survive impacts and bounded acceleration restores motion. Pool recycling clears cached intent.
+- Added predictive-yield and mutual-contact regressions alongside full deterministic traffic/replay tests. Tests and build pass. This is local avoidance, not global route negotiation or guaranteed deadlock-free behavior; dense pileups remain approximate.
+
 ## 2026-10-18 — Water interaction roadmap 2: angular hull response and landing energy
 
 - Added pitch/roll angular rates and exact critically damped attitude response rather than first-order angle interpolation. Hull contact velocities include pitch/roll patch motion, improving damping during bow entry and stern motion.

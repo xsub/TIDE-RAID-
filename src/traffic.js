@@ -2,6 +2,7 @@ import {channel, chunkFeatures, chunkIndex, resolveCollision, END_Z} from './wor
 import {contactImpulse, bodyMass, VESSEL_MASS} from './collision.js';
 import {capsulePair} from './capsule.js';
 import {advanceHull} from './motion.js';
+import {trafficIntent} from './traffic-intent.js';
 
 export const TRAFFIC_TYPES = [
   {model: 'boat-speed-a', length: 7.4, radius: 3.8, speed: 13},
@@ -29,7 +30,7 @@ function targetX(z, lane, radius) {
 }
 
 export function createTraffic(player, count = 18) {
-  const traffic = {boats: [], overtakes: 0, serial: 0};
+  const traffic = {boats: [], overtakes: 0, serial: 0, tick: 0};
   for (let index = 0; index < count; index++) {
     const type = TRAFFIC_TYPES[index % TRAFFIC_TYPES.length];
     const z = player.z - 55 - index * 40;
@@ -62,6 +63,7 @@ export function collideTraffic(player, ship) {
 }
 
 export function updateTraffic(traffic, player, dt) {
+  traffic.tick++;
   let hit = false;
   for (const ship of traffic.boats) {
     if (!ship.active) continue;
@@ -75,12 +77,15 @@ export function updateTraffic(traffic, player, dt) {
       ship.gap = player.z - ship.z;
       ship.vx = 0; ship.vz = -ship.speed;
       ship.yawRate = 0;
+      ship.intent=null;
     }
-    const target = targetX(ship.z - 30, ship.lane, ship.radius);
+    if(!ship.intent || traffic.tick%4===ship.id%4)ship.intent=trafficIntent(ship,traffic.boats,player);
+    const banks=channel(ship.z);
+    const target = Math.max(banks.left+ship.radius,Math.min(banks.right-ship.radius,targetX(ship.z - 30, ship.lane, ship.radius)+ship.intent.offset));
     const targetVelocity = Math.max(-ship.speed,Math.min(ship.speed,(target-ship.x)*0.8));
     const acceleration = 3*dt;
     ship.vx += Math.max(-acceleration,Math.min(acceleration,targetVelocity-ship.vx));
-    ship.vz += Math.max(-acceleration,Math.min(acceleration,-ship.speed-ship.vz));
+    ship.vz += Math.max(-acceleration,Math.min(acceleration,-ship.speed*ship.intent.speedFactor-ship.vz));
     advanceHull(ship,dt,0,(body) => {
       resolveCollision(body);
       hit=collideTraffic(player,body)||hit;
@@ -98,6 +103,15 @@ export function updateTraffic(traffic, player, dt) {
     }
     ship.gap = gap;
     if (ship.z <= END_Z + 10) ship.active = false;
+  }
+  for(let firstIndex=0;firstIndex<traffic.boats.length;firstIndex++) {
+    const first=traffic.boats[firstIndex];if(!first.active)continue;
+    for(let secondIndex=firstIndex+1;secondIndex<traffic.boats.length;secondIndex++) {
+      const second=traffic.boats[secondIndex];if(!second.active)continue;
+      const cruiseSpeed=first.speed;
+      if(collideTraffic(first,second)){resolveCollision(first);resolveCollision(second);}
+      first.speed=cruiseSpeed;
+    }
   }
   if (hit) {
     resolveCollision(player);
