@@ -1,10 +1,25 @@
 import {sampleWave} from './waves.js';
-import {START_Z, channel, resolveCollision} from './world.js';
+import {START_Z, channel, resolveCollision, chunkFeatures, chunkIndex} from './world.js';
+
+export function channelHeading(z) {
+  return Math.atan((channel(z + 1).center - channel(z - 1).center) / 2);
+}
 
 export function createState() {
   return {x: channel(START_Z - 20).center, z: START_Z - 20, y: 1.5,
-    vx: 0, vz: 0, vy: 0, heading: 0, pitch: 0, roll: 0,
+    vx: 0, vz: 0, vy: 0, heading: channelHeading(START_Z - 20), pitch: 0, roll: 0,
     airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0};
+}
+
+export function recover(state, time, roughness = 1) {
+  const banks = channel(state.z);
+  const features = chunkFeatures(chunkIndex(state.z));
+  const candidates = [0, -0.35, 0.35, -0.65, 0.65];
+  const offset = candidates.find((fraction) => features.every((feature) => Math.hypot(banks.center + banks.width * fraction - feature.x, state.z - feature.z) > feature.radius + 6)) ?? 0;
+  Object.assign(state, {x: banks.center + banks.width * offset,
+    vx: 0, vz: 0, vy: 0, speed: 0, heading: channelHeading(state.z),
+    pitch: 0, roll: 0, airtime: 0, collision: 0, landing: 0});
+  state.y = sampleWave(state.x, state.z, time, roughness).h + 0.6;
 }
 
 export function step(state, input, dt, time, roughness = 1) {
@@ -29,7 +44,9 @@ export function step(state, input, dt, time, roughness = 1) {
     if (localX < 0) left += force; else right += force;
   }
   const wet = Math.min(1, support / 9.81);
-  const thrust = (input.throttle ? (input.boost ? 29 : 20) : 0) - (input.brake ? 18 : 0);
+  const forwardBefore = -sine * state.vx - cosine * state.vz;
+  const braking = Math.sign(forwardBefore) * Math.min(Math.abs(forwardBefore) / dt, 30);
+  const thrust = input.brake ? -braking : input.throttle ? (input.boost ? 29 : 20) : 0;
   state.vx -= sine * thrust * wet * dt;
   state.vz -= cosine * thrust * wet * dt;
   const forward = -sine * state.vx - cosine * state.vz;
@@ -40,7 +57,7 @@ export function step(state, input, dt, time, roughness = 1) {
   const drag = Math.exp(-((0.1 + speed * 0.0045) * wet + 0.025) * dt);
   state.vx *= drag;
   state.vz *= drag;
-  state.heading -= input.turn * Math.min(speed / 18, 1) * 0.9 * wet * dt * (forward < -1 ? -1 : 1);
+  state.heading -= input.turn * Math.min(0.25 + speed / 18, 1) * 0.9 * Math.max(0.12, wet) * dt * (forward < -1 ? -1 : 1);
   const planing = Math.min(speed / 45, 1) * wet;
   state.vy += (support * (1 + planing * 0.12) - 9.81) * dt;
   state.vy = Math.max(-35, Math.min(25, state.vy));

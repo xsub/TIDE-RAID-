@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sampleWave, components, waveGLSL} from '../src/waves.js';
-import {createState, step} from '../src/physics.js';
+import {createState, step, recover} from '../src/physics.js';
 import {channel, chunkFeatures, resolveCollision, CHUNK_COUNT, CHUNK_SIZE, START_Z, END_Z} from '../src/world.js';
 
 test('wave gradients and surface velocity match numerical derivatives', () => {
@@ -69,10 +69,33 @@ test('hull stays finite and near the surface over prolonged calm and rough runs'
 
 test('right steering turns the bow and thrust right; rest settles at buoyant equilibrium', () => {
   const state = createState();
+  state.heading = 0;
   for (let tick = 0; tick < 1200; tick++) step(state, {turn: 0}, 1 / 120, tick / 120, 0);
   assert.ok(Math.abs(state.vy) < 0.01);
   const startX = state.x;
   for (let tick = 0; tick < 480; tick++) step(state, {throttle: true, turn: tick > 180 ? 0.3 : 0}, 1 / 120, 10 + tick / 120, 0);
   assert.ok(state.heading < 0);
   assert.ok(state.x > startX + 3);
+});
+
+test('braking comes to rest without turning into reverse thrust', () => {
+  const state = createState();
+  state.heading = 0;
+  state.vz = -20;
+  for (let tick = 0; tick < 1200; tick++) step(state, {brake: true, turn: 0}, 1 / 120, tick / 120, 0);
+  assert.ok(Math.abs(state.vz) < 0.01);
+});
+
+test('recovery clears obstacles and aligns the boat along the river', () => {
+  for (let index = 0; index < CHUNK_COUNT; index++) {
+    const state = createState();
+    state.z = START_Z - index * CHUNK_SIZE - 102;
+    state.x = 10000;
+    state.vx = 50;
+    recover(state, 5);
+    assert.ok(state.x > channel(state.z).left && state.x < channel(state.z).right);
+    assert.equal(state.vx, 0);
+    assert.equal(resolveCollision(state), false);
+    assert.ok(Object.values(state).every(Number.isFinite));
+  }
 });

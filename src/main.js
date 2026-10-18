@@ -1,9 +1,11 @@
 import * as THREE from 'three';
-import {createState, step} from './physics.js';
+import {createState, step, recover} from './physics.js';
+import {createAudio} from './audio.js';
 import {createWater, createScenery} from './scenery.js';
 import {channel, chunkFeatures, chunkIndex, START_Z, END_Z, WORLD_SIZE, CHUNK_COUNT} from './world.js';
 import {sampleWave} from './waves.js';
 import './style.css';
+import './feedback.css';
 
 document.getElementById('app').innerHTML = `
   <header><div class="brand">TIDE<span>RAID</span><sup>2.0</sup></div><span class="tagline">COASTAL EXPEDITION / 01</span>
@@ -18,10 +20,10 @@ document.getElementById('app').innerHTML = `
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
-      <button id="camera">CAMERA / ARCADE</button><button id="reset">RESTART RUN</button>
+      <button id="camera">CAMERA / ARCADE</button><button id="sound">SOUND / OFF</button><button id="recover">RECOVER BOAT / H</button><button id="reset">RESTART RUN</button>
     </details></aside>
   <div id="view"></div><div id="message" role="status"></div>
-  <footer><span>W / ↑ THROTTLE &nbsp; S / ↓ BRAKE &nbsp; A D / ← → STEER</span><span>SHIFT BOOST &nbsp; C CAMERA &nbsp; P PAUSE &nbsp; R RESET</span></footer>
+  <footer><span>W / ↑ THROTTLE &nbsp; S / ↓ BRAKE &nbsp; A D / ← → STEER</span><span>SHIFT BOOST &nbsp; C CAMERA &nbsp; H RECOVER &nbsp; P PAUSE &nbsp; R RESET</span></footer>
   <nav id="touch" aria-label="Boat controls"><button data-key="KeyA" aria-label="Steer left">◀</button><button data-key="KeyD" aria-label="Steer right">▶</button><button data-key="KeyS">BRAKE</button><button data-key="KeyW">GO</button><button data-key="ShiftLeft">BOOST</button></nav>`;
 
 const elements = Object.fromEntries(['speed', 'air', 'progress', 'distance', 'quality', 'swellValue', 'camera', 'pause', 'message', 'chunks'].map((id) => [id, document.getElementById(id)]));
@@ -83,6 +85,8 @@ const keys = new Set();
 const map = document.getElementById('map').getContext('2d');
 const cameraPosition = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
+const smoothLook = new THREE.Vector3();
+const audio = createAudio();
 
 function reset() {
   state = createState();
@@ -114,6 +118,7 @@ function snapCamera() {
   cameraGoal();
   camera.position.copy(cameraPosition);
   camera.lookAt(lookTarget);
+  smoothLook.copy(lookTarget);
 }
 snapCamera();
 
@@ -125,6 +130,7 @@ addEventListener('keydown', (event) => {
   if (event.code === 'KeyC') toggleCamera();
   if (event.code === 'KeyP' || event.code === 'Escape') togglePause();
   if (event.code === 'KeyR') reset();
+  if (event.code === 'KeyH' && !complete) recover(state, simTime, roughness);
 });
 addEventListener('keyup', (event) => keys.delete(event.code));
 addEventListener('blur', () => {keys.clear(); if (!paused) togglePause();});
@@ -140,6 +146,11 @@ for (const button of document.querySelectorAll('[data-key]')) {
 document.getElementById('camera').onclick = toggleCamera;
 document.getElementById('reset').onclick = reset;
 document.getElementById('pause').onclick = togglePause;
+document.getElementById('recover').onclick = () => {if (!complete) recover(state, simTime, roughness);};
+document.getElementById('sound').onclick = async (event) => {
+  try {event.target.textContent = `SOUND / ${await audio.toggle() ? 'ON' : 'OFF'}`;}
+  catch {event.target.textContent = 'SOUND UNAVAILABLE';}
+};
 document.getElementById('detail').oninput = (event) => {elements.quality.textContent = water.setDetail(Number(event.target.value));};
 document.getElementById('swell').oninput = (event) => {
   roughness = Number(event.target.value) / 100;
@@ -207,13 +218,16 @@ function frame(now) {
   const chunks = scenery.update(state.z);
   cameraGoal();
   camera.position.lerp(cameraPosition, 1 - Math.exp(-5 * elapsed));
-  camera.lookAt(lookTarget);
+  smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
+  camera.lookAt(smoothLook);
+  audio.update(state, paused || complete, keys.has('KeyW') || keys.has('ArrowUp'));
+  document.body.classList.toggle('impact', state.collision > 0 && !paused);
   renderer.render(scene, camera);
   hudTimer += elapsed;
   if (hudTimer > 0.1) {
     hudTimer = 0;
     elements.speed.textContent = Math.round(state.speed * 3.6).toString().padStart(3, '0');
-    elements.air.textContent = state.collision ? 'SHORE IMPACT' : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
+    elements.air.textContent = state.collision ? 'IMPACT · H TO RECOVER' : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
     const distance = Math.max(0, START_Z - 20 - state.z);
     elements.distance.textContent = `${(distance / 1000).toFixed(2)} / ${((WORLD_SIZE - 20) / 1000).toFixed(2)} KM`;
     elements.progress.style.width = `${Math.min(100, distance / (WORLD_SIZE - 20) * 100)}%`;
