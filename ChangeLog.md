@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Higher exploration swell range
+
+- Exploration now starts/restarts at 2× swell (the old maximum); the slider now reaches 4× (double the old maximum), retaining calm 0×. CPU hull sampling and GPU waves continue using the same multiplier, with no tessellation or solver changes.
+- Time trials retain their fixed 1× swell for existing records/replays. Starting exploration after a trial restores the new 2× default. Stronger swell intentionally affects physical heights and slopes, not just surface appearance.
+- All 177 tests and both production entry builds pass, including doubled wave amplitude/slopes and finite deterministic hull behavior at the new maximum. Existing shared-bundle advisory remains; rough-sea handling still needs playtesting.
+
 ## 2026-10-18 — Camera-switch safeguards and universal view reset
 
 - V / Reset Current View now restores the active view's default framing: Pilot looks straight ahead; exterior views reset orbit, zoom, manual tilt and height. Mouse sensitivity/smoothing, boat state and unrelated settings remain untouched. Active drags and IJKL holds are cleared on reset.

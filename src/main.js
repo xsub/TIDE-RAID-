@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {DEFAULT_SWELL, MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
@@ -79,8 +80,8 @@ document.getElementById('app').innerHTML = `
       <label for="detail">WATER SURFACE <output id="quality"></output></label>
       <input id="detail" type="range" min="0" max="100" value="25">
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
-      <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
-      <input id="swell" type="range" min="0" max="200" value="100">
+      <label for="swell">SWELL <output id="swellValue">${DEFAULT_SWELL.toFixed(1)}×</output></label>
+      <input id="swell" type="range" min="0" max="${MAX_SWELL * 100}" value="${DEFAULT_SWELL * 100}">
       <label for="riverDepth">RIVER DEPTH <output id="riverDepthValue"></output></label>
       <input id="riverDepth" type="range" min="0.5" max="4" step="0.25">
       <small>Exploration only · 1× original / 2× deeper / 4× very deep. Maximum 80 m; shorelines and shallow banks remain. Changing depth restarts exploration.</small>
@@ -232,7 +233,7 @@ loadFleet().then((factory) => {
   document.getElementById('fleetStatus').textContent = 'FLEET LOAD FAILED · RELOAD TO RETRY';
 });
 let simTime = 0;
-let roughness = 1;
+let roughness = DEFAULT_SWELL;
 let mode = preferences.camera;
 elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`;
 let paused = false;
@@ -340,11 +341,12 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   accumulator = 0;
   spray.reset();
   if (phase !== 'explore') {
-    roughness = 1;
-    document.getElementById('swell').value = '100';
-    elements.swellValue.textContent = '1.0×';
+    roughness = TRIAL_SWELL;
   }
   document.getElementById('swell').disabled = phase !== 'explore';
+  if (phase === 'explore') roughness = DEFAULT_SWELL;
+  document.getElementById('swell').value = String(roughness * 100);
+  elements.swellValue.textContent = `${roughness.toFixed(1)}×`;
   document.getElementById('riverDepth').disabled = phase !== 'explore';
   snapCamera();
 }
@@ -596,7 +598,7 @@ document.getElementById('detail').oninput = (event) => {
   persistPreferences();
 };
 document.getElementById('swell').oninput = (event) => {
-  roughness = Number(event.target.value) / 100;
+  roughness = clampSwell(Number(event.target.value) / 100);
   elements.swellValue.textContent = `${roughness.toFixed(1)}×`;
 };
 document.getElementById('riverDepth').value = preferences.riverDepth;
