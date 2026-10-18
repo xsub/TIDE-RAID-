@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {QUALITY_PRESETS, createQualityController} from './quality-controller.js';
-import {createActivity, tickActivity, activityText} from './coastal-activity.js';
+import {createActivity, tickActivity, activityText, activityTarget} from './coastal-activity.js';
 import {setHarborShelter} from './harbor-water.js';
 import {propulsionResponse} from './propulsion-response.js';
 import {wakeResponse} from './wake-response.js';
@@ -76,7 +76,7 @@ document.getElementById('app').innerHTML = `
         <label for="sinkingMode">SINKING</label><select id="sinkingMode"><option value="off">Disallowed · stay afloat</option><option value="arcade">Arcade · slower critical-damage flooding</option><option value="realistic">Realistic · progressive flooding</option></select>
         <label for="fuelMode">FUEL CONSUMPTION</label><select id="fuelMode"><option value="off">Unlimited fuel</option><option value="arcade">Arcade · shorter fuel strategy</option><option value="realistic">Realistic · estimated engine load</option></select>
         <button id="floodingDrill">START FLOODING DRILL</button><small>Exploration with sinking enabled only: damages the hull for practice. H / Recover ends the drill and pumps the water out.</small>
-        <output id="sinkingStatus" aria-live="polite"></output><small>Rule changes keep current damage and water. Explicitly disabling sinking pumps water out; Recover or Restart also clears flooding. Changing the boat or river depth starts a fresh voyage.</small>
+        <output id="sinkingStatus"></output><small>Rule changes keep current damage and water. Explicitly disabling sinking pumps water out; Recover or Restart also clears flooding. Changing the boat or river depth starts a fresh voyage.</small>
         <small>Exploration only. Realistic means game approximation. Green + stations repair/refuel free: stop below 5 km/h, release throttle for 1.5 seconds. H / Recover provides rescue and emergency fuel. Rule changes keep the current voyage. Time trials keep original rules.</small>
       </details>
       <button id="exportReplay">EXPORT PHYSICS REPLAY</button><small>Up to 10 minutes, local input/state diagnostics only. No upload.</small>
@@ -97,7 +97,8 @@ document.getElementById('app').innerHTML = `
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <label><input id="reducedCameraMotion" type="checkbox" style="width:auto"> REDUCED CAMERA MOTION · NO FOLLOW LAG</label>
       <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
-      <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option></select>
+      <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option><option value="lighthouse">Lighthouse tour · visit 3 coastal landmarks</option></select>
+      <small>Active targets have an amber ring. Lighthouse tour: enter each offshore ring below 72 km/h and release throttle to register a visit. Stay clear of shore/rocks; rings are guidance, not navigation guarantees.</small>
       <output id="activityStatus">FREE EXPLORATION</output><small>Uses green + service harbors. Delivery: stop within 18 m for 2 seconds at each end. Docking: stop within 10 m for 5 seconds. Release throttle/reverse. Changing activity restarts its score; Recover cancels it. No unlocks or grind.</small>
       <small>Wreck inspection follows the hull underwater. Orbit, tilt and zoom work; manual height is ignored. V resets the current view to its default.</small>
       <small id="pilotHint" hidden>Pilot view: drag with the left or right mouse button to look around, or use J/L and I/K (±75° tilt). V / Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only. Driving remaps take priority over V.</small>
@@ -210,6 +211,8 @@ const spray = createSpray(scene);
 const sinkingBubbles = createSinkingBubbles(scene);
 let state = createState(preferences.playerBoat);
 let activity = createActivity('off', state);
+const activityBeacon = new THREE.Mesh(new THREE.TorusGeometry(12, 0.35, 4, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xffc46c, transparent: true, opacity: 0.8, depthWrite: false}));
+activityBeacon.visible = false; scene.add(activityBeacon);
 document.getElementById('coastalActivity').onchange = (event) => {activity = createActivity(event.target.value, state);};
 state.mass = VESSEL_MASS[preferences.playerBoat];
 let traffic = createTraffic(state);
@@ -815,6 +818,12 @@ function frame(now) {
   document.getElementById('windAngleValue').textContent = `${preferences.windAngle}°`;
   const exploring = race.phase === 'explore';
   weather.headlight = exploring && voyage.flooding >= 0.75 ? 0 : 1;
+  activityBeacon.visible = exploring && !['off', 'done'].includes(activity.phase);
+  if (activityBeacon.visible) {
+    const target = activityTarget(activity);
+    activityBeacon.visible = Math.hypot(target.x - state.x, target.z - state.z) < 600;
+    activityBeacon.position.set(target.x, sampleWave(target.x, target.z, simTime, roughness).h + 0.5, target.z);
+  }
   if (trafficView && !wearView) wearView = createWearView(boat);
   wearView?.update(voyage, state, exploring);
   if (exploring) {boat.rotation.z += voyage.sinking.list; boat.rotation.x += voyage.sinking.trim;}

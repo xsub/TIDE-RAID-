@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Lighthouse tour and active target markers
+
+- Added optional three-landmark lighthouse tours using the actual generated coastal lighthouse locations, with offshore approach targets, sequential progress and a completion score. Release throttle below 72 km/h within 45 m to register; timers pause with simulation and Recover cancels the activity.
+- All activities now get a reusable amber target ring rendered only within 600 m, making delivery/docking destinations easier to find. One extra mesh, no new lights or assets. Offshore markers are guidance rather than collision-free route guarantees; rescue missions remain a follow-up.
+- All 190 tests and both production entry builds pass, including three distinct lighthouse visits, throttle gating and one-time completion. Browser verified the new tour selection, target/distance/progress and clean runtime startup. Device performance and full-route playtesting remain outstanding.
+
 ## 2026-10-18 — Preserve sinking during voyage rule changes
 
 - Removed the hidden voyage restart when changing damage/fuel/sinking rules: switching Arcade↔Realistic or fuel rules now preserves accumulated water and hull damage. Explicitly choosing Sinking Off still pumps water out; Recover/Restart retain their documented rescue behavior.
