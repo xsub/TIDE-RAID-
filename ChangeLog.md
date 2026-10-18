@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Adjustable driver mouse sensitivity and look smoothing
+
+- Added saved Driver Mouse Sensitivity (0.25–3×, default 1×) and Driver Look Smoothing (0–100%, default 35%) sliders. Mouse sensitivity does not change driving or IJKL speeds; both mouse and keyboard share smoothed driver angles.
+- Frame-time-based exponential angular smoothing follows the shortest yaw arc across ±180 degrees, with a responsive default ~55 ms time constant and no angular overshoot. Removed the second pilot look-target interpolation to avoid double smoothing; exterior cameras retain their previous behavior. Zero smoothing is immediate and V/reset still snaps straight ahead.
+- Separate target/display angles preserve all input while smoothing and reuse fixed objects. Existing tilt limits, saved pilot angles, helm position, sinking and input protections remain unchanged. No boat physics changes.
+- All 172 tests and both production entry builds pass, including sensitivity bounds/scaling, wraparound, response time, no overshoot, immediate zero-smoothing mode, output reuse, matching 30/120 Hz results and preference migration/persistence. Existing shared-bundle advisory remains; subjective comfort still needs playtesting.
+
 ## 2026-10-18 — Driver POV mouse look and recenter key
 
 - Drag on the game canvas with either left or right mouse button in Pilot view to look horizontally/vertically. Uses the same saved pilot angles as IJKL, with 360-degree yaw and ±75-degree tilt, without moving the helm eye. V or Reset Camera immediately looks straight ahead; driving remaps retain priority.

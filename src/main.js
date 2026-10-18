@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {dragPilotLook} from './pilot-look.js';
+import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
 import {cameraKeyMotion} from './camera-keys.js';
 import {sampleWave} from './waves.js';
@@ -87,6 +87,11 @@ document.getElementById('app').innerHTML = `
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <small>Wreck inspection follows the hull underwater. Orbit/zoom work; manual height/tilt is ignored in this view.</small>
       <small id="pilotHint" hidden>Pilot view: drag with the left or right mouse button to look around, or use J/L and I/K (±75° tilt). V / Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only. Driving remaps take priority over V.</small>
+      <label for="mouseLookSensitivity">DRIVER MOUSE SENSITIVITY <output id="mouseLookSensitivityValue"></output></label>
+      <input id="mouseLookSensitivity" type="range" min="0.25" max="3" step="0.05">
+      <label for="pilotLookSmoothing">DRIVER LOOK SMOOTHING <output id="pilotLookSmoothingValue"></output></label>
+      <input id="pilotLookSmoothing" type="range" min="0" max="100" step="5">
+      <small>Sensitivity affects mouse drag only; IJKL speed is unchanged. Smoothing softens both mouse and keyboard look. 0% is immediate; V always recenters immediately.</small>
       <label><input id="pilotSinkWithBoat" type="checkbox" style="width:auto"> DRIVER POV: SINK WITH BOAT</label>
       <label><input id="manualCamera" type="checkbox" style="width:auto"> MANUAL CAMERA HEIGHT / TILT</label>
       <label for="cameraElevation">ANGLE ABOVE WATER <output id="cameraElevationValue"></output></label>
@@ -243,6 +248,8 @@ const map = document.getElementById('map').getContext('2d');
 const cameraPosition = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
 const smoothLook = new THREE.Vector3();
+const pilotLook = {yaw: preferences.pilotYaw, pitch: preferences.pilotPitch};
+const pilotLookTarget = {yaw: preferences.pilotYaw, pitch: preferences.pilotPitch};
 const audio = createAudio();
 document.getElementById('shallowThreshold').value = preferences.shallowThreshold;
 document.getElementById('shallowThresholdValue').textContent = `${preferences.shallowThreshold.toFixed(1)} m`;
@@ -367,7 +374,7 @@ function cameraGoal() {
   const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 && mode !== 'wreck' && !(mode === 'pilot' && preferences.pilotSinkWithBoat) ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
   const pose = cameraPose(cameraState, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
     preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null,
-    {yaw: preferences.pilotYaw, pitch: preferences.pilotPitch});
+    pilotLook);
   if (mode === 'wreck') pose.y = Math.max(pose.y, seabedHeight(pose.x, pose.z, state.depthScale) + 1.5);
   const horizontal = Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ);
   document.getElementById('cameraActual').textContent = `Actual: ${(pose.y - waterHeight).toFixed(1)} m · ${(Math.atan2(pose.y - pose.lookY, horizontal) * 180 / Math.PI).toFixed(1)}°`;
@@ -379,6 +386,7 @@ function cameraGoal() {
   }
 }
 function snapCamera() {
+  pilotLook.yaw = preferences.pilotYaw; pilotLook.pitch = preferences.pilotPitch;
   cameraGoal();
   camera.position.copy(cameraPosition);
   camera.lookAt(lookTarget);
@@ -401,6 +409,14 @@ function syncCameraPlacement() {
   document.getElementById('cameraHeightValue').textContent = `${preferences.cameraHeight} m (before zoom)`;
 }
 syncCameraPlacement();
+for (const name of ['mouseLookSensitivity', 'pilotLookSmoothing']) {
+  const control = document.getElementById(name); const output = document.getElementById(`${name}Value`);
+  const smoothing = name === 'pilotLookSmoothing';
+  const sync = () => {control.value = preferences[name] * (smoothing ? 100 : 1); output.textContent = smoothing ? `${Math.round(preferences[name] * 100)}%` : `${preferences[name].toFixed(2)}×`;};
+  sync();
+  control.oninput = () => {preferences[name] = Number(control.value) / (smoothing ? 100 : 1); sync();};
+  control.onchange = persistPreferences;
+}
 for (const name of ['cameraElevation', 'cameraHeight']) document.getElementById(name).oninput = (event) => {
   preferences[name] = Number(event.target.value); preferences.manualCamera = true;
   syncCameraPlacement(); persistPreferences();
@@ -448,7 +464,7 @@ renderer.domElement.addEventListener('pointermove', (event) => {
   if (orbitDrag?.id !== event.pointerId) return;
   if (orbitDrag.mode !== mode) {finishOrbit(event); return;}
   if (mode === 'pilot') {
-    const look = dragPilotLook(preferences.pilotYaw, preferences.pilotPitch, event.clientX - orbitDrag.x, event.clientY - orbitDrag.y);
+    const look = dragPilotLook(preferences.pilotYaw, preferences.pilotPitch, event.clientX - orbitDrag.x, event.clientY - orbitDrag.y, preferences.mouseLookSensitivity);
     preferences.pilotYaw = look.yaw; preferences.pilotPitch = look.pitch;
   } else setCameraAngle((preferences.cameraAngle + (event.clientX - orbitDrag.x) * 0.35 + 360) % 360);
   orbitDrag.x = event.clientX; orbitDrag.y = event.clientY;
@@ -778,9 +794,12 @@ function frame(now) {
     gateGroup.children[1].position.x = gate.halfWidth;
     gateLine.scale.x = gate.halfWidth * 2;
   }
+  pilotLookTarget.yaw = preferences.pilotYaw; pilotLookTarget.pitch = preferences.pilotPitch;
+  if (mode === 'pilot') smoothPilotLook(pilotLook, pilotLookTarget, elapsed, preferences.pilotLookSmoothing, pilotLook);
   cameraGoal();
   camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
-  smoothLook.lerp(lookTarget, 1 - Math.exp(-(mode === 'pilot' ? 18 : 7) * elapsed));
+  if (mode === 'pilot') smoothLook.copy(lookTarget);
+  else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
   underwater = underwaterBlend(underwater, cameraSurface - camera.position.y, ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring, elapsed);

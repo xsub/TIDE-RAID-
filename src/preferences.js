@@ -12,11 +12,14 @@ export function readPreferences(storage) {
   defaults.riverDepth = 2;
   defaults.pilotSinkWithBoat = false;
   defaults.pilotYaw = 0; defaults.pilotPitch = 0;
+  defaults.mouseLookSensitivity = 1; defaults.pilotLookSmoothing = 0.35;
   defaults.weather = 'sunny'; defaults.hour = 12; defaults.dayCycle = false; defaults.cycleMinutes = 20; defaults.wind = 20; defaults.windAngle = 45; defaults.glow = true;
   defaults.damageMode = 'arcade'; defaults.sinkingMode = 'off'; defaults.fuelMode = 'arcade';
   defaults.cameraZoom = 1;
   defaults.manualCamera = false; defaults.cameraElevation = 30; defaults.cameraHeight = 15;
   if (!saved || typeof saved !== 'object') return defaults;
+  if (Number.isFinite(saved.mouseLookSensitivity) && saved.mouseLookSensitivity >= 0.25 && saved.mouseLookSensitivity <= 3) defaults.mouseLookSensitivity = saved.mouseLookSensitivity;
+  if (Number.isFinite(saved.pilotLookSmoothing) && saved.pilotLookSmoothing >= 0 && saved.pilotLookSmoothing <= 1) defaults.pilotLookSmoothing = saved.pilotLookSmoothing;
   if (Number.isFinite(saved.pilotYaw) && saved.pilotYaw >= -180 && saved.pilotYaw <= 180) defaults.pilotYaw = saved.pilotYaw;
   if (Number.isFinite(saved.pilotPitch) && saved.pilotPitch >= -75 && saved.pilotPitch <= 75) defaults.pilotPitch = saved.pilotPitch;
   if (isPlayerBoat(saved.playerBoat)) defaults.playerBoat = saved.playerBoat;
