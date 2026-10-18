@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {propulsionResponse} from './propulsion-response.js';
 import {wakeResponse} from './wake-response.js';
 import {rememberCamera} from './camera-memory.js';
 import {DEFAULT_SWELL, MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
@@ -728,6 +729,11 @@ function frame(now) {
       const driveInput = {...input, throttle: input.throttle && canDrive, reverse: input.reverse && canDrive, boost: boosting && canDrive};
       if (!exploring) replayTape.record(driveInput,simTime,roughness);
       const fullPower = state.power;
+      const fullTrim = state.planingTrim;
+      if (exploring) {
+        const propulsion = propulsionResponse(state, driveInput);
+        state.power *= propulsion.power; state.planingTrim = propulsion.trim; state.propVentilation = propulsion.ventilation;
+      }
       const dryMass = state.mass; const dryDraft = state.draft; const dryCG = state.cgHeight;
       const flooded = exploring ? floodedHandling(voyage, state) : null;
       if (flooded) {state.mass = flooded.mass; state.draft = flooded.draft; state.cgHeight = flooded.cgHeight; state.power *= flooded.power;}
@@ -739,6 +745,7 @@ function frame(now) {
         return hit;
       } : null, flooded?.buoyancy ?? 1);
       state.power = fullPower;
+      state.planingTrim = fullTrim;
       state.mass = dryMass; state.draft = dryDraft; state.cgHeight = dryCG;
       if (exploring) {
         const surface = sampleWave(state.x, state.z, simTime, roughness).h;

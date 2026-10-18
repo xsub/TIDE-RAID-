@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 3: throttle and propeller response
+
+- Exploration propulsion now loses effective thrust progressively during airborne ventilation, restoring it on water contact. Planing trim follows throttle, speed and fore/aft loading through the existing hull-response model. Existing hull-specific inertia and energy-based landing audio remain; engine sound is not a recorded propeller simulation.
+- Temporary power/trim modifiers are restored every fixed step and do not alter trial rules. Full tests and both builds pass before this commit.
+
 ## 2026-10-18 — Roadmap 2: interactive traffic wakes
 
 - Exploration hulls now respond to bounded trailing V-wake crossing fields with directional roll/pitch/heave impulses, scaled by mass. At most 32 traffic boats are queried at fixed simulation steps; no effect on trial/replay rules. Existing traffic wake ribbons remain the visual cue.
