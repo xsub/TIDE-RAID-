@@ -1,4 +1,5 @@
 import {channel, chunkFeatures, START_Z, CHUNK_SIZE} from './world.js';
+import {harborLayout, reservedHarborSpace} from './harbor-layout.js';
 
 export function natureRandom(seed) {
   const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
@@ -24,12 +25,14 @@ export function natureLayout(index) {
   const layout = {trees: [], shrubs: [], rocks: [], grass: [], logs: [], flowers: [], birds: []};
   const random = (seed) => natureRandom(index * 997 + seed * 13.7);
   const start = START_Z - index * CHUNK_SIZE;
+  const settlement = harborLayout(index);
   for (let plant = 0; plant < 760; plant++) {
     const side = plant % 2 ? -1 : 1;
     const z = start - 2 - random(plant * 9 + 1) * (CHUNK_SIZE - 4);
     const banks = channel(z);
     const distance = plant < 300 ? 8 + random(plant * 9 + 2) ** 1.5 * 280 : (plant >= 650 && plant < 722 ? 12 : 1) + random(plant * 9 + 2) * 95;
     const x = (side < 0 ? banks.left : banks.right) + side * (beachWidth(z, side) + distance);
+    if (reservedHarborSpace(x, z, index, settlement)) continue;
     const y = coastHeight(x, z, distance) - 0.35;
     const scale = 0.65 + random(plant * 9 + 3) * 0.75;
     const rotation = random(plant * 9 + 4) * Math.PI * 2;

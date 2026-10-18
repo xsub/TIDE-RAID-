@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {channel, chunkFeatures, chunkIndex, CHUNK_SIZE, CHUNK_COUNT, START_Z} from './world.js';
 import {createWaterMaterial} from './water-material.js';
 import {createNature} from './nature-view.js';
+import {createHarbors} from './harbors.js';
 import {beachWidth, coastHeight, islandHeight} from './nature.js';
 
 export function createWater(scene) {
@@ -60,7 +61,8 @@ export function createScenery(scene) {
   const stone = new THREE.DodecahedronGeometry(1, 0);
   const cylinder = new THREE.CylinderGeometry(0.86, 1, 1, 12);
   const nature = createNature();
-  const sharedGeometry = new Set([stone, cylinder, ...nature.shared]);
+  const harbors = createHarbors();
+  const sharedGeometry = new Set([stone, cylinder, ...nature.shared, ...harbors.shared]);
   const loaded = new Map();
   function strip(index, side, beach) {
     const positions = [];
@@ -146,12 +148,14 @@ export function createScenery(scene) {
       }
     }
     nature.add(group, index);
+    harbors.add(group, index);
     scene.add(group);
     loaded.set(index, group);
   }
   return {
     update(z, time = 0) {
       nature.update(time);
+      harbors.update(time);
       const center = chunkIndex(z);
       const desired = new Set();
       for (let index = Math.max(0, center - 3); index <= Math.min(CHUNK_COUNT - 1, center + 3); index++) {
@@ -161,6 +165,7 @@ export function createScenery(scene) {
       for (const [index, group] of loaded) {
         if (desired.has(index)) continue;
         scene.remove(group);
+        harbors.forget(group);
         group.traverse((child) => {
           if (child.isMesh && !sharedGeometry.has(child.geometry)) child.geometry.dispose();
           if (child.isInstancedMesh) child.dispose();

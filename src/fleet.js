@@ -1,32 +1,19 @@
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {createVessel, VESSEL_STYLES} from './vessels.js';
 import {TRAFFIC_TYPES} from './traffic.js';
 import {sampleWave} from './waves.js';
 
 export async function loadFleet() {
-  const loader = new GLTFLoader();
   const names = ['boat-speed-c', ...TRAFFIC_TYPES.map((type) => type.model)];
   const templates = new Map();
-  await Promise.all(names.map(async (name) => {
-    const asset = await loader.loadAsync(`${import.meta.env.BASE_URL}assets/watercraft/${name}.glb`);
-    asset.scene.traverse((child) => {
-      if (!child.isMesh) return;
-      child.material.roughness = 0.86;
-      child.material.metalness = 0;
-      child.material.flatShading = true;
-      child.material.envMapIntensity = 0.35;
-      child.castShadow = true;
-    });
-    templates.set(name, asset.scene);
-  }));
+  for (const name of names) templates.set(name, createVessel(VESSEL_STYLES[name]));
   return (name, length) => {
     const model = templates.get(name).clone(true);
     const bounds = new THREE.Box3().setFromObject(model);
     const center = bounds.getCenter(new THREE.Vector3());
     const scale = length / (bounds.max.z - bounds.min.z);
-    model.rotation.y = Math.PI;
     model.scale.setScalar(scale);
-    model.position.set(center.x * scale, -bounds.min.y * scale - 0.65, center.z * scale);
+    model.position.set(-center.x * scale, -bounds.min.y * scale - 0.65, -center.z * scale);
     const group = new THREE.Group();
     group.add(model);
     return group;

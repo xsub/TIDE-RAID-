@@ -4,6 +4,7 @@ import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
 import {loadFleet, createTrafficView} from './fleet.js';
 import {createTraffic, updateTraffic} from './traffic.js';
+import {resolveHarborCollision} from './harbor-layout.js';
 import {createSpray} from './spray.js';
 import {createAtmosphere} from './atmosphere.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
@@ -79,7 +80,7 @@ loadFleet().then((factory) => {
   });
   boat.add(factory('boat-speed-c', 7.4));
   trafficView = createTrafficView(scene, factory, traffic);
-  document.getElementById('fleetStatus').textContent = 'KENNEY WATERCRAFT / 18 BOATS';
+  document.getElementById('fleetStatus').textContent = 'COASTAL FLEET / 18 BOATS';
 }).catch(() => {
   fleetError = true;
   document.getElementById('fleetStatus').textContent = 'FLEET LOAD FAILED · RELOAD TO RETRY';
@@ -336,6 +337,7 @@ function frame(now) {
       const before = {x: state.x, z: state.z, collision: state.collision};
       const boosting = useBoost(race, input.boost, input.throttle && !input.brake, 1 / 120);
       step(state, {...input, boost: boosting}, 1 / 120, simTime, roughness);
+      resolveHarborCollision(state);
       if (trafficView) updateTraffic(traffic, state, 1 / 120);
       advanceLesson(lesson, {...input, boost: boosting}, state, race.next, 1 / 120);
       if (updateRace(race, before, state, 1 / 120)) {
