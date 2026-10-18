@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 6: optional coastal activities
+
+- Added repeatable harbor deliveries (stop to collect, then reach a different harbor) and precision docking (hold within 10 m below 0.7 m/s for 5 s). Live target/distance/hold/elapsed feedback and a simple completion score; no unlock grind or spending. Existing green harbor markers locate destinations.
+- Exploration-only, fixed-step timers pause with simulation; throttle/speed/range/flooding prevent unsafe completion. Recover/restart cancels activity and replay cannot award twice. Dedicated rescue/lighthouse missions and persistent leaderboards are not yet included. Full tests and both builds pass before this commit.
+
 ## 2026-10-18 — Roadmap 5: sheltered harbor water
 
 - Service harbors now shelter exploration waves within a smooth 60 m radius, reducing local amplitude to 30% at the dock. CPU height/slope/time derivative and GPU water use matching shelter fields, including the spatial slope derivative. Trial and Cargo Lab waves remain unsheltered.

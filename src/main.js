@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createActivity, tickActivity, activityText} from './coastal-activity.js';
 import {setHarborShelter} from './harbor-water.js';
 import {propulsionResponse} from './propulsion-response.js';
 import {wakeResponse} from './wake-response.js';
@@ -93,6 +94,8 @@ document.getElementById('app').innerHTML = `
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <label><input id="reducedCameraMotion" type="checkbox" style="width:auto"> REDUCED CAMERA MOTION · NO FOLLOW LAG</label>
       <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
+      <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option></select>
+      <output id="activityStatus">FREE EXPLORATION</output><small>Uses green + service harbors. Delivery: stop within 18 m for 2 seconds at each end. Docking: stop within 10 m for 5 seconds. Release throttle/reverse. Changing activity restarts its score; Recover cancels it. No unlocks or grind.</small>
       <small>Wreck inspection follows the hull underwater. Orbit, tilt and zoom work; manual height is ignored. V resets the current view to its default.</small>
       <small id="pilotHint" hidden>Pilot view: drag with the left or right mouse button to look around, or use J/L and I/K (±75° tilt). V / Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only. Driving remaps take priority over V.</small>
       <label for="mouseLookSensitivity">DRIVER MOUSE SENSITIVITY <output id="mouseLookSensitivityValue"></output></label>
@@ -195,6 +198,8 @@ scene.add(boat);
 const spray = createSpray(scene);
 const sinkingBubbles = createSinkingBubbles(scene);
 let state = createState(preferences.playerBoat);
+let activity = createActivity('off', state);
+document.getElementById('coastalActivity').onchange = (event) => {activity = createActivity(event.target.value, state);};
 state.mass = VESSEL_MASS[preferences.playerBoat];
 let traffic = createTraffic(state);
 let replayTape=createReplayTape(state,traffic);
@@ -329,6 +334,7 @@ gateGroup.add(gateLine);
 scene.add(gateGroup);
 
 function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
+  activity = createActivity('off', state); document.getElementById('coastalActivity').value = 'off';
   setHarborShelter(phase === 'explore');
   audio.setClearanceWarning(null, preferences.shallowThreshold, preferences.shallowMuted, false);
   if (phase !== 'explore' && !trafficView) return;
@@ -361,6 +367,7 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
 }
 function rescue() {
   if (complete || race.phase === 'ready' || race.phase === 'countdown') return;
+  activity = createActivity('off', state); document.getElementById('coastalActivity').value = 'off';
   recoverRace(race, state);
   recover(state, simTime, roughness);
   if (race.phase === 'explore') {
@@ -758,6 +765,7 @@ function frame(now) {
       state.mass = dryMass; state.draft = dryDraft; state.cgHeight = dryCG;
       if (exploring) {
         const surface = sampleWave(state.x, state.z, simTime, roughness).h;
+        tickActivity(activity, state, 1 / 120, driveInput.throttle || driveInput.reverse || voyage.flooding > 0.1);
         tickVoyage(voyage, state, driveInput, preferences, 1 / 120, surface);
         settleFloodedHull(state, voyage, surface, 1 / 120);
         sinkingBubbles.update(state, voyage, 1 / 120, simTime, roughness, preferences.sinkingMode !== 'off');
@@ -787,6 +795,8 @@ function frame(now) {
   document.getElementById('cameraHeight').disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   const weather = weatherState(preferences, simTime - weatherEpoch);
+  document.getElementById('coastalActivity').disabled = !exploring;
+  document.getElementById('activityStatus').textContent = activityText(activity, state);
   weather.harborShelter = exploring;
   const displayedHour = Math.floor(weather.hour * 60);
   document.getElementById('hourValue').textContent = `${String(Math.floor(displayedHour / 60)).padStart(2, '0')}:${String(displayedHour % 60).padStart(2, '0')}`;
