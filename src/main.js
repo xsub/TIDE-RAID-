@@ -74,6 +74,9 @@ document.getElementById('app').innerHTML = `
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
+      <label for="riverDepth">RIVER DEPTH <output id="riverDepthValue"></output></label>
+      <input id="riverDepth" type="range" min="0.5" max="4" step="0.25">
+      <small>Exploration only · 1× original / 2× deeper / 4× very deep. Maximum 80 m; shorelines and shallow banks remain. Changing depth restarts exploration.</small>
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <small>Wreck inspection follows the hull underwater. Orbit/zoom work; manual height/tilt is ignored in this view.</small>
@@ -298,6 +301,7 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   if (phase !== 'explore' && !trafficView) return;
   state = createState(preferences.playerBoat);
   voyage = createVoyage();
+  if (phase === 'explore') state.depthScale = preferences.riverDepth;
   sinkingBubbles.reset();
   state.mass = VESSEL_MASS[preferences.playerBoat];
   traffic = createTraffic(state);
@@ -317,6 +321,7 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
     elements.swellValue.textContent = '1.0×';
   }
   document.getElementById('swell').disabled = phase !== 'explore';
+  document.getElementById('riverDepth').disabled = phase !== 'explore';
   snapCamera();
 }
 function rescue() {
@@ -347,7 +352,7 @@ function cameraGoal() {
   const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 && mode !== 'wreck' && !(mode === 'pilot' && preferences.pilotSinkWithBoat) ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
   const pose = cameraPose(cameraState, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
     preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null);
-  if (mode === 'wreck') pose.y = Math.max(pose.y, seabedHeight(pose.x, pose.z) + 1.5);
+  if (mode === 'wreck') pose.y = Math.max(pose.y, seabedHeight(pose.x, pose.z, state.depthScale) + 1.5);
   const horizontal = Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ);
   document.getElementById('cameraActual').textContent = `Actual: ${(pose.y - waterHeight).toFixed(1)} m · ${(Math.atan2(pose.y - pose.lookY, horizontal) * 180 / Math.PI).toFixed(1)}°`;
   cameraPosition.set(pose.x, pose.y, pose.z);
@@ -532,6 +537,14 @@ document.getElementById('detail').oninput = (event) => {
 document.getElementById('swell').oninput = (event) => {
   roughness = Number(event.target.value) / 100;
   elements.swellValue.textContent = `${roughness.toFixed(1)}×`;
+};
+document.getElementById('riverDepth').value = preferences.riverDepth;
+document.getElementById('riverDepthValue').textContent = `${preferences.riverDepth.toFixed(2)}×`;
+document.getElementById('riverDepth').disabled = race.phase !== 'explore';
+document.getElementById('riverDepth').oninput = (event) => {document.getElementById('riverDepthValue').textContent = `${Number(event.target.value).toFixed(2)}×`;};
+document.getElementById('riverDepth').onchange = (event) => {
+  preferences.riverDepth = Number(event.target.value); persistPreferences();
+  if (race.phase === 'explore') reset('explore');
 };
 
 function drawMap() {

@@ -8,6 +8,7 @@ export function readPreferences(storage) {
   try {saved = JSON.parse(storage.getItem('tide-raid-preferences-v1'));} catch {}
   const defaults = {detail: 75, camera: 'chase', cameraAngle: 20, sensitivity: 1, volume: 0.65, music: 0.32, effects: 0.65, traffic: 0.65, ambience: 0.55, cinema: true, hints: true, bindings: {...DEFAULT_BINDINGS}};
   defaults.playerBoat = 'boat-speed-c';
+  defaults.riverDepth = 2;
   defaults.pilotSinkWithBoat = false;
   defaults.weather = 'sunny'; defaults.hour = 12; defaults.dayCycle = false; defaults.cycleMinutes = 20; defaults.wind = 20; defaults.windAngle = 45; defaults.glow = true;
   defaults.damageMode = 'arcade'; defaults.sinkingMode = 'off'; defaults.fuelMode = 'arcade';
@@ -15,6 +16,7 @@ export function readPreferences(storage) {
   defaults.manualCamera = false; defaults.cameraElevation = 30; defaults.cameraHeight = 15;
   if (!saved || typeof saved !== 'object') return defaults;
   if (isPlayerBoat(saved.playerBoat)) defaults.playerBoat = saved.playerBoat;
+  if (Number.isFinite(saved.riverDepth) && saved.riverDepth >= 0.5 && saved.riverDepth <= 4) defaults.riverDepth = saved.riverDepth;
   if (typeof saved.pilotSinkWithBoat === 'boolean') defaults.pilotSinkWithBoat = saved.pilotSinkWithBoat;
   if (typeof saved.manualCamera === 'boolean') defaults.manualCamera = saved.manualCamera;
   if (Number.isFinite(saved.cameraElevation) && saved.cameraElevation >= 5 && saved.cameraElevation <= 85) defaults.cameraElevation = saved.cameraElevation;

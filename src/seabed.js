@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {waterDepth} from './depth.js';
 
-export function seabedHeight(x, z) {return -Math.min(80, waterDepth(x, z));}
+export function seabedHeight(x, z, scale = 1) {return -waterDepth(x, z, scale);}
 export function createSeabed(scene) {
   const group = new THREE.Group(); group.name = 'Local underwater terrain'; scene.add(group);
   const geometry = new THREE.PlaneGeometry(256, 256, 32, 32).rotateX(-Math.PI / 2);
@@ -52,14 +52,14 @@ export function createSeabed(scene) {
       rays.visible = weather.sun > 0.05;
       rays.position.set(state.x, 0, state.z);
       const cellX = Math.round(state.x / 32); const cellZ = Math.round(state.z / 32);
-      const key = `${cellX}/${cellZ}`;
+      const key = `${cellX}/${cellZ}/${state.depthScale ?? 1}`;
       if (key === lastCell) return;
       lastCell = key; centerX = cellX * 32; centerZ = cellZ * 32;
       const vertices = geometry.attributes.position; const uv = geometry.attributes.uv;
       for (let index = 0; index < vertices.count; index++) {
         const lateral = (index % 33 / 32 - 0.5) * 256 + centerX;
         const longitudinal = (Math.floor(index / 33) / 32 - 0.5) * 256 + centerZ;
-        vertices.setXYZ(index, lateral, seabedHeight(lateral, longitudinal), longitudinal); uv.setXY(index, lateral / 12, longitudinal / 12);
+        vertices.setXYZ(index, lateral, seabedHeight(lateral, longitudinal, state.depthScale), longitudinal); uv.setXY(index, lateral / 12, longitudinal / 12);
       }
       vertices.needsUpdate = true; uv.needsUpdate = true; geometry.computeVertexNormals(); geometry.computeBoundingSphere();
       let count = 0;
@@ -69,7 +69,7 @@ export function createSeabed(scene) {
         const worldZ = gridZ * 16 + (hash(gridZ, gridX) % 1) * 5;
         if (Math.hypot(worldX - state.x, worldZ - state.z) < state.length * 0.6 + 4) continue;
         const size = 1.3 + (hash(gridX, gridZ) % 1) * 2;
-        transform.position.set(worldX, seabedHeight(worldX, worldZ) + size * 0.2, worldZ); transform.scale.set(size * 1.3, size, size * 1.1); transform.rotation.y = hash(worldX, worldZ) * Math.PI;
+        transform.position.set(worldX, seabedHeight(worldX, worldZ, state.depthScale) + size * 0.2, worldZ); transform.scale.set(size * 1.3, size, size * 1.1); transform.rotation.y = hash(worldX, worldZ) * Math.PI;
         transform.updateMatrix(); rocks.setMatrixAt(count++, transform.matrix);
       }
       rocks.count = count; rocks.instanceMatrix.needsUpdate = true; rocks.computeBoundingSphere();

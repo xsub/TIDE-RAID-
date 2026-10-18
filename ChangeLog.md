@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Configurable deeper exploration river
+
+- Added saved River Depth multiplier (0.5–4×), defaulting exploration to 2× deeper than the original field, with an 80 m cap. Shoreline minimum depth remains unchanged. Changing the parameter restarts exploration; trials retain their original fixed depth and existing records/replays.
+- The same per-voyage numeric depth scale drives grounding, underwater seabed/rocks, wreck-camera clearance and sinking floor. Seabed caches invalidate when the scale changes; no additional mesh budget or downloads.
+- All 141 tests and both production builds pass, including multiplier bounds, shoreline preservation, invalid preference handling and matched seabed/physics depth. The 1× path preserves the original depth calculation exactly for trial/replay compatibility. Existing shared-bundle advisory remains.
+
 ## 2026-10-18 — Visible seabed, filtered sunlight and external wreck view
 
 - Added saved Wreck inspection camera with underwater hull following, orbit/zoom, terrain clearance and visible player exterior. C / gamepad Y includes the new view; underwater fog/tint/audio apply without requiring the driver sink checkbox. Manual height/tilt is inactive, while normal exterior cameras keep surface safeguards.
