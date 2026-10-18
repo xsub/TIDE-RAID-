@@ -2,7 +2,9 @@ import {channel, START_Z, CHUNK_SIZE, CHUNK_COUNT, chunkIndex} from './world.js'
 import {contactImpulse} from './collision.js';
 import {capsuleBox} from './capsule.js';
 
+const layouts=new Map();
 export function harborLayout(index) {
+  if(layouts.has(index))return layouts.get(index);
   const buildings = [];
   const docks = [];
   const lighthouses = [];
@@ -25,7 +27,12 @@ export function harborLayout(index) {
     const banks = channel(z);
     lighthouses.push({x: (side < 0 ? banks.left : banks.right) + side * 20, z, side});
   }
-  return {buildings, docks, lighthouses};
+  const layout={buildings,docks,lighthouses};
+  if(Number.isInteger(index) && index>=0 && index<CHUNK_COUNT) {
+    for(const list of [buildings,docks,lighthouses]){for(const item of list)Object.freeze(item);Object.freeze(list);}
+    Object.freeze(layout);layouts.set(index,layout);
+  }
+  return layout;
 }
 
 export function reservedHarborSpace(x, z, index, layout = harborLayout(index)) {

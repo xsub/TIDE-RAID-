@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Performance roadmap: bounded immutable world caches
+
+- Collision checks now reuse frozen feature/harbor layouts for the finite 94-sector world instead of regenerating terrain circles and village/dock arrays in hot loops. Invalid/out-of-world requests are not retained in caches.
+- Added immutable-cache tests and `scripts/benchmark.js`, a reproducible 100-second fixed-input CPU scenario with one hull and 18 traffic boats. It reports mean/P95 tick cost without imposing a flaky hardware-dependent test threshold.
+- Tests and production build pass; simulation outputs remain deterministic. Rendering/GPU benchmarks and interactive gameplay performance are separate from this CPU harness.
+
 ## 2026-10-18 — Traffic roadmap: predictive yielding and mutual contacts
 
 - Added four-second closest-approach predictions, vessel-length safety margins, bounded lateral yielding and following-speed reduction. Planning is staggered across four fixed ticks and ignores distant bodies.

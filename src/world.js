@@ -18,7 +18,9 @@ export function chunkIndex(z) {
   return Math.max(0, Math.min(CHUNK_COUNT - 1, Math.floor((START_Z - z) / CHUNK_SIZE)));
 }
 
+const featureLayouts=new Map();
 export function chunkFeatures(index) {
+  if(featureLayouts.has(index))return featureLayouts.get(index);
   const features = [];
   const start = START_Z - index * CHUNK_SIZE;
   const random = (seed) => {
@@ -38,6 +40,10 @@ export function chunkFeatures(index) {
   features.sort((first, second) => Number(second.kind === 'island') - Number(first.kind === 'island'));
   for (const feature of features) {
     if (separated.every((other) => Math.hypot(feature.x - other.x, feature.z - other.z) > feature.radius + other.radius + 12)) separated.push(feature);
+  }
+  if(Number.isInteger(index) && index>=0 && index<CHUNK_COUNT) {
+    for(const feature of separated)Object.freeze(feature);
+    Object.freeze(separated);featureLayouts.set(index,separated);
   }
   return separated;
 }

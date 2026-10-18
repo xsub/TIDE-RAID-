@@ -55,6 +55,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+Run `node scripts/benchmark.js` for a fixed-input 100-second hull/18-traffic CPU scenario, reporting mean/P95 tick costs. It excludes rendering and is not a universal hardware guarantee. Immutable collision/harbor layouts are cached only for the 94 valid world sectors.
+
 Traffic now predicts near encounters up to four seconds ahead, yields laterally and slows behind nearby hulls. Planning is staggered over four fixed ticks; traffic pairs resolve capsule contacts in stable index order. This is local deterministic avoidance, not a global navigation or deadlock-free solver.
 
 Pitch/roll now have angular rates and critically damped response; patch-contact velocity includes hull angular motion. Landing energy records pre-response vertical entry kinetic energy for feedback, not structural damage. The attitude model remains an arcade approximation rather than full 6-DOF hydrodynamics.
