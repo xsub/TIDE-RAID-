@@ -1,6 +1,7 @@
 import {createMusic} from './music.js';
 import {impactFeedback} from './impact-feedback.js';
 import {landingSound} from './landing-sound.js';
+import {underwaterAudio} from './underwater-model.js';
 
 export function engineMix(speed, throttle, airborne, boost) {
   const load = Math.min(1, Math.max(0, speed) / 55);
@@ -29,6 +30,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
   let volume = 0.65;
   const levels = {music: 0.32, effects: 0.65, traffic: 0.65, ambience: 0.55};
   let master;
+  let underwaterFilter;
   let buses;
   let motor;
   let spray;
@@ -76,6 +78,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
     compressor.threshold.value = -16; compressor.knee.value = 18; compressor.ratio.value = 3;
     const highpass = context.createBiquadFilter(); highpass.type = 'highpass'; highpass.frequency.value = 25;
     const soften = context.createBiquadFilter(); soften.type = 'lowpass'; soften.frequency.value = 6500;
+    underwaterFilter = soften;
     master = context.createGain(); master.gain.value = 0;
     master.connect(highpass).connect(soften).connect(compressor).connect(context.destination);
     buses = Object.fromEntries(Object.entries(levels).map(([name, value]) => [name, gain(master, value)]));
@@ -142,11 +145,13 @@ export function createAudio(contextFactory = () => new AudioContext()) {
       if (!enabled) master.gain.setTargetAtTime(0, context.currentTime, 0.15);
       return enabled;
     },
-    update(state, paused, throttle, boost = false, ships = [], engineActive = true) {
+    update(state, paused, throttle, boost = false, ships = [], engineActive = true, underwater = 0) {
       if (!context) return;
       const time = context.currentTime;
       const audible = enabled && !paused;
-      master.gain.setTargetAtTime(audible ? volume : 0, time, 0.22);
+      const submerged = underwaterAudio(underwater);
+      master.gain.setTargetAtTime(audible ? volume * submerged.gain : 0, time, 0.22);
+      underwaterFilter.frequency.setTargetAtTime(submerged.cutoff, time, 0.18);
       for (const [name, value] of Object.entries(levels)) buses[name].gain.setTargetAtTime(value, time, 0.25);
       const mix = engineMix(state.speed, throttle, state.airtime > 0.15, boost);
       motor.oscillator.frequency.setTargetAtTime(mix.rpm, time, 0.3);

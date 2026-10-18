@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Underwater driver tint, visibility, bubbles and audio
+
+- Driver POV with Sink with boat enabled now samples actual camera depth against the shared animated water surface. A smoothed transition applies a blue-green world-view overlay, underwater fog (roughly 20 m at full blend), reduced environment intensity and hidden above-water sky. HUD is not tinted. Effects are independent of cinematic postprocessing and fade on surfacing/mode change.
+- Added a deterministic 48-sprite camera-local rising-air haze using one fixed buffer and a 32² ring texture. It respects the boat's remaining-air proxy, hides above-surface sprites and stops when air runs out; existing physical-position hull bubble emitter remains.
+- Reused the existing master low-pass filter for progressive 6.5 kHz → 420 Hz muffling and reduced master gain by up to 40%, with smoothing and no per-frame audio-node allocation. User mute, pause and bus levels remain honored; the clear surface mix returns on exit.
+- All 136 tests and both production builds pass, covering depth transitions, mode gating, finite inputs, bubble budgets/repeatability and audio reuse/restoration/mute/pause. Existing shared-bundle warning remains. Effects are stylized, not refractive optics or physically modeled underwater acoustics; trial mechanics and Cargo Lab are unchanged.
+- Browser drill verified a submerged Pilot eye around 9.4 m below water, blue-green restricted visibility and visible air rings with cinematic mode off; Recover restored the clear surface view. No runtime errors. Audio behavior is graph-tested; subjective headphone/speaker listening validation remains.
+
 ## 2026-10-18 — Optional sinking driver camera
 
 - Added saved opt-in checkbox **Driver POV: Sink with boat** beside the camera-view controls. Checked Pilot view follows the actual hull/helm below water during exploration sinking. Unchecked retains the above-water safeguard; exterior cameras remain protected in either case. Defaults off for existing/new players.

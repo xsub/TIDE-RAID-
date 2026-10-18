@@ -20,6 +20,20 @@ function mockContext() {
     createBuffer(channels, length) {const data = Array.from({length: channels}, () => new Float32Array(length)); return {getChannelData: (channel) => data[channel]};}};
 }
 
+test('underwater audio reuses its filter and respects pause/mute while restoring the surface mix', async () => {
+  const context = mockContext(); const audio = createAudio(() => context);
+  audio.setMix('music', 0); await audio.toggle();
+  const filter = context.created.find((node) => node.kind === 'filter' && node.frequency.value === 6500);
+  const master = context.created.find((node) => node.kind === 'gain');
+  const state = {x: 0, z: 0, vx: 0, vz: 0, heading: 0, speed: 0, airtime: 0, collision: 0, landing: 0};
+  const count = context.created.length;
+  for (let frame = 0; frame < 120; frame++) audio.update(state, false, false, false, [], false, 1);
+  assert.ok(Math.abs(filter.frequency.value - 420) < 1e-8); assert.equal(context.created.length, count);
+  audio.update(state, true, false, false, [], false, 1); assert.equal(master.gain.value, 0);
+  audio.update(state, false, false, false, [], false, 0); assert.equal(filter.frequency.value, 6500);
+  await audio.toggle(); audio.update(state, false, false, false, [], false, 1); assert.equal(master.gain.value, 0);
+});
+
 test('landing uses two bounded water layers, suppresses tiny/repeated contacts and cleans up', async () => {
   const context = mockContext();
   const audio = createAudio(() => context);

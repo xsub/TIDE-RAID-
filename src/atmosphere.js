@@ -45,8 +45,8 @@ export function createAtmosphere(scene, renderer) {
   generator.dispose();
   scene.add(sky);
   scene.fog = new THREE.Fog(0x9eafb5, 600, 1120);
-  const dayFog = new THREE.Color(0x9eafb5); const nightFog = new THREE.Color(0x081321);
-  return {update(time, camera, weather = weatherState()) {
+  const dayFog = new THREE.Color(0x9eafb5); const nightFog = new THREE.Color(0x081321); const submergedFog = new THREE.Color(0x064b59);
+  return {update(time, camera, weather = weatherState(), underwater = 0) {
     uniforms.uTime.value = time; sky.position.copy(camera.position);
     uniforms.uDay.value = weather.daylight; uniforms.uCloud.value = weather.cloud;
     uniforms.uSun.value.set(-0.58, Math.max(0.05, weather.elevation), -0.67).normalize();
@@ -54,5 +54,11 @@ export function createAtmosphere(scene, renderer) {
     scene.environmentIntensity = 0.14 + weather.daylight * (0.86 - weather.cloud * 0.3);
     scene.fog.color.copy(nightFog).lerp(dayFog, weather.daylight);
     scene.fog.near = weather.rain ? 180 : 600; scene.fog.far = weather.rain ? 750 : 1120;
+    sky.visible = underwater < 0.5;
+    scene.background = underwater >= 0.5 ? submergedFog : null;
+    scene.fog.color.lerp(submergedFog, underwater);
+    scene.fog.near += (0.5 - scene.fog.near) * underwater;
+    scene.fog.far += (20 - scene.fog.far) * underwater;
+    scene.environmentIntensity *= 1 - underwater * 0.7;
   }};
 }

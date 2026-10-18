@@ -1,5 +1,11 @@
 # TIDE RAID 2.0
 
+## Submerged driver POV
+
+Enable **Driver POV: Sink with boat**, choose Pilot view, then sink during exploration (the flooding drill is available). Actual camera depth below the shared wave surface smoothly activates blue-green tint, fog reducing visibility to roughly 20 m, nearby rising air bubbles and a master audio low-pass/attenuation effect. Surfacing, Recover or switching to an exterior camera restores the normal view/sound. The HUD stays readable; effects work even with cinematic postprocessing disabled.
+
+The nearby haze uses 48 reusable bubble sprites and the same finite-air proxy as the sinking boat, in addition to the existing hull emitter. Audio reuses one filter, easing from 6.5 kHz toward 420 Hz at full submersion; user mute, pause and mix levels remain respected. This is a stylized underwater approximation, not optical refraction/caustics, sonar or physically modeled underwater acoustics. Trial mechanics and Cargo Lab are unchanged.
+
 ## Pilot / driver camera
 
 Select **Helm Settings → Camera View → Pilot / driver POV**, or cycle **C / gamepad Y** through Chase → Pilot → Arcade. Each boat has its own helm-height/seat offset and a forward sightline, with limited pitch and a roll-stabilized horizon. Camera selection persists. External orbit/zoom/manual placement is preserved but inactive in Pilot view. Current opaque exterior cabins are hidden for a clear view: this is a first-person helm-height camera with the existing HUD, not a modeled cockpit interior or animated driver. Cargo Lab retains its separate camera controls.
