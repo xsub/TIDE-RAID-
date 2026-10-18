@@ -74,6 +74,7 @@ document.getElementById('app').innerHTML = `
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option></select>
       <small id="pilotHint" hidden>Pilot view: forward-facing helm height, steadied horizon. Exterior player hull is hidden for an unobstructed view; no detailed cockpit interior yet. Orbit, zoom and manual height/tilt apply only to exterior views. C / gamepad Y cycles cameras.</small>
+      <label><input id="pilotSinkWithBoat" type="checkbox" style="width:auto"> DRIVER POV: SINK WITH BOAT</label>
       <label><input id="manualCamera" type="checkbox" style="width:auto"> MANUAL CAMERA HEIGHT / TILT</label>
       <label for="cameraElevation">ANGLE ABOVE WATER <output id="cameraElevationValue"></output></label>
       <input id="cameraElevation" type="range" min="5" max="85" step="1">
@@ -335,7 +336,7 @@ function togglePause() {
 }
 function cameraGoal() {
   const waterHeight = sampleWave(state.x, state.z, simTime, roughness).h;
-  const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
+  const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 && !(mode === 'pilot' && preferences.pilotSinkWithBoat) ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
   const pose = cameraPose(cameraState, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
     preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null);
   const horizontal = Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ);
@@ -465,6 +466,8 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 document.getElementById('camera').onclick = toggleCamera;
 document.getElementById('cameraView').value = mode;
+document.getElementById('pilotSinkWithBoat').checked = preferences.pilotSinkWithBoat;
+document.getElementById('pilotSinkWithBoat').onchange = (event) => {preferences.pilotSinkWithBoat = event.target.checked; persistPreferences();};
 document.getElementById('cameraView').onchange = (event) => {
   mode = event.target.value; preferences.camera = mode;
   elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`; persistPreferences(); snapCamera();

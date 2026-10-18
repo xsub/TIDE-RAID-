@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Optional sinking driver camera
+
+- Added saved opt-in checkbox **Driver POV: Sink with boat** beside the camera-view controls. Checked Pilot view follows the actual hull/helm below water during exploration sinking. Unchecked retains the above-water safeguard; exterior cameras remain protected in either case. Defaults off for existing/new players.
+- Underwater view uses existing water/sky rendering, not a new underwater optical/refraction effect. Recovery and camera-mode switching remain available.
+- All 132 tests and both production builds pass, including opt-in validation/persistence and submerged pilot-eye positioning. Existing shared-bundle advisory remains.
+
 ## 2026-10-18 — Damage-dependent flood timing and intake pressure
 
 - Sinking pace now scales nonlinearly with damage severity in both Arcade and Realistic settings, rather than Arcade using a fixed wreck timer. Arcade starts below 12% hull with slower intake; Realistic starts below 30%. Larger effective openings from worse damage admit water faster.

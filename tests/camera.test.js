@@ -5,6 +5,19 @@ import {readPreferences, savePreferences} from '../src/preferences.js';
 import {createState} from '../src/physics.js';
 import {VESSEL_PROFILES} from '../src/vessel-profiles.js';
 
+test('pilot sink-with-boat option is opt-in and persists only boolean values', () => {
+  assert.equal(readPreferences(undefined).pilotSinkWithBoat, false);
+  assert.equal(readPreferences({getItem: () => JSON.stringify({pilotSinkWithBoat: 'true'})}).pilotSinkWithBoat, false);
+  let saved;
+  const storage = {getItem: () => saved, setItem: (key, value) => {saved = value;}};
+  savePreferences(storage, {...readPreferences(undefined), pilotSinkWithBoat: true});
+  assert.equal(readPreferences(storage).pilotSinkWithBoat, true);
+  const surface = cameraPose({...createState(), y: 0.2}, 'pilot', 0, 16 / 9);
+  const submerged = cameraPose({...createState(), y: -5}, 'pilot', 0, 16 / 9);
+  assert.ok(submerged.y < 0);
+  assert.ok(Math.abs((surface.y - submerged.y) - 5.2) < 1e-8);
+});
+
 test('pilot eye follows every helm and heading while exterior orbit/zoom do not move it', () => {
   for (const model of Object.keys(VESSEL_PROFILES)) for (const heading of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
     const state = {...createState(model), heading, pitch: 0.4, roll: 0.3};
