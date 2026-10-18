@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Zoom and sound keyboard shortcuts
+
+- Added + (or =) to zoom in and − to zoom out, including numeric keypad support and held-key repeat, using existing saved zoom bounds. Z toggles the existing master sound once per press, including from Pilot view. Pilot zoom remains fixed.
+- Shortcuts respect typing/remapping, driving-key bindings and browser modifier combinations. Updated camera help and sound-button tooltip. Existing sound controls, volume, audio activation and camera presets are unchanged.
+- All 162 tests and both production entry builds pass, covering main/keypad keys, repeat behavior, Pilot restrictions, sound toggle and remap/modifier conflicts. Existing shared-bundle advisory remains.
+
 ## 2026-10-18 — IJKL camera keyboard controls
 
 - Hold J/L for 360-degree left/right orbit and I/K for higher/lower viewing angle in Chase/Arcade. Tilt automatically enables existing manual placement, clamps to 5–85 degrees and keeps current height. Controls and saved preferences stay synchronized; writes occur on release/idle rather than every frame.
