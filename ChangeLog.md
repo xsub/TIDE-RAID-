@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 4: living weather
+
+- Added saved Living Weather toggle with deterministic slow gusts and wave sets driven by wind strength. Exploration effective swell varies within ±20% of the selected base (still capped at 4×); shared CPU/render samples receive the same effective multiplier. Trials retain fixed swell. Windless/disabled weather remains steady.
+- Existing rain/cloud/night rendering reacts to gust wind; moving localized squall fronts are not yet implemented. Full tests and both builds pass before this commit.
+
 ## 2026-10-18 — Roadmap 3: throttle and propeller response
 
 - Exploration propulsion now loses effective thrust progressively during airborne ventilation, restoring it on water contact. Planing trim follows throttle, speed and fore/aft loading through the existing hull-response model. Existing hull-specific inertia and energy-based landing audio remain; engine sound is not a recorded propeller simulation.

@@ -10,6 +10,7 @@ export function readPreferences(storage) {
   const defaults = {detail: 75, camera: 'chase', cameraAngle: 20, sensitivity: 1, volume: 0.65, music: 0.32, effects: 0.65, traffic: 0.65, ambience: 0.55, cinema: true, hints: true, bindings: {...DEFAULT_BINDINGS}};
   defaults.playerBoat = 'boat-speed-c';
   defaults.cameraViews = {}; defaults.reducedCameraMotion = false;
+  defaults.livingWeather = true;
   defaults.shallowThreshold = 1; defaults.shallowMuted = false;
   defaults.riverDepth = 2;
   defaults.pilotSinkWithBoat = false;
@@ -20,6 +21,7 @@ export function readPreferences(storage) {
   defaults.cameraZoom = 1;
   defaults.manualCamera = false; defaults.cameraElevation = 30; defaults.cameraHeight = 15;
   if (!saved || typeof saved !== 'object') return defaults;
+  if (typeof saved.livingWeather === 'boolean') defaults.livingWeather = saved.livingWeather;
   defaults.cameraViews = cameraMemory(saved.cameraViews);
   if (typeof saved.reducedCameraMotion === 'boolean') defaults.reducedCameraMotion = saved.reducedCameraMotion;
   if (Number.isFinite(saved.mouseLookSensitivity) && saved.mouseLookSensitivity >= 0.25 && saved.mouseLookSensitivity <= 3) defaults.mouseLookSensitivity = saved.mouseLookSensitivity;

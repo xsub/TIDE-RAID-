@@ -91,6 +91,7 @@ document.getElementById('app').innerHTML = `
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <label><input id="reducedCameraMotion" type="checkbox" style="width:auto"> REDUCED CAMERA MOTION · NO FOLLOW LAG</label>
+      <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
       <small>Wreck inspection follows the hull underwater. Orbit, tilt and zoom work; manual height is ignored. V resets the current view to its default.</small>
       <small id="pilotHint" hidden>Pilot view: drag with the left or right mouse button to look around, or use J/L and I/K (±75° tilt). V / Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only. Driving remaps take priority over V.</small>
       <label for="mouseLookSensitivity">DRIVER MOUSE SENSITIVITY <output id="mouseLookSensitivityValue"></output></label>
@@ -238,6 +239,7 @@ loadFleet().then((factory) => {
 });
 let simTime = 0;
 let roughness = DEFAULT_SWELL;
+let baseSwell = DEFAULT_SWELL;
 let mode = preferences.camera;
 elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`;
 let paused = false;
@@ -349,6 +351,7 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   }
   document.getElementById('swell').disabled = phase !== 'explore';
   if (phase === 'explore') roughness = DEFAULT_SWELL;
+  baseSwell = roughness;
   document.getElementById('swell').value = String(roughness * 100);
   elements.swellValue.textContent = `${roughness.toFixed(1)}×`;
   document.getElementById('riverDepth').disabled = phase !== 'explore';
@@ -563,6 +566,8 @@ document.getElementById('floodingDrill').onclick = () => {
 };
 let weatherEpoch = 0;
 document.getElementById('reducedCameraMotion').checked = preferences.reducedCameraMotion;
+document.getElementById('livingWeather').checked = preferences.livingWeather;
+document.getElementById('livingWeather').onchange = (event) => {preferences.livingWeather = event.target.checked; persistPreferences();};
 document.getElementById('reducedCameraMotion').onchange = (event) => {preferences.reducedCameraMotion = event.target.checked; persistPreferences(); snapCamera();};
 for (const name of ['weather', 'hour', 'dayCycle', 'cycleMinutes', 'wind', 'windAngle', 'glow']) {
   const control = document.getElementById(name);
@@ -609,6 +614,7 @@ document.getElementById('detail').oninput = (event) => {
 };
 document.getElementById('swell').oninput = (event) => {
   roughness = clampSwell(Number(event.target.value) / 100);
+  baseSwell = roughness;
   elements.swellValue.textContent = `${roughness.toFixed(1)}×`;
 };
 document.getElementById('riverDepth').value = preferences.riverDepth;
@@ -723,6 +729,7 @@ function frame(now) {
       const before = {x: state.x, z: state.z, collision: state.collision};
       const boosting = useBoost(race, input.boost, input.throttle && !input.brake, 1 / 120);
       const exploring = race.phase === 'explore';
+      if (exploring) roughness = clampSwell(baseSwell * weatherState(preferences, simTime - weatherEpoch).waveFactor);
       if (exploring) state.serviceDocks = 1;
       const canDrive = !exploring || voyageDrive(voyage);
       if (exploring && voyage.flooding < 0.55) wakeResponse(state, traffic.boats, simTime, 1 / 120);
