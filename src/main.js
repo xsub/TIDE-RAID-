@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {wakeResponse} from './wake-response.js';
 import {rememberCamera} from './camera-memory.js';
 import {DEFAULT_SWELL, MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
@@ -723,6 +724,7 @@ function frame(now) {
       const exploring = race.phase === 'explore';
       if (exploring) state.serviceDocks = 1;
       const canDrive = !exploring || voyageDrive(voyage);
+      if (exploring && voyage.flooding < 0.55) wakeResponse(state, traffic.boats, simTime, 1 / 120);
       const driveInput = {...input, throttle: input.throttle && canDrive, reverse: input.reverse && canDrive, boost: boosting && canDrive};
       if (!exploring) replayTape.record(driveInput,simTime,roughness);
       const fullPower = state.power;

@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 2: interactive traffic wakes
+
+- Exploration hulls now respond to bounded trailing V-wake crossing fields with directional roll/pitch/heave impulses, scaled by mass. At most 32 traffic boats are queried at fixed simulation steps; no effect on trial/replay rules. Existing traffic wake ribbons remain the visual cue.
+- Analytical wake-force approximation, not displaced wake geometry or a fluid solver. It does not yet create dedicated crossing spray/audio beyond existing hull water-contact feedback. Full tests and both builds pass before this commit.
+
 ## 2026-10-18 — Roadmap 1: camera reliability
 
 - Exterior views now remember independent framing instead of leaking Chase manual tilt/zoom into Arcade or Wreck. Memories are validated on load; Pilot retains its own look settings. Added saved reduced-follow-motion option. Existing coastal camera clearance remains; vegetation/building collision is not yet modeled.
