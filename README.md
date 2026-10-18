@@ -1,5 +1,9 @@
 # TIDE RAID 2.0
 
+![TIDE RAID coastal exploration with the racing catamaran, rolling water and a lighthouse village](docs/images/tide-raid-gameplay.jpg)
+
+[Play TIDE RAID](https://xsub.github.io/TIDE-RAID-/)
+
 ## Depth gauge
 
 In **Calm Sound Mix**, set the saved **Shallow-water alarm threshold** (0.2–5 m, default 1 m) and independent **Mute shallow-water warning** checkbox. With master sound on, a soft repeating tone warns when estimated under-hull clearance reaches the threshold, becoming faster near contact. It follows effects volume, pauses with gameplay, and stops above a small release margin to avoid chatter. Missing readings, menus, completed runs and severe flooding suppress the alarm. This is a gameplay aid, not a navigation instrument; its threshold is independent of the gauge's visual caution limit.

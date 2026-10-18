@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 2026-10-18 — GitHub README gameplay screenshot
+
+- Added the latest gameplay screenshot to the README with descriptive alt text and a direct link to the published game. Image is stored in docs/images, outside the game's public asset bundle.
+
 ## 2026-10-18 — Roadmap 8: performance presets
 
 - Added saved Custom/Low/Balanced/High/Auto performance presets. Explicit presets choose resolution/water detail; Low disables cinematic effects/shadows without overwriting the user's cinematic preference. Custom preserves existing manual controls.
