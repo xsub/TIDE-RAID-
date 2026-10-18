@@ -1,17 +1,19 @@
 import * as THREE from 'three';
 import {createState, step, recover} from './physics.js';
 import {createAudio} from './audio.js';
+import {createBoat} from './boat.js';
+import {createSpray} from './spray.js';
+import {createAtmosphere} from './atmosphere.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
 import {DEFAULT_BINDINGS, readPreferences, savePreferences, remap, readGamepad, advanceLesson} from './preferences.js';
 import {createWater, createScenery} from './scenery.js';
 import {channel, chunkFeatures, chunkIndex, START_Z, END_Z, WORLD_SIZE, CHUNK_COUNT} from './world.js';
-import {sampleWave} from './waves.js';
 import './style.css';
 import './feedback.css';
 
 document.getElementById('app').innerHTML = `
   <header><div class="brand">TIDE<span>RAID</span><sup>2.0</sup></div><span class="tagline">COASTAL EXPEDITION / 01</span>
-    <button id="pause" aria-label="Pause game">PAUSE</button></header>
+    <button id="quickSound">SOUND / OFF</button><button id="pause" aria-label="Pause game">PAUSE</button></header>
   <section id="telemetry"><div><b id="speed">000</b><span>KM/H</span></div><p id="air">WATERBORNE</p>
     <div class="progress"><i id="progress"></i></div><small id="distance">0 / 18.78 KM</small>
     <p id="raceClock">0:00.00</p><small id="checkpoint">COASTAL SPRINT</small>
@@ -25,6 +27,7 @@ document.getElementById('app').innerHTML = `
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
       <button id="camera">CAMERA / ARCADE</button><button id="sound">SOUND / OFF</button><button id="recover">RECOVER BOAT / H</button><button id="reset">RESTART RUN</button>
+      <label for="volume">SOUND VOLUME</label><input id="volume" type="range" min="0" max="100" value="65">
       <label for="sensitivity">STEERING SENSITIVITY</label><input id="sensitivity" type="range" min="50" max="150" value="100">
       <label><input id="hints" type="checkbox" checked> DRIVING HINTS</label>
       <p id="controller">CONTROLLER / NOT CONNECTED</p><small>Standard pad: RT throttle · LT brake · stick steer · A boost · X recover · Y camera · Start pause.</small>
@@ -47,44 +50,19 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 document.getElementById('view').append(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa7c8d0);
-scene.fog = new THREE.Fog(0xa7c8d0, 700, 1150);
-scene.add(new THREE.HemisphereLight(0xdff8ff, 0x485c4b, 2.5));
-const sun = new THREE.DirectionalLight(0xffe8c4, 3);
-sun.position.set(-100, 180, 90);
+createAtmosphere(scene, renderer);
+scene.add(new THREE.HemisphereLight(0xdff8ff, 0x324f44, 1.4));
+const sun = new THREE.DirectionalLight(0xffe3b5, 3.2);
+sun.position.set(-120, 160, -60);
 scene.add(sun);
 const camera = new THREE.PerspectiveCamera(innerWidth < innerHeight ? 90 : 55, innerWidth / innerHeight, 0.5, 1600);
 const water = createWater(scene);
 const scenery = createScenery(scene);
 elements.quality.textContent = water.setDetail(preferences.detail);
 document.getElementById('detail').value = preferences.detail;
-const boat = new THREE.Group();
-const material = (color) => new THREE.MeshStandardMaterial({color, roughness: 0.35});
-const hull = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 5.8), material(0xf4edda));
-hull.position.y = 0.1;
-boat.add(hull);
-const bowShape = new THREE.Shape();
-bowShape.moveTo(-1.2, 0); bowShape.lineTo(1.2, 0); bowShape.lineTo(0, 2.5); bowShape.closePath();
-const bow = new THREE.Mesh(new THREE.ExtrudeGeometry(bowShape, {depth: 0.7, bevelEnabled: false}), material(0xf26338));
-bow.rotation.x = -Math.PI / 2;
-bow.position.set(0, -0.25, -2.8);
-boat.add(bow);
-const cockpit = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.8, 1.9), material(0x183a4a));
-cockpit.position.set(0, 0.8, 0.1);
-boat.add(cockpit);
-const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 5.5), material(0xf26338));
-stripe.position.y = 0.49;
-boat.add(stripe);
+const boat = createBoat();
 scene.add(boat);
-
-const wakeCount = 150;
-const wakePositions = new Float32Array(wakeCount * 3);
-const wakeGeometry = new THREE.BufferGeometry();
-wakeGeometry.setAttribute('position', new THREE.BufferAttribute(wakePositions, 3));
-const wake = new THREE.Points(wakeGeometry, new THREE.PointsMaterial({color: 0xdaf7ee, size: 1.7, transparent: true, opacity: 0.55, depthWrite: false}));
-wake.frustumCulled = false;
-scene.add(wake);
-let wakeCursor = 0;
+const spray = createSpray(scene);
 let state = createState();
 let simTime = 0;
 let roughness = 1;
@@ -104,6 +82,8 @@ const cameraPosition = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
 const smoothLook = new THREE.Vector3();
 const audio = createAudio();
+audio.setVolume(preferences.volume);
+document.getElementById('volume').value = preferences.volume * 100;
 let pendingBinding = null;
 let previousPad = {};
 let lesson = {stage: 0, steering: 0};
@@ -149,9 +129,7 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   keys.clear();
   complete = false;
   accumulator = 0;
-  wakePositions.fill(0);
-  wakeGeometry.setDrawRange(0, 0);
-  wakeCursor = 0;
+  spray.reset();
   if (phase !== 'explore') {
     roughness = 1;
     document.getElementById('swell').value = '100';
@@ -179,10 +157,11 @@ function togglePause() {
 }
 function cameraGoal() {
   const width = channel(state.z).width * 2;
-  const height = mode === 'arcade' ? Math.max(210, width / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect * 0.8)) : 30 + width * 0.04;
-  const back = mode === 'arcade' ? height * 0.48 : height * 1.2;
+  const height = mode === 'arcade' ? Math.max(210, width / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect * 0.8)) : 12 + state.speed * 0.07;
+  const back = mode === 'arcade' ? height * 0.48 : 22 + state.speed * 0.15;
   cameraPosition.set(state.x + Math.sin(state.heading) * back, state.y + height, state.z + Math.cos(state.heading) * back);
-  lookTarget.set(state.x - Math.sin(state.heading) * 35, state.y, state.z - Math.cos(state.heading) * 35);
+  const ahead = mode === 'arcade' ? 35 : 10 + state.speed * 0.25;
+  lookTarget.set(state.x - Math.sin(state.heading) * ahead, state.y, state.z - Math.cos(state.heading) * ahead);
 }
 function snapCamera() {
   cameraGoal();
@@ -238,9 +217,19 @@ elements.message.onclick = (event) => {
   if (event.target.dataset.action === 'trial') reset('countdown');
   if (event.target.dataset.action === 'explore') reset('explore');
 };
-document.getElementById('sound').onclick = async (event) => {
-  try {event.target.textContent = `SOUND / ${await audio.toggle() ? 'ON' : 'OFF'}`;}
-  catch {event.target.textContent = 'SOUND UNAVAILABLE';}
+const toggleSound = async () => {
+  let text;
+  try {text = `SOUND / ${await audio.toggle() ? 'ON' : 'OFF'}`;}
+  catch {text = 'SOUND UNAVAILABLE';}
+  document.getElementById('sound').textContent = text;
+  document.getElementById('quickSound').textContent = text;
+};
+document.getElementById('sound').onclick = toggleSound;
+document.getElementById('quickSound').onclick = toggleSound;
+document.getElementById('volume').oninput = (event) => {
+  preferences.volume = Number(event.target.value) / 100;
+  audio.setVolume(preferences.volume);
+  persistPreferences();
 };
 document.getElementById('detail').oninput = (event) => {
   preferences.detail = Number(event.target.value);
@@ -330,19 +319,11 @@ function frame(now) {
       accumulator -= 1 / 120;
     }
     if (race.phase === 'explore' && state.z <= END_Z + 8) complete = true;
-    if (state.speed > 3 && state.airtime < 0.1) {
-      const index = wakeCursor % wakeCount * 3;
-      const x = state.x + Math.sin(state.heading) * 3 + (Math.random() - 0.5) * 2;
-      const z = state.z + Math.cos(state.heading) * 3;
-      wakePositions.set([x, sampleWave(x, z, simTime, roughness).h + 0.15, z], index);
-      wakeCursor++;
-      wakeGeometry.setDrawRange(0, Math.min(wakeCursor, wakeCount));
-      wakeGeometry.attributes.position.needsUpdate = true;
-    }
+    spray.update(state, simTime, elapsed, roughness);
   }
   boat.position.set(state.x, state.y, state.z);
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
-  water.update(state.x, state.z, simTime, roughness);
+  water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed);
   const chunks = scenery.update(state.z);
   gateGroup.visible = race.phase === 'racing' || race.phase === 'countdown';
   if (gateGroup.visible) {
@@ -356,7 +337,7 @@ function frame(now) {
   camera.position.lerp(cameraPosition, 1 - Math.exp(-5 * elapsed));
   smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   camera.lookAt(smoothLook);
-  audio.update(state, paused || complete || race.phase === 'ready', input.throttle);
+  audio.update(state, paused || complete || race.phase === 'ready', input.throttle, input.boost && race.boost > 0 && !race.boostLocked);
   document.body.classList.toggle('impact', state.collision > 0 && !paused);
   renderer.render(scene, camera);
   hudTimer += elapsed;

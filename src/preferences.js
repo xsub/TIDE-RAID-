@@ -4,12 +4,13 @@ export const isBindable = (code) => /^(Key[A-Z]|Digit[0-9]|Arrow(Up|Down|Left|Ri
 export function readPreferences(storage) {
   let saved;
   try {saved = JSON.parse(storage.getItem('tide-raid-preferences-v1'));} catch {}
-  const defaults = {detail: 25, camera: 'arcade', sensitivity: 1, hints: true, bindings: {...DEFAULT_BINDINGS}};
+  const defaults = {detail: 75, camera: 'chase', sensitivity: 1, volume: 0.65, hints: true, bindings: {...DEFAULT_BINDINGS}};
   if (!saved || typeof saved !== 'object') return defaults;
   if (Number.isFinite(saved.detail) && saved.detail >= 0 && saved.detail <= 100) defaults.detail = saved.detail;
   if (['chase', 'arcade'].includes(saved.camera)) defaults.camera = saved.camera;
   if (Number.isFinite(saved.sensitivity) && saved.sensitivity >= 0.5 && saved.sensitivity <= 1.5) defaults.sensitivity = saved.sensitivity;
   if (typeof saved.hints === 'boolean') defaults.hints = saved.hints;
+  if (Number.isFinite(saved.volume) && saved.volume >= 0 && saved.volume <= 1) defaults.volume = saved.volume;
   if (saved.bindings && Object.keys(DEFAULT_BINDINGS).every((action) => isBindable(saved.bindings[action]))) {
     const codes = Object.keys(DEFAULT_BINDINGS).map((action) => saved.bindings[action]);
     if (new Set(codes).size === codes.length) defaults.bindings = Object.fromEntries(Object.keys(DEFAULT_BINDINGS).map((action) => [action, saved.bindings[action]]));

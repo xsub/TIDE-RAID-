@@ -13,8 +13,8 @@ test('preferences validate ranges, recover from corruption and swap conflicting 
   assert.deepEqual(readPreferences(storage), preferences);
   assert.equal(savePreferences(undefined, preferences), false);
   const bad = readPreferences({getItem: () => JSON.stringify({detail: -3, camera: 'bad', sensitivity: 100, bindings: {}})});
-  assert.equal(bad.detail, 25);
-  assert.equal(bad.camera, 'arcade');
+  assert.equal(bad.detail, 75);
+  assert.equal(bad.camera, 'chase');
   assert.equal(bad.sensitivity, 1);
 });
 

@@ -1,5 +1,15 @@
 # ChangeLog
 
+## 2026-10-18 — Vertical 4: boat, water and sound art pass
+
+- Replaced the box boat with a sculpted V hull, painted deck, racing livery, windshield, seats, helmeted driver, rails and twin outboards.
+- Added image-based lighting from a generated sky, warmer sunlight, rolling coastal terrain and instanced coastal trees.
+- Added reflective water shading with sun glints, shallow-water color, cosmetic pixel-scale ripples, crest/shore foam, V wake and fading ballistic spray. Near tiles use denser tessellation; the physical four-wave field remains unchanged.
+- Moved chase camera closer and made smooth water/chase the defaults for fresh preferences; existing player choices remain intact.
+- Rebuilt opt-in audio with engine harmonics, sub-bass, exhaust pulse, filtered wind/water layers and separate splash/impact envelopes. Added header sound toggle and master volume.
+- Added audio mix regression coverage. This is procedural art and synthesis, not a licensed production asset pack, recorded motor audio, physical reflections or particle-fluid water.
+- Validation: 15 tests pass and production build passes. Browser checks confirm boat/environment rendering, both water-shading modes and audio activation without reported shader/audio errors. Volume is saved with player preferences. Subjective sound quality still needs listening feedback.
+
 ## 2026-10-18 — Vertical 3: onboarding and control preferences
 
 - Added action-driven driving hints and an option to hide them.

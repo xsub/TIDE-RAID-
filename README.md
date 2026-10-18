@@ -15,9 +15,9 @@ Open the local Vite URL. `npm run build` produces `dist/`; `npm run preview` ser
 
 ## Controls
 
-W / ↑ throttle, S / ↓ brake, A D / ← → steer, either Shift boost, C camera, P / Escape pause, H recover, R restart. Enter starts a time trial. On-screen controls support simultaneous touches. Focus loss pauses automatically. Arcade overview is the default; chase follows the boat's heading. Camera distance adapts to viewport width to keep broad water visible. The exact screen percentage varies with bends, aspect ratio and bank proximity.
+W / ↑ throttle, S / ↓ brake, A D / ← → steer, either Shift boost, C camera, P / Escape pause, H recover, R restart. Enter starts a time trial. On-screen controls support simultaneous touches. Focus loss pauses automatically. Chase follows the boat's heading; arcade overview adapts its distance to viewport width to keep broad water visible. The exact screen percentage varies with bends, aspect ratio and bank proximity.
 
-Helm settings include keyboard remapping (conflicts swap), steering sensitivity, water detail, opt-in synthesized audio and action-driven driving hints. Camera, water detail, sensitivity, key bindings and hint preferences save locally; blocked storage falls back to session-only behavior. Standard gamepads use RT throttle, LT brake, left stick steer, A boost, X recovery, Y camera and Start pause/start. Physical controller testing is still pending.
+Helm settings include keyboard remapping (conflicts swap), steering sensitivity, water detail, opt-in synthesized audio with master volume and action-driven driving hints. Camera, water detail, volume, sensitivity, key bindings and hint preferences save locally; blocked storage falls back to session-only behavior. New preferences default to smooth water and the close chase camera; existing choices are preserved. Standard gamepads use RT throttle, LT brake, left stick steer, A boost, X recovery, Y camera and Start pause/start. Physical controller testing is still pending.
 
 ## Coastal Sprint
 
@@ -35,7 +35,11 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
-`src/waves.js` preserves the prototype's analytical wave components. Both CPU hull samples and generated GPU displacement/normal code use these same coefficients in world coordinates. The GPU handles water displacement; there is no per-frame CPU vertex deformation or normal recomputation. Twenty-five recycled water tiles share one geometry and material. The surface slider selects five tessellation budgets (5k–204.8k triangles), with faceted shading below 55 and analytical smooth normals above. It does not change the simulation timestep, wave equations or collision sampling. It is not an SPH/FLIP particle-fluid solver.
+`src/waves.js` preserves the prototype's analytical wave components. Both CPU hull samples and generated GPU displacement/normal code use these same coefficients in world coordinates. The GPU handles water displacement; there is no per-frame CPU vertex deformation or normal recomputation. Twenty-five recycled water tiles share two geometries and one shader material: the inner nine tiles have twice the grid resolution. The surface slider selects five tessellation budgets (10.4k–426k triangles), with faceted shading below 55 and analytical smooth normals above. It does not change the simulation timestep, wave equations or collision sampling. It is not an SPH/FLIP particle-fluid solver.
+
+Water shading adds cosmetic small ripples, Fresnel sky color, sun highlights, shallow-water tint, shore/crest foam and an analytical V wake. These shading effects do not add hull forces; shore foam currently follows the river banks rather than every island. Spray uses a fixed 384-particle cosmetic pool with fade and ballistic motion. Reflections are procedural sky approximations, not real-time scene reflections.
+
+The TR-07 model uses a shaped V hull, cockpit, windshield, driver, racing number and twin outboards. Coastal terrain has rolling elevations and instanced trees. The audio is generated locally with engine harmonics/sub-bass, exhaust modulation, filtered wind/spray and splash/impact envelopes. It is synthesized sound, not recorded motor audio; sound requires a user gesture via the header toggle. No external art or audio downloads are needed for these effects.
 
 Hull motion uses four support samples, relative surface velocity, spring/damper buoyancy, speed-dependent planing lift, gravity during crest jumps and damped landings. Simulation uses a fixed 120 Hz step; slow frames cap catch-up to avoid a spiral of work. Steering and hull-sample transforms now match Three.js heading. Obstacles use circular collision bounds independent of scenery streaming.
 
