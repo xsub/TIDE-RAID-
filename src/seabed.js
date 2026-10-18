@@ -49,12 +49,12 @@ export function createSeabed(scene) {
       if (source) {rocks.geometry = source.geometry; rocks.material = source.material; fallbackRock.dispose(); fallbackMaterial.dispose();}
       lastCell = '';
     },
-    update(state, camera, time, amount, weather) {
+    update(state, camera, time, amount, weather, ships = []) {
       group.visible = amount > 0.01;
       if (!group.visible) return;
       uniforms.uSeaTime.value = time; uniforms.uSeaSun.value = weather.sun;
       grass.animate(time);
-      fish.update(state, camera, time);
+      fish.update(state, camera, time, ships);
       rays.visible = weather.sun > 0.05;
       rays.position.set(state.x, 0, state.z);
       const cellX = Math.round(state.x / 32); const cellZ = Math.round(state.z / 32);

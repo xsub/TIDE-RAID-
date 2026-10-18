@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Boat-reactive fish schools
+
+- Fish schools anticipate nearby player and active traffic boats using a short, bounded projected path. Smooth proximity weighting and depth attenuation push schools away, spread members slightly, turn them toward escape and add a small clearance-clamped dive. Response fades as the boat leaves.
+- Keeps the existing 48-fish single batch and 20 Hz update limit. Six school-level threat queries inspect the player plus at most 32 traffic boats; buffers are reused and no simulation randomness or boat physics changes are introduced. Quantized animation poses avoid within-tick frame-time differences.
+- This is a lightweight visual avoidance field, not persistent fish AI or collision solving; local cell changes and abrupt boat teleports can still reposition schools. Bed/surface checks remain in force, but decorative rocks are not avoidance obstacles. Cargo Lab is unchanged.
+- All 156 tests and both production entry builds pass. Coverage includes approaching/departing boats, inactive traffic, depth attenuation, continuous range falloff, coincident positions, response/work bounds, actual fleeing transforms and identical poses across render schedules. Existing shared-bundle advisory remains; subjective swimming appearance and device GPU performance still need playtesting.
+
 ## 2026-10-18 — Underwater fish schools
 
 - Added six small schools, capped at 48 silver/green fish, with shaped bodies, tail/dorsal fins, varied sizes and shader-driven tail movement. Hidden with above-water scenery; no extra lights, shadows or assets.

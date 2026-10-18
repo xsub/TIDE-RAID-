@@ -736,7 +736,7 @@ function frame(now) {
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
   underwater = underwaterBlend(underwater, cameraSurface - camera.position.y, ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring, elapsed);
-  seabed.update(state, camera, simTime, underwater, weather);
+  seabed.update(state, camera, simTime, underwater, weather, trafficView ? traffic.boats : []);
   underwaterView.update(simTime, camera, underwater, voyage.sinking.air, roughness);
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
     traffic.boats, !complete && race.phase !== 'ready' && (!exploring || voyage.flooding < 0.75), underwater);
