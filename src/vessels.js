@@ -3,10 +3,12 @@ import {createCatamaran} from './catamaran.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const VESSEL_STYLES = {'boat-speed-c': 'sport', 'boat-speed-a': 'runabout', 'boat-house-a': 'cruiser', 'boat-tug-a': 'sail', 'boat-speed-d': 'classic', 'boat-cat-42': 'catamaran'};
+export const VESSEL_STYLES = {'boat-speed-c': 'sport', 'boat-speed-a': 'runabout', 'boat-house-a': 'cruiser', 'boat-tug-a': 'sail', 'boat-speed-d': 'classic', 'boat-cat-42': 'catamaran', 'boat-express-37': 'express', 'boat-offshore-44': 'offshore'};
 
 export function createVessel(style = 'sport') {
   if (style === 'catamaran') return createCatamaran();
+  const express = style === 'express' || style === 'offshore';
+  const offshore = style === 'offshore';
   const group = new THREE.Group();
   group.name = `${style} coastal vessel`;
   const paint = new THREE.MeshPhysicalMaterial({color: 0xf1eee5, roughness: 0.23, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.17});
@@ -46,7 +48,7 @@ export function createVessel(style = 'sport') {
   hull.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   hull.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   hull.setIndex(indices); hull.computeVertexNormals();
-  group.add(new THREE.Mesh(hull, style === 'cruiser' || style === 'sail' ? paint : accent));
+  group.add(new THREE.Mesh(hull, style === 'cruiser' || style === 'sail' || express ? paint : accent));
   const deckPositions = [];
   const deckUv = [];
   const deckIndices = [];
@@ -102,7 +104,30 @@ export function createVessel(style = 'sport') {
   for (let plank = 0; plank < 12; plank++) box([0.012, 0.012, 1.35], dark, [-1.06 + plank * 0.19, 0.625, 2.7], 0.002);
   box([1.9, 0.26, 0.6], seat, [0, 0.82, 2]);
   box([1.9, 0.48, 0.16], seat, [0, 1.08, 2.28]);
-  if (style === 'cruiser' || style === 'sail') {
+  if (express) {
+    box([2.27, 0.55, 3.8], paint, [0, 0.84, -0.85], 0.22);
+    box([2.12, 0.1, 2.6], paint, [0, 1.16, -1.25]);
+    enclosedHelm(2.14, offshore ? 2.65 : 2.3, 1.13, 0.95, -0.1);
+    const windshield = box([2.1, 0.84, 0.07], glass, [0, 1.61, -1.37], 0.025); windshield.rotation.x = -0.32;
+    box([0.065, 0.88, 0.09], paint, [0, 1.61, -1.4], 0.02).rotation.x = -0.32;
+    box([2.48, 0.15, offshore ? 3.2 : 2.8], paint, [0, 2.14, 0], 0.075);
+    box([0.78, 0.11, 1.05], glass, [0, 1.24, -2.25], 0.04);
+    box([0.7, 0.12, 0.44], dark, [0, 2.28, -0.45], 0.05);
+    box([1.12, 0.13, 0.22], paint, [0, 2.41, -0.45], 0.05);
+    for (const side of [-1, 1]) {
+      box([0.045, 0.22, 1.6], glass, [side * 1.17, 0.91, -1.05], 0.02);
+      rail([[side * 1.13, 1.16, 0.6], [side * 1.13, 2.07, 0.8]], chrome, 0.026);
+      box([0.38, 0.4, 1.35], seat, [side * 0.93, 0.84, 1.65]);
+      rail([[side * 0.9, 2.2, 0.8], [side * 0.96, 3.2, 1.2]], paint, 0.012);
+      box([0.035, 0.09, 5.5], accent, [side * 1.36, 0.12, 0.1], 0.01);
+    }
+    const engines = offshore ? [-0.75, 0, 0.75] : [-0.55, 0.55];
+    for (const lateral of engines) {
+      box([0.51, 0.72, 0.72], offshore ? paint : dark, [lateral, 0.25, 3.87], 0.16);
+      box([0.15, 0.72, 0.22], chrome, [lateral, -0.43, 3.92], 0.04);
+      box([0.37, 0.06, 0.22], dark, [lateral, -0.73, 3.95], 0.02);
+    }
+  } else if (style === 'cruiser' || style === 'sail') {
     box([2.25, 0.85, 3.1], paint, [0, 0.97, -0.1], 0.22);
     box([2.13, 0.62, 2.85], glass, [0, 1.63, -0.25], 0.18);
     box([2.33, 0.13, 3.1], paint, [0, 1.98, -0.25], 0.05);
@@ -162,6 +187,7 @@ export function createVessel(style = 'sport') {
   for (const child of [...group.children]) {
     const geometry = child.geometry.index ? child.geometry.toNonIndexed() : child.geometry.clone();
     geometry.applyMatrix4(child.matrix);
+    if (express) geometry.scale(offshore ? 0.88 : 0.93, 1, 1);
     const list = batches.get(child.material) ?? [];
     list.push(geometry); batches.set(child.material, list);
     child.geometry.dispose(); group.remove(child);

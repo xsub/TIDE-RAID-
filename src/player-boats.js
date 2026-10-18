@@ -1,4 +1,6 @@
 export const PLAYER_BOATS = [
+  {model: 'boat-express-37', name: 'Express 37 · fast twin-outboard cruiser'},
+  {model: 'boat-offshore-44', name: 'Offshore 44 · heavy triple-outboard cruiser'},
   {model: 'boat-cat-42', name: 'Blackjack 42 · racing catamaran'},
   {model: 'boat-speed-c', name: 'Sport · hardtop racer'},
   {model: 'boat-speed-a', name: 'Runabout · coastal leisure'},

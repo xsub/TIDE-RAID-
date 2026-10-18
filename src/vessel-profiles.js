@@ -1,5 +1,7 @@
 const sport={mass:1400,length:7.4,beam:2.8,power:950000,maxThrust:28000,waterDrag:0.0045,planingSpeed:45,planingLift:0.06,rudderArea:0.035,draft:0.55,lateralGrip:2.6,waterplaneArea:6.7,foreLoad:0.44,cgHeight:0.65,deadrise:22,supportBeam:0.32,supportLength:0.257,yawInertiaFactor:1,pitchInertiaFactor:1,rollInertiaFactor:1,stabilityFactor:0.5,bankFactor:0.35,planingTrim:0.045};
 export const VESSEL_PROFILES=Object.freeze({
+  'boat-express-37':Object.freeze({...sport,mass:5800,length:11.2,beam:3.6,power:850000,maxThrust:38000,waterDrag:0.0048,planingSpeed:21,planingLift:0.035,rudderArea:0.07,draft:0.85,lateralGrip:2.2,waterplaneArea:16,foreLoad:0.45,cgHeight:1.05,deadrise:21,yawInertiaFactor:1.2,pitchInertiaFactor:1.3,rollInertiaFactor:1.35,stabilityFactor:0.6,bankFactor:0.24,planingTrim:0.035}),
+  'boat-offshore-44':Object.freeze({...sport,mass:8500,length:13.4,beam:4.1,power:1000000,maxThrust:46000,waterDrag:0.0058,planingSpeed:20,planingLift:0.03,rudderArea:0.085,draft:1.05,lateralGrip:2.1,waterplaneArea:22,foreLoad:0.47,cgHeight:1.3,deadrise:20,yawInertiaFactor:1.4,pitchInertiaFactor:1.55,rollInertiaFactor:1.65,stabilityFactor:0.65,bankFactor:0.18,planingTrim:0.03}),
   'boat-cat-42':Object.freeze({...sport,mass:1600,length:9.4,beam:3.7,power:1100000,maxThrust:30000,waterDrag:0.004,planingSpeed:32,planingLift:0.04,draft:0.45,lateralGrip:2.1,waterplaneArea:8.3,foreLoad:0.4,cgHeight:0.5,deadrise:12,supportBeam:0.39,yawInertiaFactor:1.25,pitchInertiaFactor:1.1,rollInertiaFactor:1.5,stabilityFactor:0.75,bankFactor:0.08,planingTrim:0.025}),
   'boat-speed-c':Object.freeze(sport),
   'boat-speed-a':Object.freeze({...sport,mass:1800,power:600000,maxThrust:24000,waterDrag:0.0055,planingSpeed:32,draft:0.65,waterplaneArea:7.4,foreLoad:0.47,cgHeight:0.8,deadrise:18,pitchInertiaFactor:1.15}),
@@ -8,6 +10,8 @@ export const VESSEL_PROFILES=Object.freeze({
   'boat-speed-d':Object.freeze({...sport,mass:1700,power:450000,maxThrust:18000,waterDrag:0.005,planingSpeed:30,draft:0.65,waterplaneArea:6.8,foreLoad:0.48,cgHeight:0.7,deadrise:16,pitchInertiaFactor:1.2}),
 });
 export const PILOT_HELMS = Object.freeze({
+  'boat-express-37': Object.freeze({helmHeight: 2.7, helmForward: 0.1, helmSide: -0.55}),
+  'boat-offshore-44': Object.freeze({helmHeight: 3.2, helmForward: 0.1, helmSide: -0.65}),
   'boat-speed-c': Object.freeze({helmHeight: 1.45, helmForward: 0.1, helmSide: -0.45}),
   'boat-cat-42': Object.freeze({helmHeight: 1.1, helmForward: -0.6, helmSide: -0.25}),
   'boat-speed-a': Object.freeze({helmHeight: 1.5, helmForward: 0.1, helmSide: -0.45}),
@@ -17,6 +21,8 @@ export const PILOT_HELMS = Object.freeze({
 });
 export const vesselProfile=(model)=>({... (VESSEL_PROFILES[model] ?? VESSEL_PROFILES['boat-speed-c']), ...(PILOT_HELMS[model] ?? PILOT_HELMS['boat-speed-c'])});
 export const VESSEL_HANDLING = Object.freeze({
+  'boat-express-37': 'Express cruiser · deep-V · twin outboards · fast, measured handling',
+  'boat-offshore-44': 'Offshore cruiser · heavier triple outboards · deeper draft, slower acceleration and turns',
   'boat-speed-c': 'Deep-V racer · aft-loaded · responsive bank and pitch',
   'boat-cat-42': 'Twin-sponson racer · low center of gravity · wide, flatter cornering',
   'boat-speed-a': 'Coastal runabout · moderate V · softer, slower wave response',

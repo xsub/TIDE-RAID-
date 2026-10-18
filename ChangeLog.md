@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Express and offshore cruisers
+
+- Added two selectable reference-inspired white deep-V express cruisers: Express 37 (11.2 m, 5.8 t, twin outboards) and Offshore 44 (13.4 m, 8.5 t, triple outboards). Enclosed glazed hardtops, sloped windshields, cabin windows/hatches, rails, cockpit seating and radar distinguish them from the existing flybridge cruiser.
+- Separate power/thrust, draft, planing, center-of-gravity and rotational-inertia profiles make the larger boat accelerate and turn more slowly while remaining fast. Shared collision masses, pilot viewpoints, existing wear/fuel/lights and boat selection are integrated; existing boats and traffic composition remain unchanged.
+- Original procedural models inspired by the supplied image, not licensed manufacturer replicas or engineering-certified performance. Geometry remains merged by material; no new texture downloads or per-vessel lights.
+- All 158 tests and both production entry builds pass, including selectable fleet geometry/preferences, mass consistency, model dimensions/batch limits and relative acceleration/steady-thrust speed estimates. The speed comparison is a simplified drag/thrust check, not a measured sea trial. Existing shared-bundle advisory remains; visual quality and on-water feel still need playtesting.
+
 ## 2026-10-18 — Boat-reactive fish schools
 
 - Fish schools anticipate nearby player and active traffic boats using a short, bounded projected path. Smooth proximity weighting and depth attenuation push schools away, spread members slightly, turn them toward escape and add a small clearance-clamped dive. Response fades as the boat leaves.
