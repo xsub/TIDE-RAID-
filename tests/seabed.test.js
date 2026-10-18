@@ -11,7 +11,7 @@ test('seabed uses depth geometry and fixed bounded batches, reusing buffers acro
   const scene = new THREE.Scene(); const view = createSeabed(scene); const group = scene.children[0];
   const state = createState(); const camera = new THREE.PerspectiveCamera();
   view.update(state, camera, 0, 1, {sun: 1});
-  assert.equal(group.children.length, 3);
+  assert.equal(group.children.length, 4);
   const [floor, rocks, rays] = group.children;
   const positions = floor.geometry.attributes.position.array;
   assert.equal(positions.length, 33 * 33 * 3); assert.ok(rocks.count <= 48);

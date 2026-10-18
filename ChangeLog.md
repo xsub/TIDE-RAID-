@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Waterline immersion and underwater vegetation
+
+- Added a short dark blue-green immersion veil on entering/leaving the water, hiding the abrupt surface switch without a white flash or full black frame. Waterline hysteresis prevents repeated wave-edge flickering; reduced-motion preferences reduce its intensity. HUD stays readable.
+- Added deterministic seabed seagrass patches with varied height/color and gentle GPU sway. One additional instanced draw batch, capped at 1,536 ten-vertex blades, no downloads, extra lights or shadows. Placement refreshes only with existing terrain cells/depth settings and hides with above-water scenery.
+- Vegetation is lightweight procedural geometry, not photographic flora or a biological simulation. Roots use the analytical bed approximation; distant terrain interpolation can differ. Existing underwater tint, fog, caustics and muffled audio remain. Cargo Lab and boat physics are unchanged.
+- All 151 tests and both production entry builds pass, including crossing hysteresis, transition decay, deterministic vegetation and fixed buffer/batch budgets. Existing shared-bundle advisory remains; subjective visual quality and device-specific GPU performance still need playtesting.
+
 ## 2026-10-18 — Adjustable shallow-water warning sound
 
 - Added a saved 0.2–5 m under-hull clearance alarm threshold (default 1 m) and independent mute checkbox in Calm Sound Mix. Uses existing five-point clearance estimates, not river-center depth.

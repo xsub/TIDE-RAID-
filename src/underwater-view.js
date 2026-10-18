@@ -1,10 +1,16 @@
 import * as THREE from 'three';
 import {sampleWave} from './waves.js';
+import {immersionStep} from './immersion.js';
 
 export function createUnderwaterView(scene, host) {
   const tint = document.createElement('div');
   Object.assign(tint.style, {position: 'absolute', inset: '0', pointerEvents: 'none', background: 'linear-gradient(#063f5477,#026c6177)', opacity: '0'});
   tint.setAttribute('aria-hidden', 'true'); host.append(tint);
+  const veil = document.createElement('div');
+  Object.assign(veil.style, {position: 'absolute', inset: '0', pointerEvents: 'none', background: 'radial-gradient(ellipse, #133c4555, #031c28)', opacity: '0'});
+  veil.setAttribute('aria-hidden', 'true'); host.append(veil);
+  const reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  let immersion; let lastTime;
   const positions = new Float32Array(48 * 3); const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const pixels = new Uint8Array(32 * 32 * 4);
@@ -18,6 +24,9 @@ export function createUnderwaterView(scene, host) {
   const bubbles = new THREE.Points(geometry, material); bubbles.frustumCulled = false; bubbles.name = 'Driver underwater air haze'; scene.add(bubbles);
   const forward = new THREE.Vector3(); const across = new THREE.Vector3(); const up = new THREE.Vector3(0, 1, 0);
   return {update(time, camera, amount, air, roughness) {
+    const surfaceDepth = sampleWave(camera.position.x, camera.position.z, time, roughness).h - camera.position.y;
+    immersion = immersionStep(immersion, surfaceDepth, lastTime === undefined ? 0 : time - lastTime); lastTime = time;
+    veil.style.opacity = (immersion.pulse * (reducedMotion ? 0.18 : 0.75)).toFixed(3);
     tint.style.opacity = amount.toFixed(3);
     bubbles.visible = amount > 0.01 && air > 0;
     if (!bubbles.visible) return;

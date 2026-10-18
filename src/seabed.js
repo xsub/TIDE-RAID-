@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {waterDepth} from './depth.js';
+import {createSeagrass} from './seagrass.js';
 
 export function seabedHeight(x, z, scale = 1) {return -waterDepth(x, z, scale);}
 export function createSeabed(scene) {
@@ -36,6 +37,7 @@ export function createSeabed(scene) {
     fragmentShader: 'varying vec2 vRayUv; varying vec3 vRayWorld; uniform float uSeaSun; void main(){float fade=sin(vRayUv.y*3.14159)*pow(sin(vRayUv.x*3.14159),2.0);float distanceFade=exp(-distance(cameraPosition,vRayWorld)*0.035);gl_FragColor=vec4(0.55,0.86,0.74,fade*distanceFade*uSeaSun*0.065);}',
   });
   const rays = new THREE.Mesh(rayGeometry, rayMaterial); group.add(rays);
+  const grass = createSeagrass(group);
   const transform = new THREE.Object3D(); let lastCell = ''; let centerX = 0; let centerZ = 0;
   function hash(x, z) {return Math.sin(x * 127.1 + z * 311.7) * 43758.5453 % 1 + 1;}
   return {
@@ -49,12 +51,14 @@ export function createSeabed(scene) {
       group.visible = amount > 0.01;
       if (!group.visible) return;
       uniforms.uSeaTime.value = time; uniforms.uSeaSun.value = weather.sun;
+      grass.animate(time);
       rays.visible = weather.sun > 0.05;
       rays.position.set(state.x, 0, state.z);
       const cellX = Math.round(state.x / 32); const cellZ = Math.round(state.z / 32);
       const key = `${cellX}/${cellZ}/${state.depthScale ?? 1}`;
       if (key === lastCell) return;
       lastCell = key; centerX = cellX * 32; centerZ = cellZ * 32;
+      grass.rebuild(cellX, cellZ, state.depthScale);
       const vertices = geometry.attributes.position; const uv = geometry.attributes.uv;
       for (let index = 0; index < vertices.count; index++) {
         const lateral = (index % 33 / 32 - 0.5) * 256 + centerX;
