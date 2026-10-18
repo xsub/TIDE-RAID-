@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Collision roadmap 3: bounded contact settling
+
+- Added up to three fixed-order scenery → dock → traffic contact passes per player motion interval, exiting early when clear. Removed the redundant outer dock check. This repairs contacts introduced by preceding corrections without an unbounded iterative solver.
+- Closing speeds below 0.5 m/s use zero restitution, suppressing tiny repeated rebounds while retaining friction and angular effective mass. Larger impacts keep their material restitution.
+- Added low-speed rebound, early-exit/work-cap and deterministic repeated-settlement tests. All 64 tests and production build pass. Handling records advance separately.
+- Dense opposing constraints can remain unresolved at the pass budget; no warm starting, persistent manifold or exact simultaneous global solve is claimed.
+
 ## 2026-10-18 — Collision roadmap 2: bounded anti-tunnelling motion
 
 - Added deterministic motion subdivision based on translation plus rotational tip speed. Ordinary 120 Hz motion normally needs one segment; faster motion checks smaller intervals against scenery, docks and player/traffic contacts.

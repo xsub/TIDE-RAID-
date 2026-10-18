@@ -57,6 +57,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ### Collision impulses
 
+Player contacts settle in up to three fixed-order passes per motion interval, exiting early when clear. Very slow normal approaches below 0.5 m/s suppress bounce to reduce resting-contact jitter. Dense opposing constraints can exceed this work budget; this is not a global simultaneous-contact solver.
+
 Fast movement now uses deterministic subdivisions based on translation and hull-tip rotation. Each interval resolves contacts before continuing with the resulting velocity. Normal 120 Hz movement generally uses one interval; the cap is 32. Beyond this safety budget, leftover movement time is discarded. This reduces tunnelling but is not an exact swept time-of-impact solver; moving bodies advance sequentially and tiny/tangent contacts remain approximate.
 
 Hull overlap now uses oriented capsules (a longitudinal segment plus rounded beam-radius ends), not circular ship bounds. Player/traffic contacts use closest capsule features; scenery remains circular and player docks rectangular. The geometry queries have bounded work, deterministic fallback axes and no rendered-mesh searches. Bow reach and side clearance follow heading. Bank handling checks the end caps against local bank samples. Swept collision detection and a multi-contact solver are not implemented yet; extreme speeds can still tunnel, and bank geometry remains approximate.

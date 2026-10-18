@@ -47,7 +47,8 @@ export function contactImpulse(first, second, normalX, normalZ, restitution = 0.
   const closing = relativeX * normalX + relativeZ * normalZ;
   if (closing >= 0) return {impulse: 0, energyLost: 0};
   const before = kinetic(first,firstMass) + kinetic(second,secondMass);
-  const impulse = -(1 + Math.max(0,Math.min(1,restitution))) * closing / (inverseSum+normalArmFirst**2*inverseInertiaFirst+normalArmSecond**2*inverseInertiaSecond);
+  const bounce = closing > -0.5 ? 0 : Math.max(0,Math.min(1,restitution));
+  const impulse = -(1 + bounce) * closing / (inverseSum+normalArmFirst**2*inverseInertiaFirst+normalArmSecond**2*inverseInertiaSecond);
   function apply(impulseX,impulseZ) {
     first.vx += impulseX*inverseFirst; first.vz += impulseZ*inverseFirst;
     if (contact) first.yawRate = (first.yawRate ?? 0)+(firstZ*impulseX-firstX*impulseZ)*inverseInertiaFirst;

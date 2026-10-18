@@ -6,7 +6,6 @@ import {loadFleet, createTrafficView} from './fleet.js';
 import {PLAYER_BOATS, PLAYER_LENGTH} from './player-boats.js';
 import {VESSEL_MASS} from './collision.js';
 import {createTraffic, updateTraffic, collideTraffic} from './traffic.js';
-import {resolveHarborCollision} from './harbor-layout.js';
 import {createSpray} from './spray.js';
 import {createAtmosphere, SUN_DIRECTION} from './atmosphere.js';
 import {createCinema} from './cinema.js';
@@ -448,7 +447,6 @@ function frame(now) {
         for(const ship of traffic.boats) hit=collideTraffic(body,ship)||hit;
         return hit;
       } : null);
-      resolveHarborCollision(state);
       if (trafficView) updateTraffic(traffic, state, 1 / 120);
       spray.update(state, simTime, 1 / 120, roughness);
       advanceLesson(lesson, {...input, boost: boosting}, state, race.next, 1 / 120);

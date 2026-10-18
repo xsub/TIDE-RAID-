@@ -1,6 +1,6 @@
 import {sampleWave} from './waves.js';
-import {START_Z, channel, resolveCollision, chunkFeatures, chunkIndex} from './world.js';
-import {resolveHarborCollision} from './harbor-layout.js';
+import {START_Z, channel, chunkFeatures, chunkIndex} from './world.js';
+import {settleContacts} from './contacts.js';
 import {advanceHull} from './motion.js';
 
 export function channelHeading(z) {
@@ -67,9 +67,7 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   state.vy = Math.max(-12, Math.min(3.0, state.vy));
   let impact=false;
   advanceHull(state,dt,steeringRate,(body) => {
-    impact=resolveCollision(body)||impact;
-    impact=resolveHarborCollision(body)||impact;
-    if(resolveTraffic) impact=resolveTraffic(body)||impact;
+    impact=settleContacts(body,resolveTraffic)||impact;
   });
   state.y += state.vy * dt;
   const pitchTarget = Math.max(-0.45, Math.min(0.45, (front - back) / 110 + planing * 0.045));
