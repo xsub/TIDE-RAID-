@@ -1,12 +1,17 @@
 import * as THREE from 'three';
 import {channel, chunkFeatures, chunkIndex, CHUNK_SIZE, CHUNK_COUNT, START_Z} from './world.js';
 import {createWaterMaterial} from './water-material.js';
+import {boundaryAtlas, BOUNDARY_WIDTH, BOUNDARY_HEIGHT} from './water-boundary.js';
 import {createNature} from './nature-view.js';
 import {createHarbors} from './harbors.js';
 import {beachWidth, coastHeight, islandHeight} from './nature.js';
 
 export function createWater(scene) {
+  const boundary = new THREE.DataTexture(boundaryAtlas(), BOUNDARY_WIDTH, BOUNDARY_HEIGHT, THREE.RedFormat, THREE.UnsignedByteType);
+  boundary.minFilter = THREE.NearestFilter; boundary.magFilter = THREE.NearestFilter;
+  boundary.generateMipmaps = false; boundary.needsUpdate = true;
   const uniforms = {uTime: {value: 0}, uSwell: {value: 1}, uFaceted: {value: 0}, uBoat: {value: new THREE.Vector2()}, uHeading: {value: 0}, uSpeed: {value: 0}};
+  uniforms.uBoundary = {value: boundary};
   const material = createWaterMaterial(uniforms);
   const group = new THREE.Group();
   scene.add(group);

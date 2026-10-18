@@ -36,12 +36,15 @@ export function createWaterMaterial(uniforms) {
       }
       void main() {
         float height; vec2 slope;
-        tideWave(vWorld.xz, uTime, uSwell, height, slope);
+        float shore; vec2 boundaryGradient;
+        waterBoundary(vWorld.xz,shore,boundaryGradient);
+        if (shore < -0.5) discard;
+        tideWaveBoundary(vWorld.xz, uTime, uSwell, shore, boundaryGradient, height, slope);
         vec2 point = vWorld.xz;
         float warp = sin(point.x * 0.19 + sin(point.y * 0.13)) * 1.8;
         float rippleA = dot(point, vec2(1.7, 0.8)) + warp + sin(point.y * 0.49 + uTime * 0.15) - uTime * 3.3;
         float rippleB = dot(point, vec2(-0.9, 2.2)) + sin(point.y * 0.23) * 1.2 + sin(point.x * 0.37) - uTime * 4.1;
-        float microDetail = 1.0 - smoothstep(80.0, 350.0, distance(cameraPosition, vWorld));
+        float microDetail = (1.0 - smoothstep(80.0, 350.0, distance(cameraPosition, vWorld))) * mix(0.25,1.0,smoothstep(0.0,18.0,shore));
         float rippleFootprint = max(length(dFdx(point)), length(dFdy(point)));
         float fineRipples = 1.0 - smoothstep(0.12, 0.45, rippleFootprint);
         slope += uSwell * microDetail * (surfaceNoise(point * 1.25 + vec2(uTime * 0.08, -uTime * 0.06)) * 0.085 + surfaceNoise(point * 3.8 + vec2(-uTime * 0.12, uTime * 0.08)) * 0.028 * fineRipples);
@@ -55,10 +58,6 @@ export function createWaterMaterial(uniforms) {
         vec3 reflection = reflect(-viewDirection, normal);
         vec3 sunDirection = normalize(vec3(-0.58, 0.46, -0.67));
         float fresnel = 0.04 + 0.45 * pow(1.0 - max(dot(normal, viewDirection), 0.0), 4.0);
-        float center = 650.0 * sin((point.y - 200.0) * 0.0009) + 210.0 * sin((point.y - 200.0) * 0.0031);
-        float width = 200.0 + 30.0 * sin(point.y * 0.005) + 18.0 * sin(point.y * 0.013);
-        float shore = width - abs(point.x - center);
-        if (shore < -0.5) discard;
         float deep = smoothstep(0.0, 55.0, shore);
         vec3 waterColor = mix(vec3(0.065, 0.48, 0.35), vec3(0.012, 0.13, 0.17), deep);
         float caustic = pow(max(0.0, sin(rippleA * 0.3 + sin(rippleB * 0.25))), 12.0) * (1.0 - deep);
@@ -71,7 +70,8 @@ export function createWaterMaterial(uniforms) {
         float broadGlint = pow(max(dot(reflection, sunDirection), 0.0), 16.0);
         vec3 color = mix(waterColor, sky, fresnel) + vec3(1.0, 0.86, 0.59) * (glint * 0.7 + broadGlint * 0.1);
         float crest = smoothstep(0.17, 0.29, length(slope)) * smoothstep(0.65, 1.5, height) * 0.17;
-        float shoreFoam = (1.0 - smoothstep(0.0, 4.0, shore)) * (0.45 + 0.3 * sin(point.y * 0.6 + uTime * 2.0));
+        float breaking = pow(max(0.0,sin(shore*1.1-uTime*2.6+sin(point.y*0.17)*0.7)),3.0);
+        float shoreFoam = (1.0-smoothstep(0.0,6.0,shore))*(0.16+0.5*breaking)*(0.65+0.35*sin(rippleB));
         vec2 delta = point - uBoat;
         float aft = dot(delta, vec2(sin(uHeading), cos(uHeading)));
         float across = dot(delta, vec2(cos(uHeading), -sin(uHeading)));

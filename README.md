@@ -55,6 +55,12 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+### Boundary-aware water
+
+A deterministic 512 KiB distance atlas includes both banks, islands, rocks, sandbanks and dock footprints. It is baked once, not rebuilt each frame. CPU hull samples and GPU wave displacement use matching bilinear distance sampling, near-boundary damping and small returning wavelets; normals include the modulation gradients. Shallow tint, broken foam bands and reduced micro-ripples follow static boundaries. Four texture reads per field lookup keep shader cost independent of obstacle count.
+
+The atlas has approximately 5×4.6 m cells; small objects and edges are approximate. This is analytical boundary-aware water, not a fluid solver, measured bathymetry, directional wave diffraction/refraction, or persistent turbulence. Moving traffic retains cosmetic wakes and does not feed energy into the physical field. The low-amplitude sea and upward-velocity guard remain in place. Boundary-version trial records are separate from earlier handling versions.
+
 Choose **Helm Settings → Your Boat** to control any active fleet model: sport, runabout, cruiser, sailboat or classic. Selection is saved. Switching restarts exploration or returns a trial to its start menu. All models are normalized to the same 7.4 m racing length and use the same arcade handling, collision approximation and engine audio; the sailboat runs under auxiliary power, not simulated wind. Distinct vessel dynamics and full-size yacht physics are not implemented.
 
 ### Camera orbit
@@ -69,7 +75,7 @@ Spray uses seeded randomness, resets on restart, and emits at the fixed simulati
 
 `src/waves.js` defines the shared analytical chop components. Both CPU hull samples and generated GPU displacement/normal code use these same coefficients in world coordinates. The GPU handles water displacement; there is no per-frame CPU vertex deformation or normal recomputation. Twenty-five recycled water tiles share two geometries and one shader material: the inner nine tiles have twice the grid resolution. The surface slider selects five tessellation budgets (10.4k–426k triangles), with faceted shading below 55 and analytical smooth normals above. It does not change the simulation timestep, wave equations or collision sampling. It is not an SPH/FLIP particle-fluid solver.
 
-Water shading adds cosmetic small ripples, Fresnel sky color, sun highlights, shallow-water tint, shore/crest foam and an analytical V wake. These shading effects do not add hull forces; shore foam currently follows the river banks rather than every island. Spray uses a fixed 384-particle cosmetic pool with fade and ballistic motion. Reflections are procedural sky approximations, not real-time scene reflections.
+Water shading adds cosmetic small ripples, Fresnel sky color, sun highlights, shallow-water tint, boundary/crest foam and an analytical V wake. These shading effects do not add hull forces; the shared boundary-modulated wave field does. Spray uses a fixed 384-particle cosmetic pool with fade and ballistic motion. Reflections are procedural sky approximations, not real-time scene reflections.
 
 The TR-07 model uses a shaped V hull, cockpit, windshield, driver, racing number and twin outboards. Coastal terrain has rolling elevations and instanced trees. The audio is generated locally with engine harmonics/sub-bass, exhaust modulation, filtered wind/spray and splash/impact envelopes. It is synthesized sound, not recorded motor audio; sound requires a user gesture via the header toggle. No external art or audio downloads are needed for these effects.
 

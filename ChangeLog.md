@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Fast boundary-aware water
+
+- Baked a deterministic signed-distance atlas of both banks, islands, rocks, sandbanks and dock footprints. One cached 128×4096 single-channel texture (512 KiB; roughly 5×4.6 m cells) replaces per-frame/per-pixel obstacle searches. Bake measured about 113 ms locally; 100,000 CPU wave samples took about 38 ms in a standalone local run, not a cross-device guarantee.
+- Shared CPU/GPU waves now damp near boundaries and include small distance-driven returning wavelets with analytical spatial/temporal derivatives. Hull forces therefore respond to the same boundary-modulated field, rather than merely decorating the water normals. Four texture reads per shader field lookup, independent of object count.
+- Reduced cosmetic ripples close to land and added animated broken foam bands, shallow tint and masking around static objects, not only the outer banks. Existing moving-boat cosmetic wakes remain unchanged.
+- The atlas is an approximate footprint field, not measured bathymetry: small docks/rocks are softened by its resolution. Wavelets approximate local boundary response, not a directional reflection/refraction/diffraction solver; no persistent turbulence, moving-hull feedback, current transport or particle-fluid simulation is claimed.
+- New handling-version best-time key preserves older records separately. Added cached atlas/memory/obstacle, near-boundary gradient, energy attenuation and calm-water tests. All 42 tests and production build pass; a fresh browser reported no shader errors and about 99 FPS at 2240×1260 in one stationary local check (not a benchmark guarantee).
+
 ## 2026-10-18 — Playable fleet selection
 
 - Added a saved Your Boat selector in Helm Settings covering every active vessel: sport, runabout, cruiser, sailboat and classic. Changing vessel restarts exploration or returns a trial to its start menu, preventing mid-race model changes.
