@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Vertical 2: Coastal Sprint time trial
+
+- Added a 4 km time trial with ready screen, three-second countdown, five ordered gates, timer, medals, results and instant retry; retained full exploration mode.
+- Added limited boost with recharge/release behavior, +2s impact penalties and +5s recovery penalties. Recovery returns behind a missed gate.
+- Added local personal bests with blocked/corrupt-storage fallback. Trials lock swell to the standard setting for comparable times.
+- Added tests for countdown, gate ordering/misses, penalties, boost and persistent bests. Medal thresholds are provisional pending player testing.
+
 ## 2026-10-18 — Vertical 1: handling and recovery
 
 - Spawn heading follows the river, braking stops without unintended reverse thrust, and low-speed/air steering remains responsive.

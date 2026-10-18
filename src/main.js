@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {createState, step, recover} from './physics.js';
 import {createAudio} from './audio.js';
+import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
 import {createWater, createScenery} from './scenery.js';
 import {channel, chunkFeatures, chunkIndex, START_Z, END_Z, WORLD_SIZE, CHUNK_COUNT} from './world.js';
 import {sampleWave} from './waves.js';
@@ -11,7 +12,9 @@ document.getElementById('app').innerHTML = `
   <header><div class="brand">TIDE<span>RAID</span><sup>2.0</sup></div><span class="tagline">COASTAL EXPEDITION / 01</span>
     <button id="pause" aria-label="Pause game">PAUSE</button></header>
   <section id="telemetry"><div><b id="speed">000</b><span>KM/H</span></div><p id="air">WATERBORNE</p>
-    <div class="progress"><i id="progress"></i></div><small id="distance">0 / 18.78 KM</small></section>
+    <div class="progress"><i id="progress"></i></div><small id="distance">0 / 18.78 KM</small>
+    <p id="raceClock">0:00.00</p><small id="checkpoint">COASTAL SPRINT</small>
+    <label>BOOST <meter id="boost" min="0" max="1" value="1"></meter></label></section>
   <aside><canvas id="map" width="220" height="240" aria-label="Local river navigation map"></canvas>
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
@@ -26,7 +29,7 @@ document.getElementById('app').innerHTML = `
   <footer><span>W / ↑ THROTTLE &nbsp; S / ↓ BRAKE &nbsp; A D / ← → STEER</span><span>SHIFT BOOST &nbsp; C CAMERA &nbsp; H RECOVER &nbsp; P PAUSE &nbsp; R RESET</span></footer>
   <nav id="touch" aria-label="Boat controls"><button data-key="KeyA" aria-label="Steer left">◀</button><button data-key="KeyD" aria-label="Steer right">▶</button><button data-key="KeyS">BRAKE</button><button data-key="KeyW">GO</button><button data-key="ShiftLeft">BOOST</button></nav>`;
 
-const elements = Object.fromEntries(['speed', 'air', 'progress', 'distance', 'quality', 'swellValue', 'camera', 'pause', 'message', 'chunks'].map((id) => [id, document.getElementById(id)]));
+const elements = Object.fromEntries(['speed', 'air', 'progress', 'distance', 'quality', 'swellValue', 'camera', 'pause', 'message', 'chunks', 'raceClock', 'checkpoint', 'boost'].map((id) => [id, document.getElementById(id)]));
 document.querySelector('details').open = innerWidth > 900;
 const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -78,6 +81,11 @@ let roughness = 1;
 let mode = 'arcade';
 let paused = false;
 let complete = false;
+let race = createRace();
+let storage;
+try {storage = localStorage;} catch {}
+let personalBest = readBest(storage);
+let bestSaved = true;
 let accumulator = 0;
 let lastFrame = performance.now();
 let hudTimer = 0;
@@ -87,15 +95,41 @@ const cameraPosition = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
 const smoothLook = new THREE.Vector3();
 const audio = createAudio();
+const gateGroup = new THREE.Group();
+const gateMaterial = new THREE.MeshStandardMaterial({color: 0xff8051, emissive: 0x552211});
+for (const side of [-1, 1]) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.5, 12, 8), gateMaterial);
+  post.position.set(side, 5, 0);
+  gateGroup.add(post);
+}
+const gateLine = new THREE.Mesh(new THREE.BoxGeometry(1, 0.25, 2), new THREE.MeshBasicMaterial({color: 0xffbc85, transparent: true, opacity: 0.6}));
+gateLine.position.y = 0.3;
+gateGroup.add(gateLine);
+scene.add(gateGroup);
 
-function reset() {
+function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   state = createState();
+  race = createRace(phase);
+  paused = false;
+  elements.pause.textContent = 'PAUSE';
+  keys.clear();
   complete = false;
   accumulator = 0;
   wakePositions.fill(0);
   wakeGeometry.setDrawRange(0, 0);
   wakeCursor = 0;
+  if (phase !== 'explore') {
+    roughness = 1;
+    document.getElementById('swell').value = '100';
+    elements.swellValue.textContent = '1.0×';
+  }
+  document.getElementById('swell').disabled = phase !== 'explore';
   snapCamera();
+}
+function rescue() {
+  if (complete || race.phase === 'ready' || race.phase === 'countdown') return;
+  recoverRace(race, state);
+  recover(state, simTime, roughness);
 }
 function toggleCamera() {
   mode = mode === 'arcade' ? 'chase' : 'arcade';
@@ -130,7 +164,8 @@ addEventListener('keydown', (event) => {
   if (event.code === 'KeyC') toggleCamera();
   if (event.code === 'KeyP' || event.code === 'Escape') togglePause();
   if (event.code === 'KeyR') reset();
-  if (event.code === 'KeyH' && !complete) recover(state, simTime, roughness);
+  if (event.code === 'KeyH') rescue();
+  if (event.code === 'Enter' && (race.phase === 'ready' || race.phase === 'finished')) reset('countdown');
 });
 addEventListener('keyup', (event) => keys.delete(event.code));
 addEventListener('blur', () => {keys.clear(); if (!paused) togglePause();});
@@ -144,9 +179,13 @@ for (const button of document.querySelectorAll('[data-key]')) {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(button.dataset.key));
 }
 document.getElementById('camera').onclick = toggleCamera;
-document.getElementById('reset').onclick = reset;
+document.getElementById('reset').onclick = () => reset();
 document.getElementById('pause').onclick = togglePause;
-document.getElementById('recover').onclick = () => {if (!complete) recover(state, simTime, roughness);};
+document.getElementById('recover').onclick = rescue;
+elements.message.onclick = (event) => {
+  if (event.target.dataset.action === 'trial') reset('countdown');
+  if (event.target.dataset.action === 'explore') reset('explore');
+};
 document.getElementById('sound').onclick = async (event) => {
   try {event.target.textContent = `SOUND / ${await audio.toggle() ? 'ON' : 'OFF'}`;}
   catch {event.target.textContent = 'SOUND UNAVAILABLE';}
@@ -191,17 +230,28 @@ function frame(now) {
   requestAnimationFrame(frame);
   const elapsed = Math.min((now - lastFrame) / 1000, 0.05);
   lastFrame = now;
-  if (!paused && !complete) {
+  if (!paused && race.phase === 'countdown') tickCountdown(race, elapsed);
+  if (!paused && !complete && (race.phase === 'racing' || race.phase === 'explore')) {
     accumulator += elapsed;
     const input = {throttle: keys.has('KeyW') || keys.has('ArrowUp'), brake: keys.has('KeyS') || keys.has('ArrowDown'),
       turn: Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft')),
       boost: keys.has('ShiftLeft') || keys.has('ShiftRight')};
     while (accumulator >= 1 / 120) {
       simTime += 1 / 120;
-      step(state, input, 1 / 120, simTime, roughness);
+      const before = {x: state.x, z: state.z, collision: state.collision};
+      const boosting = useBoost(race, input.boost, input.throttle && !input.brake, 1 / 120);
+      step(state, {...input, boost: boosting}, 1 / 120, simTime, roughness);
+      if (updateRace(race, before, state, 1 / 120)) {
+        complete = true;
+        const saved = saveBest(storage, race.result.time);
+        personalBest = saved.best;
+        bestSaved = saved.saved;
+        accumulator = 0;
+        break;
+      }
       accumulator -= 1 / 120;
     }
-    if (state.z <= END_Z + 8) complete = true;
+    if (race.phase === 'explore' && state.z <= END_Z + 8) complete = true;
     if (state.speed > 3 && state.airtime < 0.1) {
       const index = wakeCursor % wakeCount * 3;
       const x = state.x + Math.sin(state.heading) * 3 + (Math.random() - 0.5) * 2;
@@ -216,11 +266,19 @@ function frame(now) {
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   water.update(state.x, state.z, simTime, roughness);
   const chunks = scenery.update(state.z);
+  gateGroup.visible = race.phase === 'racing' || race.phase === 'countdown';
+  if (gateGroup.visible) {
+    const gate = gates[race.next];
+    gateGroup.position.set(gate.x, 0, gate.z);
+    gateGroup.children[0].position.x = -gate.halfWidth;
+    gateGroup.children[1].position.x = gate.halfWidth;
+    gateLine.scale.x = gate.halfWidth * 2;
+  }
   cameraGoal();
   camera.position.lerp(cameraPosition, 1 - Math.exp(-5 * elapsed));
   smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   camera.lookAt(smoothLook);
-  audio.update(state, paused || complete, keys.has('KeyW') || keys.has('ArrowUp'));
+  audio.update(state, paused || complete || race.phase === 'ready', keys.has('KeyW') || keys.has('ArrowUp'));
   document.body.classList.toggle('impact', state.collision > 0 && !paused);
   renderer.render(scene, camera);
   hudTimer += elapsed;
@@ -229,10 +287,22 @@ function frame(now) {
     elements.speed.textContent = Math.round(state.speed * 3.6).toString().padStart(3, '0');
     elements.air.textContent = state.collision ? 'IMPACT · H TO RECOVER' : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
     const distance = Math.max(0, START_Z - 20 - state.z);
-    elements.distance.textContent = `${(distance / 1000).toFixed(2)} / ${((WORLD_SIZE - 20) / 1000).toFixed(2)} KM`;
-    elements.progress.style.width = `${Math.min(100, distance / (WORLD_SIZE - 20) * 100)}%`;
+    const length = race.phase === 'explore' ? WORLD_SIZE - 20 : COURSE_LENGTH;
+    elements.distance.textContent = `${(distance / 1000).toFixed(2)} / ${(length / 1000).toFixed(2)} KM`;
+    elements.progress.style.width = `${Math.min(100, distance / length * 100)}%`;
+    elements.raceClock.textContent = formatTime(race.elapsed + race.penalty);
+    const missed = race.phase === 'racing' && state.z <= gates[race.next].z;
+    elements.checkpoint.textContent = race.phase === 'explore' ? 'FREE EXPLORATION' : missed ? 'MISSED GATE · H TO RECOVER' : `GATES ${race.next}/${gates.length} · +${race.penalty}s PENALTY`;
+    elements.boost.value = race.boost;
     elements.chunks.textContent = `${chunks} SECTORS`;
-    elements.message.textContent = complete ? `EXPEDITION COMPLETE · BEST JUMP ${state.longestJump.toFixed(1)}s · R TO RESTART` : paused ? 'PAUSED · P TO RESUME' : '';
+    const actions = '<button data-action="trial">START TIME TRIAL / ENTER</button><button data-action="explore">EXPLORE THE COAST</button>';
+    const best = personalBest === null ? 'Set your first personal best' : `PERSONAL BEST ${formatTime(personalBest)}`;
+    let message = paused ? 'PAUSED · P TO RESUME' : '';
+    if (!paused && race.phase === 'ready') message = `<h2>COASTAL SPRINT</h2><p>4 km · 5 gates · One clean run.</p><p>Steer through orange gates. Shift boosts; release to recharge.<br>Impacts +2s · H recovery +5s.</p><small>${best}<br>Gold 2:10 · Silver 2:50 · Bronze 3:40</small>${actions}`;
+    if (!paused && race.phase === 'countdown') message = `<h2>${Math.ceil(race.countdown)}</h2><p>FOLLOW THE CHANNEL · AIM FOR ORANGE GATES</p>`;
+    if (!paused && race.phase === 'finished') message = `<h2>${race.result.medal} · ${formatTime(race.result.time)}</h2><p>${race.collisions} impacts · ${race.penalty}s penalties<br>Best jump ${state.longestJump.toFixed(1)}s</p><p>${best}${bestSaved ? '' : ' · SESSION ONLY (saving unavailable)'}</p>${actions}`;
+    if (!paused && complete && race.phase === 'explore') message = `EXPEDITION COMPLETE · BEST JUMP ${state.longestJump.toFixed(1)}s${actions}`;
+    if (elements.message.innerHTML !== message) elements.message.innerHTML = message;
     drawMap();
   }
 }
