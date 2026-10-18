@@ -1,26 +1,44 @@
 import * as THREE from 'three';
 
+export const SUN_DIRECTION = new THREE.Vector3(-0.58, 0.46, -0.67).normalize();
+
 export function createAtmosphere(scene, renderer) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512; canvas.height = 256;
-  const context = canvas.getContext('2d');
-  const gradient = context.createLinearGradient(0, 0, 0, 256);
-  gradient.addColorStop(0, '#245f8d');
-  gradient.addColorStop(0.46, '#b7d9d6');
-  gradient.addColorStop(0.51, '#e7d5ad');
-  gradient.addColorStop(1, '#294e4b');
-  context.fillStyle = gradient; context.fillRect(0, 0, 512, 256);
-  const glow = context.createRadialGradient(330, 70, 2, 330, 70, 60);
-  glow.addColorStop(0, '#fff8df'); glow.addColorStop(0.1, '#fff2cd'); glow.addColorStop(1, '#fff2cd00');
-  context.fillStyle = glow; context.fillRect(0, 0, 512, 256);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
+  const uniforms = {uTime: {value: 0}, uSun: {value: SUN_DIRECTION}};
+  const material = new THREE.ShaderMaterial({side: THREE.BackSide, depthWrite: false, uniforms,
+    vertexShader: `varying vec3 vDirection; void main() {vDirection = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);}`,
+    fragmentShader: `
+      varying vec3 vDirection; uniform float uTime; uniform vec3 uSun;
+      float hash(vec2 point) {return fract(sin(dot(point, vec2(127.1,311.7))) * 43758.5453);}
+      float noise(vec2 point) {
+        vec2 cell = floor(point); vec2 blend = fract(point); blend = blend * blend * (3.0 - 2.0 * blend);
+        return mix(mix(hash(cell), hash(cell + vec2(1.0,0.0)), blend.x), mix(hash(cell + vec2(0.0,1.0)), hash(cell + 1.0), blend.x), blend.y);
+      }
+      void main() {
+        vec3 direction = normalize(vDirection);
+        float altitude = max(0.0, direction.y);
+        vec3 sky = mix(vec3(0.87,0.75,0.59), vec3(0.16,0.35,0.54), pow(altitude, 0.42));
+        float sun = max(0.0, dot(direction, uSun));
+        sky += vec3(1.0,0.64,0.3) * pow(sun, 18.0) * 0.24;
+        sky += vec3(4.0,3.2,2.1) * smoothstep(0.99965,0.9999,sun);
+        vec2 point = direction.xz / max(0.12, altitude) * 2.4 + vec2(uTime * 0.0017, uTime * 0.0006);
+        float cloud = noise(point) * 0.57 + noise(point * 2.1) * 0.28 + noise(point * 4.3) * 0.15;
+        cloud = smoothstep(0.48,0.72,cloud) * smoothstep(0.03,0.19,altitude);
+        sky = mix(sky, mix(vec3(0.65,0.69,0.72),vec3(1.0,0.92,0.8), pow(sun, 4.0)), cloud * 0.78);
+        if (direction.y < 0.0) sky = mix(vec3(0.42,0.51,0.45), sky, exp(direction.y * 8.0));
+        gl_FragColor = vec4(sky,1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }
+    `,
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 16), material);
+  sky.frustumCulled = false; sky.renderOrder = -100;
+  const environmentScene = new THREE.Scene();
+  environmentScene.add(sky.clone());
   const generator = new THREE.PMREMGenerator(renderer);
-  const environment = generator.fromEquirectangular(texture);
-  scene.environment = environment.texture;
-  scene.background = texture;
-  scene.backgroundBlurriness = 0.12;
+  scene.environment = generator.fromScene(environmentScene, 0.04, 0.1, 2000).texture;
   generator.dispose();
-  scene.fog = new THREE.Fog(0x8ab8c2, 700, 1150);
+  scene.add(sky);
+  scene.fog = new THREE.Fog(0xb2bcb2, 600, 1120);
+  return {update(time, camera) {uniforms.uTime.value = time; sky.position.copy(camera.position);}};
 }

@@ -6,7 +6,8 @@ import {loadFleet, createTrafficView} from './fleet.js';
 import {createTraffic, updateTraffic} from './traffic.js';
 import {resolveHarborCollision} from './harbor-layout.js';
 import {createSpray} from './spray.js';
-import {createAtmosphere} from './atmosphere.js';
+import {createAtmosphere, SUN_DIRECTION} from './atmosphere.js';
+import {createCinema} from './cinema.js';
 import {createRace, gates, COURSE_LENGTH, tickCountdown, updateRace, recoverRace, useBoost, readBest, saveBest, formatTime} from './race.js';
 import {DEFAULT_BINDINGS, readPreferences, savePreferences, remap, readGamepad, advanceLesson} from './preferences.js';
 import {createWater, createScenery} from './scenery.js';
@@ -24,6 +25,7 @@ document.getElementById('app').innerHTML = `
   <aside><canvas id="map" width="220" height="240" aria-label="Local river navigation map"></canvas>
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
+      <button id="beauty">BEAUTY PRESET</button>
       <label for="detail">WATER SURFACE <output id="quality"></output></label>
       <input id="detail" type="range" min="0" max="100" value="25">
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
@@ -31,6 +33,12 @@ document.getElementById('app').innerHTML = `
       <input id="swell" type="range" min="0" max="200" value="100">
       <button id="camera">CAMERA / ARCADE</button><button id="sound">SOUND / OFF</button><button id="recover">RECOVER BOAT / H</button><button id="reset">RESTART RUN</button>
       <label for="volume">SOUND VOLUME</label><input id="volume" type="range" min="0" max="100" value="65">
+      <details id="soundMix"><summary>CALM SOUND MIX</summary>
+        <label for="music">AMBIENT MUSIC</label><input id="music" type="range" min="0" max="100" value="32">
+        <label for="effects">YOUR BOAT & WATER</label><input id="effects" type="range" min="0" max="100" value="65">
+        <label for="traffic">NEARBY BOATS</label><input id="traffic" type="range" min="0" max="100" value="65">
+        <label for="ambience">COAST AMBIENCE</label><input id="ambience" type="range" min="0" max="100" value="55">
+      </details><label><input id="cinema" type="checkbox" checked> CINEMATIC LIGHTING</label>
       <label for="sensitivity">STEERING SENSITIVITY</label><input id="sensitivity" type="range" min="50" max="150" value="100">
       <label><input id="hints" type="checkbox" checked> DRIVING HINTS</label>
       <p id="controller">CONTROLLER / NOT CONNECTED</p><small>Standard pad: RT throttle · LT brake · stick steer · A boost · X recover · Y camera · Start pause.</small>
@@ -51,14 +59,21 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = preferences.cinema;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMappingExposure = 1.05;
 document.getElementById('view').append(renderer.domElement);
 const scene = new THREE.Scene();
-createAtmosphere(scene, renderer);
-scene.add(new THREE.HemisphereLight(0xdff8ff, 0x324f44, 1.4));
-const sun = new THREE.DirectionalLight(0xffe3b5, 3.2);
-sun.position.set(-120, 160, -60);
-scene.add(sun);
+const atmosphere = createAtmosphere(scene, renderer);
+scene.add(new THREE.HemisphereLight(0xc6e1f4, 0x344d3f, 1.1));
+const sun = new THREE.DirectionalLight(0xffdb9f, 3.0);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024,1024);
+Object.assign(sun.shadow.camera, {left: -100, right: 100, top: 100, bottom: -100, near: 1, far: 450});
+sun.shadow.normalBias = 0.12; sun.shadow.bias = -0.0002;
+scene.add(sun, sun.target);
 const camera = new THREE.PerspectiveCamera(innerWidth < innerHeight ? 90 : 55, innerWidth / innerHeight, 0.5, 1600);
+const cinema = createCinema(renderer, scene, camera);
 const water = createWater(scene);
 const scenery = createScenery(scene);
 elements.quality.textContent = water.setDetail(preferences.detail);
@@ -106,6 +121,29 @@ const smoothLook = new THREE.Vector3();
 const audio = createAudio();
 audio.setVolume(preferences.volume);
 document.getElementById('volume').value = preferences.volume * 100;
+for (const name of ['music', 'effects', 'traffic', 'ambience']) {
+  audio.setMix(name, preferences[name]);
+  document.getElementById(name).value = preferences[name] * 100;
+  document.getElementById(name).oninput = (event) => {
+    preferences[name] = Number(event.target.value) / 100;
+    audio.setMix(name, preferences[name]);
+    persistPreferences();
+  };
+}
+document.getElementById('cinema').checked = preferences.cinema;
+document.getElementById('cinema').onchange = (event) => {
+  preferences.cinema = event.target.checked;
+  renderer.shadowMap.enabled = preferences.cinema;
+  persistPreferences();
+};
+document.getElementById('beauty').onclick = () => {
+  preferences.detail = 100; preferences.cinema = true;
+  document.getElementById('detail').value = 100;
+  document.getElementById('cinema').checked = true;
+  renderer.shadowMap.enabled = true;
+  elements.quality.textContent = water.setDetail(100);
+  persistPreferences();
+};
 let pendingBinding = null;
 let previousPad = {};
 let lesson = {stage: 0, steering: 0};
@@ -370,9 +408,13 @@ function frame(now) {
   camera.position.lerp(cameraPosition, 1 - Math.exp(-5 * elapsed));
   smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   camera.lookAt(smoothLook);
-  audio.update(state, paused || complete || race.phase === 'ready', input.throttle, input.boost && race.boost > 0 && !race.boostLocked);
+  audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
+    traffic.boats, !complete && race.phase !== 'ready');
+  atmosphere.update(simTime, camera);
+  sun.target.position.set(state.x, 0, state.z);
+  sun.position.copy(sun.target.position).addScaledVector(SUN_DIRECTION, 200);
   document.body.classList.toggle('impact', state.collision > 0 && !paused);
-  renderer.render(scene, camera);
+  cinema.render(preferences.cinema);
   hudTimer += elapsed;
   if (hudTimer > 0.1) {
     hudTimer = 0;
@@ -409,6 +451,7 @@ function frame(now) {
 requestAnimationFrame(frame);
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
+  cinema.resize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
   camera.fov = innerWidth < innerHeight ? 90 : 55;
   camera.updateProjectionMatrix();

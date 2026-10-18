@@ -1,5 +1,6 @@
 body.impact::after{content:'';position:fixed;inset:0;box-shadow:inset 0 0 65px #ff704b77;pointer-events:none;z-index:2}
 aside{max-height:calc(100dvh - 180px);overflow-y:auto}
+#cinema{width:auto;margin-right:8px}#soundMix{padding:12px 0}#soundMix summary{margin-bottom:8px}#soundMix label{margin-top:12px}#soundMix input{margin:8px 0}@media(pointer:fine){#touch{display:none}#lesson{bottom:50px}}
 #passes{font-size:10px;color:#ffe5a0;margin:12px 0 6px}#fleetStatus{font-size:8px;display:block;max-width:180px}button:disabled{opacity:.5;cursor:wait}
 #quickSound{margin-left:auto;pointer-events:auto}header #pause{margin-left:0}header{gap:14px}@media(max-width:600px){header{gap:7px}header button{font-size:8px;padding:9px 7px}.brand{font-size:25px}.brand sup{margin-left:4px;font-size:9px}}
 #lesson{position:fixed;z-index:1;bottom:80px;left:25%;right:25%;text-align:center;padding:12px;background:#0b3038e8;border:1px solid #ff805166;font-size:11px;pointer-events:none}#lesson:empty{display:none}#bindings{padding:12px 0 0}#bindings button{text-align:left;font-size:8px}#controller{font-size:8px;color:#ffad86}#hints{width:auto;margin-right:8px}#bindingStatus{display:block;margin-top:12px}@media(max-width:600px){#lesson{left:12px;right:12px;bottom:85px;font-size:9px}#telemetry label{font-size:8px}}

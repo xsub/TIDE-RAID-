@@ -50,6 +50,18 @@ export function createNature() {
   bird.computeVertexNormals();
   const birdMaterial = material(0xe1e4d2, true);
   const time = {value: 0};
+  for (const surface of [leaves, pineLeaves, palmLeaves, grassMaterial]) {
+    surface.onBeforeCompile = (shader) => {
+      shader.uniforms.uBreezeTime = time;
+      shader.vertexShader = `uniform float uBreezeTime;\n${shader.vertexShader}`;
+      shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `
+        vec3 transformed = position;
+        float phase = uBreezeTime * 0.7 + instanceMatrix[3].x * 0.08 + instanceMatrix[3].z * 0.04;
+        transformed.x += sin(phase) * position.y * 0.025;
+        transformed.z += cos(phase * 0.8) * position.y * 0.015;
+      `);
+    };
+  }
   birdMaterial.onBeforeCompile = (shader) => {
     shader.uniforms.uNatureTime = time;
     shader.vertexShader = `uniform float uNatureTime;\n${shader.vertexShader}`;
@@ -66,6 +78,8 @@ export function createNature() {
   function instances(group, geometry, surface, items, scaleFor) {
     if (items.length === 0) return;
     const mesh = new THREE.InstancedMesh(geometry, surface, items.length);
+    mesh.castShadow = geometry === trunk || geometry === pine || geometry === broadleaf || geometry === palm;
+    mesh.receiveShadow = geometry !== bird;
     items.forEach((item, index) => {
       transform.position.set(item.x, item.y, item.z);
       transform.rotation.set(0, item.rotation, 0);

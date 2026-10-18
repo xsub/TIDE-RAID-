@@ -15,6 +15,12 @@ Open the local Vite URL. `npm run build` produces `dist/`; `npm run preview` ser
 
 ## Controls
 
+### Beauty and calm sound
+
+Use **Helm Settings → Beauty Preset** for maximum water detail with cinematic lighting. The visual pass includes a procedural clouded sky, warm environment/sun lighting, local soft shadows, subtle bloom/color grading, organic ripple shading, wet sand and gently moving foliage. Uncheck **Cinematic Lighting** to bypass postprocessing/shadows and lower Water Surface detail for slower GPUs. Mouse/keyboard layouts hide the large touch controls automatically.
+
+Click **Sound / On** to enable audio. Under **Calm Sound Mix**, independently adjust or mute ambient music, your boat/water, nearby boats and coast ambience; master volume controls the full mix. The original ambient score plays at 62 BPM with slow chords, soft-key notes, deliberate rests and reverb. Powered traffic boats emit distance-filtered stereo engine sounds with mild Doppler; sailing yachts emit softer water noise. Only the nearest six audible traffic boats use voices. Menu music and ambience work without engine sound; pause, focus loss and Sound Off fade all sound. Audio is synthesized, not recorded motor/surf samples. Listening feedback and device testing are still needed to judge realism and balance.
+
 W / ↑ throttle, S / ↓ brake, A D / ← → steer, either Shift boost, C camera, P / Escape pause, H recover, R restart. Enter starts a time trial. On-screen controls support simultaneous touches. Focus loss pauses automatically. Chase follows the boat's heading; arcade overview adapts its distance to viewport width to keep broad water visible. The exact screen percentage varies with bends, aspect ratio and bank proximity.
 
 Helm settings include keyboard remapping (conflicts swap), steering sensitivity, water detail, opt-in synthesized audio with master volume and action-driven driving hints. Camera, water detail, volume, sensitivity, key bindings and hint preferences save locally; blocked storage falls back to session-only behavior. New preferences default to smooth water and the close chase camera; existing choices are preserved. Standard gamepads use RT throttle, LT brake, left stick steer, A boost, X recovery, Y camera and Start pause/start. Physical controller testing is still pending.

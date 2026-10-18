@@ -57,6 +57,7 @@ export function createScenery(scene) {
   const grass = new THREE.MeshStandardMaterial({color: 0xffffff, vertexColors: true, roughness: 1, side: THREE.DoubleSide});
   const islandGrass = new THREE.MeshStandardMaterial({color: 0x56704b, roughness: 1, side: THREE.DoubleSide});
   const sand = new THREE.MeshStandardMaterial({color: 0xecc787, roughness: 1, flatShading: true, side: THREE.DoubleSide});
+  const beachSand = sand.clone(); beachSand.vertexColors = true;
   const rock = new THREE.MeshStandardMaterial({color: 0x60777d, roughness: 1, flatShading: true});
   const stone = new THREE.DodecahedronGeometry(1, 0);
   const cylinder = new THREE.CylinderGeometry(0.86, 1, 1, 12);
@@ -83,7 +84,8 @@ export function createScenery(scene) {
         positions.push(x, height, z);
         const shade = 0.82 + 0.18 * Math.sin(x * 0.023 + z * 0.011);
         const meadow = 0.5 + 0.5 * Math.sin(x * 0.015 + Math.sin(z * 0.013));
-        colors.push((0.27 + meadow * 0.1) * shade, (0.43 + meadow * 0.08) * shade, (0.23 + meadow * 0.025) * shade);
+        if (beach) colors.push(0.64 + distance * 0.36, 0.68 + distance * 0.32, 0.66 + distance * 0.34);
+        else colors.push((0.27 + meadow * 0.1) * shade, (0.43 + meadow * 0.08) * shade, (0.23 + meadow * 0.025) * shade);
       }
       if (row < rows) {
         for (let column = 0; column < columns; column++) {
@@ -97,7 +99,7 @@ export function createScenery(scene) {
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
-    return new THREE.Mesh(geometry, beach ? sand : grass);
+    return new THREE.Mesh(geometry, beach ? beachSand : grass);
   }
   function islandSurface(radius) {
     const positions = [];
@@ -149,6 +151,11 @@ export function createScenery(scene) {
     }
     nature.add(group, index);
     harbors.add(group, index);
+    group.traverse((child) => {
+      if (!child.isMesh || child.userData.beacon || child.userData.localMaterial) return;
+      child.receiveShadow = true;
+      if (!child.isInstancedMesh) child.castShadow = true;
+    });
     scene.add(group);
     loaded.set(index, group);
   }

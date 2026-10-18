@@ -155,7 +155,9 @@ export function createVessel(style = 'sport') {
   for (const [material, geometries] of batches) {
     const geometry = mergeGeometries(geometries);
     for (const original of geometries) original.dispose();
-    group.add(new THREE.Mesh(geometry, material));
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    group.add(mesh);
   }
   group.userData.style = style;
   return group;
