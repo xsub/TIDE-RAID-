@@ -85,7 +85,7 @@ document.getElementById('app').innerHTML = `
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <small>Wreck inspection follows the hull underwater. Orbit/zoom work; manual height/tilt is ignored in this view.</small>
-      <small id="pilotHint" hidden>Pilot view: forward-facing helm height, steadied horizon. Exterior player hull is hidden for an unobstructed view; no detailed cockpit interior yet. Orbit, zoom and manual height/tilt apply only to exterior views. C / gamepad Y cycles cameras.</small>
+      <small id="pilotHint" hidden>Pilot view: J/L look left/right through 360°; I/K look up/down (±75°). Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only.</small>
       <label><input id="pilotSinkWithBoat" type="checkbox" style="width:auto"> DRIVER POV: SINK WITH BOAT</label>
       <label><input id="manualCamera" type="checkbox" style="width:auto"> MANUAL CAMERA HEIGHT / TILT</label>
       <label for="cameraElevation">ANGLE ABOVE WATER <output id="cameraElevationValue"></output></label>
@@ -104,7 +104,7 @@ document.getElementById('app').innerHTML = `
       </select>
       <small>Scroll over the water to zoom. Wide shows the channel; Close and Detail enlarge the boat. Chase stops at a safe hull distance.</small>
       <label for="cameraAngle">CAMERA ORBIT <output id="cameraAngleValue"></output></label>
-      <small>Hold J / L to orbit · I / K to raise / lower the viewing angle (enables manual tilt), including wreck view. + / − zoom in / out · Z toggles sound. Pilot view stays fixed. Remapped driving keys take priority.</small>
+      <small>Hold J / L to orbit · I / K to tilt, including wreck view. In Pilot, look around/up/down from the helm instead. + / − zoom in / out (exterior) · Z toggles sound. Remapped driving keys take priority.</small>
       <input id="cameraAngle" type="range" min="0" max="360" step="1" value="20">
       <small>0° rear · 90° side · 180° front · 270° side. Or right-drag the water. Steering stays boat-relative.</small>
       <button id="cameraRear">RESET CAMERA / REAR QUARTER</button>
@@ -365,7 +365,8 @@ function cameraGoal() {
   const waterHeight = sampleWave(state.x, state.z, simTime, roughness).h;
   const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 && mode !== 'wreck' && !(mode === 'pilot' && preferences.pilotSinkWithBoat) ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
   const pose = cameraPose(cameraState, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
-    preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null);
+    preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null,
+    {yaw: preferences.pilotYaw, pitch: preferences.pilotPitch});
   if (mode === 'wreck') pose.y = Math.max(pose.y, seabedHeight(pose.x, pose.z, state.depthScale) + 1.5);
   const horizontal = Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ);
   document.getElementById('cameraActual').textContent = `Actual: ${(pose.y - waterHeight).toFixed(1)} m · ${(Math.atan2(pose.y - pose.lookY, horizontal) * 180 / Math.PI).toFixed(1)}°`;
@@ -428,7 +429,11 @@ renderer.domElement.addEventListener('wheel', (event) => {
 }, {passive: false});
 document.getElementById('cameraAngle').oninput = (event) => setCameraAngle(Number(event.target.value));
 document.getElementById('cameraAngle').onchange = persistPreferences;
-document.getElementById('cameraRear').onclick = () => {setCameraAngle(20); persistPreferences();};
+document.getElementById('cameraRear').onclick = () => {
+  if (mode === 'pilot') {preferences.pilotYaw = 0; preferences.pilotPitch = 0;}
+  else setCameraAngle(20);
+  persistPreferences();
+};
 let orbitDrag = null;
 renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
 renderer.domElement.addEventListener('pointerdown', (event) => {
@@ -636,10 +641,15 @@ function frame(now) {
   const editing = pendingBinding || document.activeElement?.matches('input, textarea, select, [contenteditable="true"]');
   const cameraMotion = cameraKeyMotion(editing ? new Set() : keys, preferences.bindings, mode, elapsed);
   if (cameraMotion.orbit || cameraMotion.tilt) {
-    if (cameraMotion.orbit) setCameraAngle((preferences.cameraAngle + cameraMotion.orbit + 360) % 360);
-    if (cameraMotion.tilt) {
-      preferences.cameraElevation = Math.max(5, Math.min(85, preferences.cameraElevation + cameraMotion.tilt));
-      preferences.manualCamera = true; syncCameraPlacement();
+    if (mode === 'pilot') {
+      preferences.pilotYaw = ((preferences.pilotYaw + cameraMotion.orbit + 180 + 360) % 360) - 180;
+      preferences.pilotPitch = Math.max(-75, Math.min(75, preferences.pilotPitch + cameraMotion.tilt));
+    } else {
+      if (cameraMotion.orbit) setCameraAngle((preferences.cameraAngle + cameraMotion.orbit + 360) % 360);
+      if (cameraMotion.tilt) {
+        preferences.cameraElevation = Math.max(5, Math.min(85, preferences.cameraElevation + cameraMotion.tilt));
+        preferences.manualCamera = true; syncCameraPlacement();
+      }
     }
     cameraKeysDirty = true; cameraKeysIdle = 0;
   } else if (cameraKeysDirty) {
@@ -712,7 +722,8 @@ function frame(now) {
   boat.position.set(state.x, state.y, state.z);
   boat.visible = mode !== 'pilot';
   document.getElementById('pilotHint').hidden = mode !== 'pilot';
-  for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto', 'cameraZoom', 'zoomIn', 'zoomOut', 'zoomPreset', 'cameraAngle', 'cameraRear']) document.getElementById(id).disabled = mode === 'pilot';
+  for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto', 'cameraZoom', 'zoomIn', 'zoomOut', 'zoomPreset', 'cameraAngle']) document.getElementById(id).disabled = mode === 'pilot';
+  document.getElementById('cameraRear').textContent = mode === 'pilot' ? 'RESET CAMERA / LOOK AHEAD' : 'RESET CAMERA / REAR QUARTER';
   for (const id of ['manualCamera', 'cameraElevation', 'cameraAuto']) document.getElementById(id).disabled = mode === 'pilot';
   document.getElementById('cameraHeight').disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');

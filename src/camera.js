@@ -1,7 +1,7 @@
 export const CAMERA_ZOOM_PRESETS = [{name: 'Wide', zoom: 1}, {name: 'Closer', zoom: 2}, {name: 'Close', zoom: 4}, {name: 'Detail', zoom: 8}];
 export const clampCameraZoom = (zoom) => Number.isFinite(zoom) ? Math.max(0.5, Math.min(8, zoom)) : 1;
 
-export function cameraPose(state, mode, angle, aspect, portrait = false, channelWidth = 400, zoom = 1, manual = null) {
+export function cameraPose(state, mode, angle, aspect, portrait = false, channelWidth = 400, zoom = 1, manual = null, pilotLook = null) {
   zoom = clampCameraZoom(zoom);
   const speed = Math.max(0, Math.min(70, state.speed));
   if (mode === 'wreck') {
@@ -22,7 +22,11 @@ export function cameraPose(state, mode, angle, aspect, portrait = false, channel
     const eyeZ = state.z - Math.cos(state.heading) * forward - Math.sin(state.heading) * side;
     const eyeY = state.y + (state.helmHeight ?? 1.45);
     const pitch = Math.max(-0.16, Math.min(0.16, (state.pitch ?? 0) * 0.35));
-    return {x: eyeX, y: eyeY, z: eyeZ, lookX: eyeX - Math.sin(state.heading) * 70, lookY: eyeY + Math.sin(pitch) * 70, lookZ: eyeZ - Math.cos(state.heading) * 70, fov: portrait ? 88 : 76};
+    const yaw = Number.isFinite(pilotLook?.yaw) ? pilotLook.yaw * Math.PI / 180 : 0;
+    const lookPitch = Number.isFinite(pilotLook?.pitch) ? Math.max(-75, Math.min(75, pilotLook.pitch)) * Math.PI / 180 : 0;
+    const heading = state.heading - yaw;
+    const horizontal = Math.cos(lookPitch) * 70;
+    return {x: eyeX, y: eyeY, z: eyeZ, lookX: eyeX - Math.sin(heading) * horizontal, lookY: eyeY + Math.sin(pitch + lookPitch) * 70, lookZ: eyeZ - Math.cos(heading) * horizontal, fov: portrait ? 88 : 76};
   }
   const fov = mode === 'arcade' ? (portrait ? 90 : 55) : (portrait ? 78 : 58) + speed / 70 * 10;
   const height = mode === 'arcade' ? Math.max(20, Math.max(210, channelWidth / (2 * Math.tan(fov * Math.PI / 360) * aspect * 0.8)) / zoom) : Math.max(2.5, (5.2 + speed * 0.018) / Math.sqrt(zoom));

@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Driver POV free look
+
+- IJKL now works from the helm: J/L look left/right through 360 degrees, I/K look up/down within ±75 degrees. Separate saved pilot angles leave exterior orbit/tilt settings untouched; Reset Camera returns the driver gaze straight ahead.
+- The eye remains at each vessel's helm with existing wave stabilization and sink-with-boat behavior. Zoom/height remain exterior-only; existing typing/remap/blur protections still apply. No cockpit geometry or boat physics changes.
+- All 165 tests and both production entry builds pass, including pilot keyboard motion, per-vessel fixed eye positions, left/right/up/down gaze, underwater eye height, preference migration and persistence. Existing shared-bundle advisory remains; subjective comfort still needs playtesting.
+
 ## 2026-10-18 — Fix ineffective I/K camera tilt
 
 - Enabled I/K and the angle slider in wreck view, orbiting vertically around the hull while preserving orbit radius and seabed safety. Pilot view remains fixed.

@@ -5,6 +5,31 @@ import {readPreferences, savePreferences} from '../src/preferences.js';
 import {createState} from '../src/physics.js';
 import {VESSEL_PROFILES} from '../src/vessel-profiles.js';
 
+test('pilot free look rotates the gaze without moving any vessel helm or changing zoom', () => {
+  for (const model of Object.keys(VESSEL_PROFILES)) {
+    const state = {...createState(model), heading: 0, pitch: 0, y: -8};
+    const pose = (yaw, pitch) => cameraPose(state, 'pilot', 0, 16 / 9, false, 400, 1, null, {yaw, pitch});
+    const forward = pose(0, 0); const right = pose(90, 0); const left = pose(-90, 0);
+    assert.ok(right.lookX > right.x); assert.ok(left.lookX < left.x);
+    assert.ok(pose(0, 45).lookY > forward.y); assert.ok(pose(0, -45).lookY < forward.y);
+    for (const adjusted of [right, left, pose(180, 75), pose(0, -75)]) {
+      assert.deepEqual([adjusted.x, adjusted.y, adjusted.z], [forward.x, forward.y, forward.z]);
+      assert.ok(Object.values(adjusted).every(Number.isFinite));
+    }
+    assert.deepEqual(pose(0, 0), forward);
+  }
+});
+
+test('pilot look preferences migrate, validate and persist independently of exterior orbit', () => {
+  const defaults = readPreferences(undefined); assert.equal(defaults.pilotYaw, 0); assert.equal(defaults.pilotPitch, 0);
+  const invalid = readPreferences({getItem: () => JSON.stringify({pilotYaw: 400, pilotPitch: '20'})});
+  assert.equal(invalid.pilotYaw, 0); assert.equal(invalid.pilotPitch, 0);
+  let saved; const storage = {getItem: () => saved, setItem: (key, value) => {saved = value;}};
+  savePreferences(storage, {...defaults, pilotYaw: -120, pilotPitch: 40, cameraAngle: 25});
+  const restored = readPreferences(storage);
+  assert.equal(restored.pilotYaw, -120); assert.equal(restored.pilotPitch, 40); assert.equal(restored.cameraAngle, 25);
+});
+
 test('pilot sink-with-boat option is opt-in and persists only boolean values', () => {
   assert.equal(readPreferences(undefined).pilotSinkWithBoat, false);
   assert.equal(readPreferences({getItem: () => JSON.stringify({pilotSinkWithBoat: 'true'})}).pilotSinkWithBoat, false);

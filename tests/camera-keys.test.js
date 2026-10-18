@@ -7,7 +7,7 @@ test('IJKL camera controls support simultaneous orbit/tilt, cancellation and mod
   const motion = cameraKeyMotion(keys, {}, 'chase', 0.05);
   assert.ok(motion.orbit < 0 && motion.tilt > 0);
   assert.deepEqual(cameraKeyMotion(new Set(['KeyI', 'KeyJ', 'KeyK', 'KeyL']), {}, 'arcade', 0.05), {orbit: 0, tilt: 0});
-  assert.deepEqual(cameraKeyMotion(keys, {}, 'pilot', 0.05), {orbit: 0, tilt: 0});
+  assert.deepEqual(cameraKeyMotion(keys, {}, 'pilot', 0.05), motion);
   assert.ok(cameraKeyMotion(keys, {}, 'wreck', 0.05).tilt > 0);
   assert.ok(cameraKeyMotion(keys, {}, 'wreck', 0.05).orbit < 0);
 });
