@@ -8,6 +8,7 @@ export function stateChecksum(state,traffic) {
 }
 export const finitePhysicsState=(state)=>Object.values(state).every((value)=>typeof value==='number' && Number.isFinite(value));
 export function createReplayTape(initialState,initialTraffic,capacity=72000) {
+  if(!Number.isInteger(capacity) || capacity<1 || capacity>72000)throw new Error('Replay capacity out of range');
   const origin=structuredClone({state:initialState,traffic:initialTraffic});
   const values=new Float64Array(capacity*3);const flags=new Uint8Array(capacity);const checksums=new Uint32Array(capacity);
   let count=0;let truncated=false;
@@ -25,6 +26,7 @@ export function createReplayTape(initialState,initialTraffic,capacity=72000) {
 export function runReplay(recording) {
   if(recording.version!==REPLAY_VERSION || !Array.isArray(recording.frames) || recording.frames.length>72000)throw new Error('Unsupported replay');
   const {state,traffic}=structuredClone(recording.origin);
+  if(!traffic || !Array.isArray(traffic.boats) || traffic.boats.length>32)throw new Error('Invalid traffic pool');
   if(!finitePhysicsState(state))throw new Error('Invalid initial state');
   for(const frame of recording.frames) {
     if(frame.length!==5 || !frame.every(Number.isFinite))throw new Error('Invalid replay frame');

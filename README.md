@@ -55,6 +55,14 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+Personal bests are now separated by selected vessel. Slower hulls have provisional scaled medal targets shown on the start menu; these still need player balancing. Invalid finish times and malformed binding/replay allocations are rejected.
+
+### Remaining realism roadmap
+
+Implemented verticals include capsule contacts, bounded anti-tunnelling, contact settling, yaw impulses/rudder steering, native-size power profiles/reverse, estimated depth/grounding, damped pitch/roll and landing energy, predictive/mutual traffic, cached layouts/CPU benchmark, energy/material sound and bounded replay/checksums.
+
+Still pending: physically coupled historical boat wakes; directional coastal reflection/refraction/diffraction approximations; wake/detail LOD; calibrated hull/propeller immersion and slamming; improved traffic deadlock recovery; optional force/contact visuals; restrained opt-in camera/spray impact cues; interactive replay import; representative GPU/device benchmarks and remaining hot-loop allocation work. Existing cosmetic wakes, analytical shoreline wavelets and the CPU benchmark do not complete those items. Earlier shared-size/kinematic descriptions below are historical and superseded by current sections above.
+
 **Export Physics Replay** saves a local, bounded 10-minute diagnostic tape with controls, wave time/swell, initial hull/traffic state and periodic checksums; nothing is uploaded. `runReplay` in `src/replay.js` verifies physics/traffic repeatability on the same model version, not UI/race/audio/GPU output. Invalid numeric player state is reset to the start. In-game replay import is not implemented.
 
 Impact and landing sounds now use bounded energy-dependent envelopes; ground/dock/hard contacts use different filters. Grounding adds a quiet scrape wash. These remain synthesized feedback cues, not structural damage/acoustics predictions.

@@ -1,4 +1,5 @@
 import {START_Z, channel, chunkFeatures, chunkIndex} from './world.js';
+import {isPlayerBoat} from './player-boats.js';
 
 export const COURSE_ID = 'coastal-sprint-traffic-v15';
 export const COURSE_LENGTH = 4000;
@@ -14,8 +15,9 @@ export const gates = [800, 1600, 2400, 3200, 4000].map((distance) => {
   return {z, x: banks.center, halfWidth: banks.width * 0.88};
 });
 
-export function createRace(phase = 'ready') {
-  return {phase, countdown: 3, elapsed: 0, penalty: 0, next: 0, boost: 1,
+export function createRace(phase = 'ready', model='boat-speed-c') {
+  const medalScale=({'boat-speed-a':1.25,'boat-house-a':2,'boat-tug-a':6,'boat-speed-d':1.4})[model] ?? 1;
+  return {phase, medalScale, countdown: 3, elapsed: 0, penalty: 0, next: 0, boost: 1,
     recovering: 0, collisions: 0, result: null, boostLocked: false};
 }
 
@@ -50,7 +52,7 @@ export function updateRace(race, before, after, dt) {
       if (race.next === gates.length) {
         const time = race.elapsed + race.penalty;
         race.phase = 'finished';
-        race.result = {time, medal: time <= MEDALS.gold ? 'GOLD' : time <= MEDALS.silver ? 'SILVER' : time <= MEDALS.bronze ? 'BRONZE' : 'FINISHER'};
+        race.result = {time, medal: time <= MEDALS.gold*race.medalScale ? 'GOLD' : time <= MEDALS.silver*race.medalScale ? 'SILVER' : time <= MEDALS.bronze*race.medalScale ? 'BRONZE' : 'FINISHER'};
         return true;
       }
     }
@@ -66,17 +68,19 @@ export function recoverRace(race, state) {
   if (state.z <= gate.z + 20) state.z = gate.z + 45;
 }
 
-export function readBest(storage) {
+const recordKey=(model)=>model==='boat-speed-c' || !isPlayerBoat(model) ? COURSE_ID : `${COURSE_ID}:${model}`;
+export function readBest(storage,model='boat-speed-c') {
   try {
-    const value = JSON.parse(storage.getItem(COURSE_ID));
+    const value = JSON.parse(storage.getItem(recordKey(model)));
     return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
   } catch {return null;}
 }
 
-export function saveBest(storage, time) {
-  const previous = readBest(storage);
+export function saveBest(storage, time,model='boat-speed-c') {
+  const previous = readBest(storage,model);
+  if(!Number.isFinite(time) || time<=0)return {best:previous,saved:false};
   const best = previous === null ? time : Math.min(time, previous);
-  try {storage.setItem(COURSE_ID, JSON.stringify(best)); return {best, saved: true};}
+  try {storage.setItem(recordKey(model), JSON.stringify(best)); return {best, saved: true};}
   catch {return {best, saved: false};}
 }
 

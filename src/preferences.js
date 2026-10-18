@@ -18,6 +18,7 @@ export function readPreferences(storage) {
   if (Number.isFinite(saved.volume) && saved.volume >= 0 && saved.volume <= 1) defaults.volume = saved.volume;
   for (const name of ['music', 'effects', 'traffic', 'ambience']) if (Number.isFinite(saved[name]) && saved[name] >= 0 && saved[name] <= 1) defaults[name] = saved[name];
   if (typeof saved.cinema === 'boolean') defaults.cinema = saved.cinema;
+  if(saved.bindings && (typeof saved.bindings!=='object' || Array.isArray(saved.bindings)))saved.bindings=null;
   if(saved.bindings && !saved.bindings.reverse) saved.bindings.reverse=['KeyB','KeyV','KeyN'].find((code)=>!Object.values(saved.bindings).includes(code));
   if (saved.bindings && Object.keys(DEFAULT_BINDINGS).every((action) => isBindable(saved.bindings[action]))) {
     const codes = Object.keys(DEFAULT_BINDINGS).map((action) => saved.bindings[action]);

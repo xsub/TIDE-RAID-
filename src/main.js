@@ -145,8 +145,8 @@ let mode = preferences.camera;
 elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`;
 let paused = false;
 let complete = false;
-let race = createRace();
-let personalBest = readBest(storage);
+let race = createRace('ready',preferences.playerBoat);
+let personalBest = readBest(storage,preferences.playerBoat);
 let bestSaved = true;
 let accumulator = 0;
 let lastFrame = performance.now();
@@ -192,6 +192,7 @@ function persistPreferences() {
   if (!savePreferences(storage, preferences)) document.getElementById('bindingStatus').textContent = 'Preferences apply this session; saving is unavailable.';
 }
 function renderBindings() {
+  document.querySelector('footer').setAttribute('title',`${keyName('reverse')} / GAMEPAD B: REVERSE`);
   document.getElementById('bindingButtons').innerHTML = Object.keys(DEFAULT_BINDINGS).map((action) => `<button data-bind="${action}">${action.toUpperCase()} / ${keyName(action)}</button>`).join('');
   document.getElementById('recover').textContent = `RECOVER BOAT / ${keyName('recover')}`;
   document.querySelector('footer').textContent = `${keyName('throttle')} / ↑ THROTTLE · ${keyName('brake')} / ↓ BRAKE · ${keyName('left')} ${keyName('right')} STEER · ${keyName('boost')} BOOST · ${keyName('camera')} CAMERA · ${keyName('recover')} RECOVER · ${keyName('pause')} PAUSE · ${keyName('reset')} RETRY`;
@@ -225,7 +226,8 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   state.mass = VESSEL_MASS[preferences.playerBoat];
   traffic = createTraffic(state);
   replayTape=createReplayTape(state,traffic);
-  race = createRace(phase);
+  race = createRace(phase,preferences.playerBoat);
+  personalBest=readBest(storage,preferences.playerBoat);
   lesson = {stage: 0, steering: 0};
   paused = false;
   elements.pause.textContent = 'PAUSE';
@@ -469,7 +471,7 @@ function frame(now) {
       advanceLesson(lesson, {...input, boost: boosting}, state, race.next, 1 / 120);
       if (updateRace(race, before, state, 1 / 120)) {
         complete = true;
-        const saved = saveBest(storage, race.result.time);
+        const saved = saveBest(storage, race.result.time,preferences.playerBoat);
         personalBest = saved.best;
         bestSaved = saved.saved;
         accumulator = 0;
@@ -523,7 +525,7 @@ function frame(now) {
     const actions = `<button data-action="trial" ${trafficView ? '' : 'disabled'}>${trafficView ? 'START TIME TRIAL / ENTER' : fleetError ? 'TRIAL NEEDS FLEET · RELOAD TO RETRY' : 'LOADING BOATS…'}</button><button data-action="explore">EXPLORE THE COAST</button>`;
     const best = personalBest === null ? 'Set your first personal best' : `PERSONAL BEST ${formatTime(personalBest)}`;
     let message = paused ? `PAUSED · ${keyName('pause')} / START TO RESUME` : '';
-    if (!paused && race.phase === 'ready') message = `<h2>COASTAL SPRINT</h2><p>4 km · 5 gates · Traffic to overtake.</p><p>Steer through orange gates. ${keyName('boost')} / A boosts; release to recharge.<br>Boat/shore impacts +2s · ${keyName('recover')} / X recovery +5s.</p><small>${best}<br>Gold 2:10 · Silver 2:50 · Bronze 3:40</small>${actions}`;
+    if (!paused && race.phase === 'ready') message = `<h2>COASTAL SPRINT</h2><p>4 km · 5 gates · Traffic to overtake.</p><p>Steer through orange gates. ${keyName('boost')} / A boosts; release to recharge.<br>Boat/shore impacts +2s · ${keyName('recover')} / X recovery +5s.</p><small>${best}<br>Gold ${formatTime(130*race.medalScale)} · Silver ${formatTime(170*race.medalScale)} · Bronze ${formatTime(220*race.medalScale)}</small>${actions}`;
     if (!paused && race.phase === 'countdown') message = `<h2>${Math.ceil(race.countdown)}</h2><p>FOLLOW THE CHANNEL · AIM FOR ORANGE GATES</p>`;
     if (!paused && race.phase === 'finished') message = `<h2>${race.result.medal} · ${formatTime(race.result.time)}</h2><p>${traffic.overtakes} clean passes · ${race.collisions} impacts · ${race.penalty}s penalties<br>Best jump ${state.longestJump.toFixed(1)}s</p><p>${best}${bestSaved ? '' : ' · SESSION ONLY (saving unavailable)'}</p>${actions}`;
     if (!paused && complete && race.phase === 'explore') message = `EXPEDITION COMPLETE · BEST JUMP ${state.longestJump.toFixed(1)}s${actions}`;

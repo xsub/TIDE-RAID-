@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Product robustness: vessel records and input validation
+
+- Personal bests are isolated per vessel, preserving the sport key and older handling-version data. Slower boats use separately displayed provisional medal-time scales; invalid finish times cannot overwrite records.
+- Malformed primitive/array keyboard settings fall back safely; legacy remaps migrate reverse without stealing an occupied key. Replay capacity and traffic-pool limits reject unbounded diagnostic allocations.
+- All 85 tests and production build pass. Medal targets are provisional and need player testing; performance and simulation approximations remain documented.
+
 ## 2026-10-18 — Robustness roadmap: bounded replay diagnostics
 
 - Added local physics replay export: up to 72,000 fixed ticks (10 minutes), exact numeric steering/time/swell, discrete controls, initial hull/traffic state and periodic state checksums. Recording stops at capacity rather than growing indefinitely; no telemetry is uploaded.
