@@ -56,6 +56,18 @@ test('manual camera respects water height, requested angle, full orbit and hull 
   assert.ok(Math.hypot(distant.x - distant.lookX, distant.y - distant.lookY, distant.z - distant.lookZ) < 1600);
 });
 
+test('close zoom and wreck tilt produce visibly different camera poses at requested angles', () => {
+  const state = {...createState(), y: -12};
+  for (const mode of ['chase', 'arcade', 'wreck']) {
+    const poses = [20, 45, 70].map((elevation) => cameraPose(state, mode, 0, 16 / 9, false, 400, 8, {height: 3, elevation, waterHeight: 0}));
+    for (const [index, pose] of poses.entries()) {
+      const actual = Math.atan2(pose.y - pose.lookY, Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ)) * 180 / Math.PI;
+      assert.ok(Math.abs(actual - [20, 45, 70][index]) < 1e-7);
+      if (index) assert.notDeepEqual(pose, poses[index - 1]);
+    }
+  }
+});
+
 test('manual placement preferences persist and invalid values retain defaults', () => {
   const invalid = readPreferences({getItem: () => JSON.stringify({cameraElevation: 0, cameraHeight: 900, manualCamera: 'yes'})});
   assert.equal(invalid.cameraElevation, 30); assert.equal(invalid.cameraHeight, 15); assert.equal(invalid.manualCamera, false);

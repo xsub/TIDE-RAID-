@@ -7,6 +7,12 @@ export function cameraPose(state, mode, angle, aspect, portrait = false, channel
   if (mode === 'wreck') {
     const orbit = state.heading + angle * Math.PI / 180;
     const distance = Math.max(state.beam * 1.4 + 3, (state.length * 1.2 + 4) / Math.sqrt(zoom));
+    if (manual) {
+      const elevation = Math.max(5, Math.min(85, manual.elevation ?? 30)) * Math.PI / 180;
+      const radius = Math.hypot(distance, Math.max(2.5, state.beam * 0.8) - 0.3);
+      return {x: state.x + Math.sin(orbit) * radius * Math.cos(elevation), y: state.y + 0.3 + radius * Math.sin(elevation), z: state.z + Math.cos(orbit) * radius * Math.cos(elevation),
+        lookX: state.x, lookY: state.y + 0.3, lookZ: state.z, fov: portrait ? 80 : 62};
+    }
     return {x: state.x + Math.sin(orbit) * distance, y: state.y + Math.max(2.5, state.beam * 0.8), z: state.z + Math.cos(orbit) * distance,
       lookX: state.x, lookY: state.y + 0.3, lookZ: state.z, fov: portrait ? 80 : 62};
   }
@@ -28,8 +34,9 @@ export function cameraPose(state, mode, angle, aspect, portrait = false, channel
     const waterHeight = Number.isFinite(manual.waterHeight) ? manual.waterHeight : state.y - 0.6;
     const requestedHeight = Math.max(3, Math.min(500, Number.isFinite(manual.height) ? manual.height : 15));
     const targetHeight = Math.max(waterHeight + 0.5, state.y + 0.5);
-    const cameraHeight = Math.max(waterHeight + requestedHeight / zoom, targetHeight + 2.5);
+    let cameraHeight = Math.max(waterHeight + requestedHeight / zoom, targetHeight + 2.5);
     const distance = Math.min(1000, Math.max((state.length ?? 7.4) * 0.8 + 2, (cameraHeight - targetHeight) / Math.tan(elevation * Math.PI / 180)));
+    cameraHeight = targetHeight + distance * Math.tan(elevation * Math.PI / 180);
     return {x: state.x + Math.sin(orbit) * distance, y: cameraHeight, z: state.z + Math.cos(orbit) * distance,
       lookX: state.x, lookY: targetHeight, lookZ: state.z, fov};
   }

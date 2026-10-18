@@ -104,7 +104,7 @@ document.getElementById('app').innerHTML = `
       </select>
       <small>Scroll over the water to zoom. Wide shows the channel; Close and Detail enlarge the boat. Chase stops at a safe hull distance.</small>
       <label for="cameraAngle">CAMERA ORBIT <output id="cameraAngleValue"></output></label>
-      <small>Hold J / L to orbit · I / K to raise / lower the viewing angle (enables manual tilt). + / − zoom in / out · Z toggles sound. Pilot view stays fixed; wreck view supports orbit and zoom. Remapped driving keys take priority.</small>
+      <small>Hold J / L to orbit · I / K to raise / lower the viewing angle (enables manual tilt), including wreck view. + / − zoom in / out · Z toggles sound. Pilot view stays fixed. Remapped driving keys take priority.</small>
       <input id="cameraAngle" type="range" min="0" max="360" step="1" value="20">
       <small>0° rear · 90° side · 180° front · 270° side. Or right-drag the water. Steering stays boat-relative.</small>
       <button id="cameraRear">RESET CAMERA / REAR QUARTER</button>
@@ -713,7 +713,8 @@ function frame(now) {
   boat.visible = mode !== 'pilot';
   document.getElementById('pilotHint').hidden = mode !== 'pilot';
   for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto', 'cameraZoom', 'zoomIn', 'zoomOut', 'zoomPreset', 'cameraAngle', 'cameraRear']) document.getElementById(id).disabled = mode === 'pilot';
-  for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto']) document.getElementById(id).disabled = mode === 'pilot' || mode === 'wreck';
+  for (const id of ['manualCamera', 'cameraElevation', 'cameraAuto']) document.getElementById(id).disabled = mode === 'pilot';
+  document.getElementById('cameraHeight').disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   const weather = weatherState(preferences, simTime - weatherEpoch);
   const displayedHour = Math.floor(weather.hour * 60);

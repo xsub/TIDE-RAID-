@@ -32,7 +32,9 @@ test('wreck camera orbits below the surface, ignores manual height and persists 
   const front = cameraPose(state, 'wreck', 180, 16 / 9);
   assert.ok(rear.y < 0); assert.equal(rear.lookY, state.y + 0.3);
   assert.ok(Math.abs((rear.z + front.z) / 2 - state.z) < 1e-8);
-  assert.deepEqual(rear, cameraPose(state, 'wreck', 0, 16 / 9, false, 400, 1, {height: 400, elevation: 10}));
+  const tilted = cameraPose(state, 'wreck', 0, 16 / 9, false, 400, 1, {height: 400, elevation: 10});
+  assert.notEqual(rear.y, tilted.y);
+  assert.deepEqual(tilted, cameraPose(state, 'wreck', 0, 16 / 9, false, 400, 1, {height: 3, elevation: 10}));
   assert.equal(readPreferences({getItem: () => JSON.stringify({camera: 'wreck'})}).camera, 'wreck');
 });
 

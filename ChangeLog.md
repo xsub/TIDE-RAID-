@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Fix ineffective I/K camera tilt
+
+- Enabled I/K and the angle slider in wreck view, orbiting vertically around the hull while preserving orbit radius and seabed safety. Pilot view remains fixed.
+- Fixed close-zoom tilt plateau: when minimum hull distance prevents moving inward, camera height now adjusts to preserve the requested viewing angle instead of silently ignoring it. Requested height can therefore be overridden to maintain angle and hull clearance.
+- All 163 tests and both production entry builds pass, including actual camera-angle changes at close zoom in Chase/Arcade/Wreck and updated wreck keyboard/height behavior. Existing shared-bundle advisory remains.
+
 ## 2026-10-18 — Zoom and sound keyboard shortcuts
 
 - Added + (or =) to zoom in and − to zoom out, including numeric keypad support and held-key repeat, using existing saved zoom bounds. Z toggles the existing master sound once per press, including from Pilot view. Pilot zoom remains fixed.
