@@ -1,3 +1,5 @@
+import {contactImpulse} from './collision.js';
+
 export const WORLD_SIZE = 18800;
 export const START_Z = 200;
 export const END_Z = START_Z - WORLD_SIZE;
@@ -44,8 +46,10 @@ export function resolveCollision(state, radius = 2.8) {
   let hit = false;
   if (state.x < banks.left + radius || state.x > banks.right - radius) {
     state.x = Math.max(banks.left + radius, Math.min(banks.right - radius, state.x));
-    state.vx *= -0.25;
-    state.vz *= 0.8;
+    const side = state.x < banks.center ? -1 : 1;
+    const centerDerivative = 0.585*Math.cos((state.z-START_Z)*0.0009)+0.651*Math.cos((state.z-START_Z)*0.0031);
+    const widthDerivative = 0.15*Math.cos(state.z*0.005)+0.234*Math.cos(state.z*0.013);
+    contactImpulse(state,null,-side,widthDerivative+side*centerDerivative,0.08,0.35);
     hit = true;
   }
   const current = chunkIndex(state.z);
@@ -60,13 +64,7 @@ export function resolveCollision(state, radius = 2.8) {
       const normalZ = distance > 0.001 ? deltaZ / distance : 0;
       state.x = feature.x + normalX * clearance;
       state.z = feature.z + normalZ * clearance;
-      const inward = state.vx * normalX + state.vz * normalZ;
-      if (inward < 0) {
-        state.vx -= inward * normalX * 1.25;
-        state.vz -= inward * normalZ * 1.25;
-      }
-      state.vx *= 0.65;
-      state.vz *= 0.65;
+      contactImpulse(state,null,normalX,normalZ,feature.kind === 'rock' ? 0.15 : 0.03,feature.kind === 'rock' ? 0.25 : 0.5);
       hit = true;
     }
   }

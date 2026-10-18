@@ -4,6 +4,7 @@ import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
 import {loadFleet, createTrafficView} from './fleet.js';
 import {PLAYER_BOATS, PLAYER_LENGTH} from './player-boats.js';
+import {VESSEL_MASS} from './collision.js';
 import {createTraffic, updateTraffic} from './traffic.js';
 import {resolveHarborCollision} from './harbor-layout.js';
 import {createSpray} from './spray.js';
@@ -31,7 +32,7 @@ document.getElementById('app').innerHTML = `
       <button id="beauty">BEAUTY PRESET</button>
       <label for="playerBoat">YOUR BOAT</label>
       <select id="playerBoat" disabled>${PLAYER_BOATS.map((boat) => `<option value="${boat.model}">${boat.name}</option>`).join('')}</select>
-      <small>All fleet boats are playable. Shared arcade handling and 7.4 m race hull; sailboat uses auxiliary power. Changing boat restarts the run.</small>
+      <small>All fleet boats are playable. Shared propulsion and 7.4 m race hull; different collision masses. Sailboat uses auxiliary power. Changing boat restarts the run.</small>
       <label for="detail">WATER SURFACE <output id="quality"></output></label>
       <input id="detail" type="range" min="0" max="100" value="25">
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
@@ -95,6 +96,7 @@ const boat = createBoat();
 scene.add(boat);
 const spray = createSpray(scene);
 let state = createState();
+state.mass = VESSEL_MASS[preferences.playerBoat];
 let traffic = createTraffic(state);
 let trafficView = null;
 let fleetError = false;
@@ -105,7 +107,7 @@ function showPlayerBoat() {
   boat.clear();
   boat.add(playerModels.get(preferences.playerBoat));
   const selected = PLAYER_BOATS.find((entry) => entry.model === preferences.playerBoat);
-  document.getElementById('fleetStatus').textContent = `${selected.name.toUpperCase()} / 18 TRAFFIC BOATS`;
+  document.getElementById('fleetStatus').textContent = `${selected.name.toUpperCase()} / ${VESSEL_MASS[preferences.playerBoat]} KG / 18 TRAFFIC BOATS`;
 }
 playerBoatSelect.onchange = () => {
   preferences.playerBoat = playerBoatSelect.value;
@@ -212,6 +214,7 @@ scene.add(gateGroup);
 function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   if (phase !== 'explore' && !trafficView) return;
   state = createState();
+  state.mass = VESSEL_MASS[preferences.playerBoat];
   traffic = createTraffic(state);
   race = createRace(phase);
   lesson = {stage: 0, steering: 0};
@@ -487,7 +490,7 @@ function frame(now) {
   if (hudTimer > 0.1) {
     hudTimer = 0;
     elements.speed.textContent = Math.round(state.speed * 3.6).toString().padStart(3, '0');
-    elements.air.textContent = state.collision ? `IMPACT · ${keyName('recover')} TO RECOVER` : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
+    elements.air.textContent = state.collision ? `IMPACT / ${(state.impactEnergy / 1000).toFixed(1)} kJ · ${keyName('recover')} TO RECOVER` : state.airtime > 0.15 ? `AIRBORNE / ${state.airtime.toFixed(1)}s` : state.landing ? 'SPLASHDOWN' : state.speed > 22 ? 'PLANING' : 'WATERBORNE';
     const distance = Math.max(0, START_Z - 20 - state.z);
     const length = race.phase === 'explore' ? WORLD_SIZE - 20 : COURSE_LENGTH;
     elements.distance.textContent = `${(distance / 1000).toFixed(2)} / ${(length / 1000).toFixed(2)} KM`;

@@ -1,4 +1,5 @@
 import {channel, chunkFeatures, chunkIndex, resolveCollision, END_Z} from './world.js';
+import {contactImpulse, bodyMass, VESSEL_MASS} from './collision.js';
 
 export const TRAFFIC_TYPES = [
   {model: 'boat-speed-a', length: 7.4, radius: 3.8, speed: 13},
@@ -32,7 +33,7 @@ export function createTraffic(player, count = 18) {
     const z = player.z - 55 - index * 40;
     const lane = LANES[index % LANES.length];
     const x = targetX(z, lane, type.radius);
-    traffic.boats.push({...type, id: traffic.serial++, x, z, lane, vx: 0, vz: -type.speed,
+    traffic.boats.push({...type, mass: VESSEL_MASS[type.model], id: traffic.serial++, x, z, lane, vx: 0, vz: -type.speed,
       heading: 0, active: z > END_Z + 30, passed: false, contacted: false, gap: player.z - z});
   }
   return traffic;
@@ -46,13 +47,13 @@ export function collideTraffic(player, ship) {
   if (!ship.active || distance >= clearance) return false;
   const normalX = distance > 0.001 ? deltaX / distance : 1;
   const normalZ = distance > 0.001 ? deltaZ / distance : 0;
-  player.x = ship.x + normalX * clearance;
-  player.z = ship.z + normalZ * clearance;
-  const relative = (player.vx - ship.vx) * normalX + (player.vz - ship.vz) * normalZ;
-  if (relative < 0) {
-    player.vx -= relative * normalX * 1.15;
-    player.vz -= relative * normalZ * 1.15;
-  }
+  const playerShare = bodyMass(ship)/(bodyMass(player)+bodyMass(ship));
+  const correction = clearance-distance+0.000001;
+  player.x += normalX*correction*playerShare;
+  player.z += normalZ*correction*playerShare;
+  ship.x -= normalX*correction*(1-playerShare);
+  ship.z -= normalZ*correction*(1-playerShare);
+  contactImpulse(player,ship,normalX,normalZ,0.12,0.2);
   player.collision = 0.5;
   player.speed = Math.hypot(player.vx, player.vz);
   ship.contacted = true;
@@ -71,15 +72,16 @@ export function updateTraffic(traffic, player, dt) {
       ship.passed = false;
       ship.contacted = false;
       ship.gap = player.z - ship.z;
+      ship.vx = 0; ship.vz = -ship.speed;
     }
-    const oldX = ship.x;
-    const oldZ = ship.z;
-    ship.z -= ship.speed * dt;
     const target = targetX(ship.z - 30, ship.lane, ship.radius);
-    ship.x += Math.max(-ship.speed * dt, Math.min(ship.speed * dt, target - ship.x));
+    const targetVelocity = Math.max(-ship.speed,Math.min(ship.speed,(target-ship.x)*0.8));
+    const acceleration = 3*dt;
+    ship.vx += Math.max(-acceleration,Math.min(acceleration,targetVelocity-ship.vx));
+    ship.vz += Math.max(-acceleration,Math.min(acceleration,-ship.speed-ship.vz));
+    ship.x += ship.vx*dt;
+    ship.z += ship.vz*dt;
     resolveCollision(ship, ship.radius);
-    ship.vx = (ship.x - oldX) / dt;
-    ship.vz = (ship.z - oldZ) / dt;
     const heading = Math.atan2(-ship.vx, -ship.vz);
     const difference = Math.atan2(Math.sin(heading - ship.heading), Math.cos(heading - ship.heading));
     ship.heading += difference * Math.min(1, dt * 3);
@@ -92,6 +94,9 @@ export function updateTraffic(traffic, player, dt) {
     ship.gap = gap;
     if (ship.z <= END_Z + 10) ship.active = false;
   }
-  if (hit) resolveCollision(player);
+  if (hit) {
+    resolveCollision(player);
+    player.speed = Math.hypot(player.vx,player.vz);
+  }
   return hit;
 }

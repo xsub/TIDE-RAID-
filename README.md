@@ -45,7 +45,7 @@ Streamed sectors contain clustered woodland and clearings with pines, broadleaf 
 
 The active fleet is built from original procedural vessel geometry: sports racers, classic runabouts, glazed cabin cruisers and sailing yachts. Models include curved V hulls, glossy paint, dark glazing, metal rails, teak deck accents, seats, portholes, fittings and curved sails with rigging. Static parts are merged by material and geometry is shared between traffic instances. The image reference informs proportions and details; these are not photorealistic models extracted from that image. The older procedural TR-07 remains a temporary initialization fallback. Five legacy models from [Watercraft Kit 2.1 by Kenney](https://kenney.nl/assets/watercraft-kit), their texture and original CC0 license remain bundled under `public/assets/watercraft/`; they are no longer the default rendered fleet.
 
-Eighteen traffic boats form a recycled pool: slower speedboats, cabin cruisers and sailing yachts follow downstream lanes and use local obstacle avoidance. They bob with the shared wave field, leave wakes and appear on the scanner. Overtake within 100 units without touching a boat to count a clean pass, once per traffic encounter. Boat impacts use approximate circular collision bounds and the existing +2s trial penalty. Traffic is kinematic and does not simulate mutual hull dynamics. Trial bests use a harbor-course key; previous traffic-free and pre-harbor records are preserved separately. Trial start waits for fleet initialization; a visible error reports initialization failure and exploration remains usable.
+Eighteen traffic boats form a recycled pool: slower speedboats, cabin cruisers and sailing yachts follow downstream lanes and use local obstacle avoidance. They bob with the shared wave field, leave wakes and appear on the scanner. Overtake within 100 units without touching a boat to count a clean pass, once per traffic encounter. Player/traffic impacts use mass-based planar impulses with approximate circular collision bounds and the existing +2s trial penalty. Navigation uses bounded acceleration and retains collision velocity; traffic boats do not collide with each other. Trial bests use a handling-version key; previous records are preserved separately. Trial start waits for fleet initialization; a visible error reports initialization failure and exploration remains usable.
 
 ### Villages, piers and lighthouses
 
@@ -55,13 +55,19 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+### Collision impulses
+
+Collisions use a planar mass-based impulse solver with restitution and Coulomb-limited sliding friction. Boat contacts apply equal/opposite impulses and inverse-mass overlap correction; banks, rocks and docks are fixed bodies. Tuned collision masses range from 1400 kg (sport) to 4200 kg (cruiser), not certified vessel specifications. The HUD displays dissipated planar collision energy in kJ, not predicted hull damage. Traffic retains impact velocity and returns toward its route under bounded acceleration. Propulsion/navigation and water forces exchange energy separately; instantaneous closed two-boat contacts conserve linear momentum and do not create kinetic energy.
+
+This is not full rigid-body ship dynamics: collision geometry remains circular/rectangular, without rotational inertia/contact torque, deformation, capsizing, swept continuous collision detection or mutual traffic collisions. All player models still use the shared propulsion/planing model and race-size hull. Trial records use a separate impulse-handling version key.
+
 ### Boundary-aware water
 
 A deterministic 512 KiB distance atlas includes both banks, islands, rocks, sandbanks and dock footprints. It is baked once, not rebuilt each frame. CPU hull samples and GPU wave displacement use matching bilinear distance sampling, near-boundary damping and small returning wavelets; normals include the modulation gradients. Shallow tint, broken foam bands and reduced micro-ripples follow static boundaries. Four texture reads per field lookup keep shader cost independent of obstacle count.
 
 The atlas has approximately 5×4.6 m cells; small objects and edges are approximate. This is analytical boundary-aware water, not a fluid solver, measured bathymetry, directional wave diffraction/refraction, or persistent turbulence. Moving traffic retains cosmetic wakes and does not feed energy into the physical field. The low-amplitude sea and upward-velocity guard remain in place. Boundary-version trial records are separate from earlier handling versions.
 
-Choose **Helm Settings → Your Boat** to control any active fleet model: sport, runabout, cruiser, sailboat or classic. Selection is saved. Switching restarts exploration or returns a trial to its start menu. All models are normalized to the same 7.4 m racing length and use the same arcade handling, collision approximation and engine audio; the sailboat runs under auxiliary power, not simulated wind. Distinct vessel dynamics and full-size yacht physics are not implemented.
+Choose **Helm Settings → Your Boat** to control any active fleet model: sport, runabout, cruiser, sailboat or classic. Selection is saved. Switching restarts exploration or returns a trial to its start menu. All models are normalized to the same 7.4 m racing length and share propulsion, collision geometry and engine audio, but have different tuned collision masses. The sailboat runs under auxiliary power, not simulated wind. Full vessel-specific hydrodynamics and full-size yacht physics are not implemented.
 
 ### Camera orbit
 

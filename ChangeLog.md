@@ -1,5 +1,14 @@
 # ChangeLog
 
+## 2026-10-18 — Mass and energy collision response
+
+- Replaced arbitrary impact velocity cuts with a shared planar impulse solver: J = -(1+e) v_normal / (1/m1+1/m2), equal/opposite momentum transfer and Coulomb-limited tangential friction. Fixed scenery has zero inverse mass; contact-specific restitution/friction distinguishes hard rocks/docks and softer ground.
+- Added tuned collision masses (sport 1400 kg, runabout 1800, classic 1700, sail 3000, cruiser 4200). Boat impacts separate overlaps in inverse-mass proportion and change both velocities. Traffic now integrates velocity and uses bounded 3 m/s² navigation acceleration, retaining impact response instead of overwriting it next tick.
+- HUD reports dissipated planar impact energy in kJ and selected collision mass. These are tuned game parameters, not manufacturer specifications or structural damage estimates. Engine/planing behavior still shares the arcade model.
+- Added equation-level momentum, restitution-energy, elastic exchange, glancing friction, no-energy-creation and traffic impulse-persistence tests. New handling-version records preserve older bests.
+- Validation: all 47 automated tests and production build pass; the existing bundle-size advisory remains.
+- Limits: circular hull/obstacle bounds and rectangular docks, no angular contact inertia/torque, hull deformation, capsizing, continuous swept collision detection or traffic-to-traffic contacts. Position correction is geometric, not a force. Water/propulsion and navigation exchange external energy outside the instantaneous contact solve.
+
 ## 2026-10-18 — Fast boundary-aware water
 
 - Baked a deterministic signed-distance atlas of both banks, islands, rocks, sandbanks and dock footprints. One cached 128×4096 single-channel texture (512 KiB; roughly 5×4.6 m cells) replaces per-frame/per-pixel obstacle searches. Bake measured about 113 ms locally; 100,000 CPU wave samples took about 38 ms in a standalone local run, not a cross-device guarantee.

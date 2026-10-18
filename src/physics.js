@@ -8,7 +8,7 @@ export function channelHeading(z) {
 export function createState() {
   return {x: channel(START_Z - 20).center, z: START_Z - 20, y: 1.5,
     vx: 0, vz: 0, vy: 0, heading: channelHeading(START_Z - 20), pitch: 0, roll: 0,
-    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0};
+    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0, mass: 1400, impactEnergy: 0};
 }
 
 export function recover(state, time, roughness = 1) {
@@ -18,7 +18,7 @@ export function recover(state, time, roughness = 1) {
   const offset = candidates.find((fraction) => features.every((feature) => Math.hypot(banks.center + banks.width * fraction - feature.x, state.z - feature.z) > feature.radius + 6)) ?? 0;
   Object.assign(state, {x: banks.center + banks.width * offset,
     vx: 0, vz: 0, vy: 0, speed: 0, heading: channelHeading(state.z),
-    pitch: 0, roll: 0, airtime: 0, collision: 0, landing: 0});
+    pitch: 0, roll: 0, airtime: 0, collision: 0, landing: 0, impactEnergy: 0});
   state.y = sampleWave(state.x, state.z, time, roughness).h + 0.6;
 }
 
