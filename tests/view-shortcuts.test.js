@@ -5,7 +5,7 @@ import {viewShortcut} from '../src/view-shortcuts.js';
 test('V recenters pilot look once per press and respects remaps and modifiers', () => {
   assert.equal(viewShortcut({code: 'KeyV'}, {}, 'pilot'), 'resetLook');
   assert.equal(viewShortcut({code: 'KeyV', repeat: true}, {}, 'pilot'), null);
-  assert.equal(viewShortcut({code: 'KeyV'}, {}, 'chase'), null);
+  for (const mode of ['chase', 'arcade', 'wreck']) assert.equal(viewShortcut({code: 'KeyV'}, {}, mode), 'resetLook');
   assert.equal(viewShortcut({code: 'KeyV'}, {reverse: 'KeyV'}, 'pilot'), null);
   assert.equal(viewShortcut({code: 'KeyV', ctrlKey: true}, {}, 'pilot'), null);
 });

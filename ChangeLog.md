@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Camera-switch safeguards and universal view reset
+
+- V / Reset Current View now restores the active view's default framing: Pilot looks straight ahead; exterior views reset orbit, zoom, manual tilt and height. Mouse sensitivity/smoothing, boat state and unrelated settings remain untouched. Active drags and IJKL holds are cleared on reset.
+- Camera cuts synchronize underwater fog/tint immediately and reset the immersion veil rather than carrying a previous view's submerged state into the new camera. Normal continuous waterline crossings retain their immersion effect.
+- Exterior cameras now clear sampled coastal terrain along the sightline as well as at the eye, preventing low orbit cameras from sitting inside a riverbank. Surface exterior views remain above their local wave; wreck views retain underwater freedom. Twelve fixed terrain samples add no geometry or draw calls. This is coastal/bed clearance, not building/tree/rock camera collision.
+- All 175 tests and both production entry builds pass, including sightline/eye clearance, underwater wreck allowance, coastal height sampling, per-view reset scope and universal V shortcut behavior. Existing shared-bundle advisory remains. Exact screenshot reproduction and native switching comfort still need in-game verification.
+
 ## 2026-10-18 — Adjustable driver mouse sensitivity and look smoothing
 
 - Added saved Driver Mouse Sensitivity (0.25–3×, default 1×) and Driver Look Smoothing (0–100%, default 35%) sliders. Mouse sensitivity does not change driving or IJKL speeds; both mouse and keyboard share smoothed driver angles.

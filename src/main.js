@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
 import {cameraKeyMotion} from './camera-keys.js';
@@ -85,7 +86,7 @@ document.getElementById('app').innerHTML = `
       <small>Exploration only · 1× original / 2× deeper / 4× very deep. Maximum 80 m; shorelines and shallow banks remain. Changing depth restarts exploration.</small>
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
-      <small>Wreck inspection follows the hull underwater. Orbit/zoom work; manual height/tilt is ignored in this view.</small>
+      <small>Wreck inspection follows the hull underwater. Orbit, tilt and zoom work; manual height is ignored. V resets the current view to its default.</small>
       <small id="pilotHint" hidden>Pilot view: drag with the left or right mouse button to look around, or use J/L and I/K (±75° tilt). V / Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only. Driving remaps take priority over V.</small>
       <label for="mouseLookSensitivity">DRIVER MOUSE SENSITIVITY <output id="mouseLookSensitivityValue"></output></label>
       <input id="mouseLookSensitivity" type="range" min="0.25" max="3" step="0.05">
@@ -250,6 +251,7 @@ const lookTarget = new THREE.Vector3();
 const smoothLook = new THREE.Vector3();
 const pilotLook = {yaw: preferences.pilotYaw, pitch: preferences.pilotPitch};
 const pilotLookTarget = {yaw: preferences.pilotYaw, pitch: preferences.pilotPitch};
+let cameraCut = true;
 const audio = createAudio();
 document.getElementById('shallowThreshold').value = preferences.shallowThreshold;
 document.getElementById('shallowThresholdValue').textContent = `${preferences.shallowThreshold.toFixed(1)} m`;
@@ -386,6 +388,7 @@ function cameraGoal() {
   }
 }
 function snapCamera() {
+  cameraCut = true;
   pilotLook.yaw = preferences.pilotYaw; pilotLook.pitch = preferences.pilotPitch;
   cameraGoal();
   camera.position.copy(cameraPosition);
@@ -447,8 +450,11 @@ renderer.domElement.addEventListener('wheel', (event) => {
 document.getElementById('cameraAngle').oninput = (event) => setCameraAngle(Number(event.target.value));
 document.getElementById('cameraAngle').onchange = persistPreferences;
 document.getElementById('cameraRear').onclick = () => {
-  if (mode === 'pilot') {preferences.pilotYaw = 0; preferences.pilotPitch = 0; snapCamera();}
-  else setCameraAngle(20);
+  keys.delete('KeyI'); keys.delete('KeyJ'); keys.delete('KeyK'); keys.delete('KeyL');
+  if (orbitDrag) finishOrbit({pointerId: orbitDrag.id});
+  Object.assign(preferences, cameraDefaults(mode));
+  setCameraAngle(preferences.cameraAngle); setCameraZoom(preferences.cameraZoom); syncCameraPlacement();
+  snapCamera();
   persistPreferences();
 };
 let orbitDrag = null;
@@ -748,7 +754,7 @@ function frame(now) {
   boat.visible = mode !== 'pilot';
   document.getElementById('pilotHint').hidden = mode !== 'pilot';
   for (const id of ['manualCamera', 'cameraElevation', 'cameraHeight', 'cameraAuto', 'cameraZoom', 'zoomIn', 'zoomOut', 'zoomPreset', 'cameraAngle']) document.getElementById(id).disabled = mode === 'pilot';
-  document.getElementById('cameraRear').textContent = mode === 'pilot' ? 'RESET CAMERA / LOOK AHEAD' : 'RESET CAMERA / REAR QUARTER';
+  document.getElementById('cameraRear').textContent = 'RESET CURRENT VIEW / V';
   for (const id of ['manualCamera', 'cameraElevation', 'cameraAuto']) document.getElementById(id).disabled = mode === 'pilot';
   document.getElementById('cameraHeight').disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
@@ -800,9 +806,14 @@ function frame(now) {
   camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
   if (mode === 'pilot') smoothLook.copy(lookTarget);
   else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
+  if (mode !== 'pilot') clearCameraTerrain(camera.position, smoothLook, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(camera.position.x, camera.position.z, simTime, roughness).h + 1);
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
-  underwater = underwaterBlend(underwater, cameraSurface - camera.position.y, ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring, elapsed);
+  const underwaterEnabled = ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring;
+  if (cameraCut) {
+    underwater = underwaterEnabled ? Math.max(0, Math.min(1, (cameraSurface - camera.position.y) / 0.6)) : 0;
+    underwaterView.reset(cameraSurface - camera.position.y, simTime); cameraCut = false;
+  } else underwater = underwaterBlend(underwater, cameraSurface - camera.position.y, underwaterEnabled, elapsed);
   seabed.update(state, camera, simTime, underwater, weather, trafficView ? traffic.boats : []);
   underwaterView.update(simTime, camera, underwater, voyage.sinking.air, roughness);
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,

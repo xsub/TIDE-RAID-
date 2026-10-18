@@ -23,7 +23,7 @@ export function createUnderwaterView(scene, host) {
   const material = new THREE.PointsMaterial({color: 0xc1edf1, map, size: 0.12, transparent: true, depthWrite: false, opacity: 0, fog: true});
   const bubbles = new THREE.Points(geometry, material); bubbles.frustumCulled = false; bubbles.name = 'Driver underwater air haze'; scene.add(bubbles);
   const forward = new THREE.Vector3(); const across = new THREE.Vector3(); const up = new THREE.Vector3(0, 1, 0);
-  return {update(time, camera, amount, air, roughness) {
+  return {reset(depth, time) {immersion = {submerged: depth > 0.12, pulse: 0}; lastTime = time; veil.style.opacity = '0';}, update(time, camera, amount, air, roughness) {
     const surfaceDepth = sampleWave(camera.position.x, camera.position.z, time, roughness).h - camera.position.y;
     immersion = immersionStep(immersion, surfaceDepth, lastTime === undefined ? 0 : time - lastTime); lastTime = time;
     veil.style.opacity = (immersion.pulse * (reducedMotion ? 0.18 : 0.75)).toFixed(3);
