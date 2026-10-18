@@ -3,6 +3,32 @@ import assert from 'node:assert/strict';
 import {cameraPose, clampCameraZoom, CAMERA_ZOOM_PRESETS} from '../src/camera.js';
 import {readPreferences, savePreferences} from '../src/preferences.js';
 
+test('manual camera respects water height, requested angle, full orbit and hull clearance', () => {
+  const state = {x: 10, y: 1, z: 20, heading: 0.5, speed: 20, length: 12};
+  const manual = {height: 40, elevation: 30, waterHeight: 0.4};
+  for (const mode of ['arcade', 'chase']) for (const angle of [0, 90, 180, 270, 360]) {
+    const pose = cameraPose(state, mode, angle, 16 / 9, false, 400, 1, manual);
+    assert.ok(Math.abs(pose.y - 40.4) < 1e-8);
+    const actual = Math.atan2(pose.y - pose.lookY, Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ)) * 180 / Math.PI;
+    assert.ok(Math.abs(actual - 30) < 1e-8);
+    assert.equal(pose.lookX, state.x); assert.equal(pose.lookZ, state.z);
+  }
+  const close = cameraPose(state, 'chase', 0, 9 / 16, true, 400, 8, {height: 3, elevation: 85, waterHeight: 0.4});
+  assert.ok(close.y >= state.y + 3); assert.ok(Math.hypot(close.x - state.x, close.z - state.z) >= state.length * 0.8 + 2 - 1e-9);
+  assert.ok(Object.values(close).every(Number.isFinite));
+  const distant = cameraPose(state, 'arcade', 0, 16 / 9, false, 400, 0.5, {height: 500, elevation: 5, waterHeight: 0});
+  assert.ok(Math.hypot(distant.x - distant.lookX, distant.y - distant.lookY, distant.z - distant.lookZ) < 1600);
+});
+
+test('manual placement preferences persist and invalid values retain defaults', () => {
+  const invalid = readPreferences({getItem: () => JSON.stringify({cameraElevation: 0, cameraHeight: 900, manualCamera: 'yes'})});
+  assert.equal(invalid.cameraElevation, 30); assert.equal(invalid.cameraHeight, 15); assert.equal(invalid.manualCamera, false);
+  let saved;
+  const storage = {getItem: () => saved, setItem: (key, value) => {saved = value;}};
+  savePreferences(storage, {...invalid, cameraElevation: 45, cameraHeight: 80, manualCamera: true});
+  assert.equal(readPreferences(storage).cameraElevation, 45); assert.equal(readPreferences(storage).cameraHeight, 80); assert.equal(readPreferences(storage).manualCamera, true);
+});
+
 test('zoom presets enlarge the arcade boat and preserve orbit and safe chase clearance', () => {
   const state = {x: 0, y: 0, z: 0, heading: 0, speed: 40, length: 12};
   let previousHeight = Infinity;

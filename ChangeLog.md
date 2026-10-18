@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Camera elevation and water-relative height
+
+- Added saved manual camera elevation (5–85° above horizontal water) and height (3–500 m), independently of 360° orbit. Sliders enable manual placement; a button restores existing automatic chase/arcade placement without resetting orbit/zoom.
+- Manual framing aims at the boat, derives horizontal distance from height/angle, and samples the shared analytical water level. Existing zoom scales requested height. Vessel-length horizontal clearance and minimum vertical clearance take priority; a live actual-height/angle readout makes those limits visible. Camera smoothing remains; readout describes the target pose.
+- Horizontal distance is capped at 1,000 m so extreme high/low-angle settings do not put the boat beyond the 1,600 m camera far plane. All 124 tests and both production pages build successfully; browser verified a 30 m / 40° manual view with no runtime errors. Existing bundle-size advisory remains. Cargo Lab keeps its independent camera controls.
+
 ## 2026-10-18 — Separate Cargo Balance Lab prototype
 
 - Added independent `cargo.html` entry point and a link in TIDE RAID Helm Settings. Vite builds both pages for local development and GitHub Pages. Original racing/exploration mechanics, settings, records and replays are untouched; the cargo lab does not use local storage.

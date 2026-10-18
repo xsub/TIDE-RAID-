@@ -11,8 +11,12 @@ export function readPreferences(storage) {
   defaults.weather = 'sunny'; defaults.hour = 12; defaults.dayCycle = false; defaults.cycleMinutes = 20; defaults.wind = 20; defaults.windAngle = 45; defaults.glow = true;
   defaults.damageMode = 'arcade'; defaults.sinkingMode = 'off'; defaults.fuelMode = 'arcade';
   defaults.cameraZoom = 1;
+  defaults.manualCamera = false; defaults.cameraElevation = 30; defaults.cameraHeight = 15;
   if (!saved || typeof saved !== 'object') return defaults;
   if (isPlayerBoat(saved.playerBoat)) defaults.playerBoat = saved.playerBoat;
+  if (typeof saved.manualCamera === 'boolean') defaults.manualCamera = saved.manualCamera;
+  if (Number.isFinite(saved.cameraElevation) && saved.cameraElevation >= 5 && saved.cameraElevation <= 85) defaults.cameraElevation = saved.cameraElevation;
+  if (Number.isFinite(saved.cameraHeight) && saved.cameraHeight >= 3 && saved.cameraHeight <= 500) defaults.cameraHeight = saved.cameraHeight;
   if (['sunny', 'cloudy', 'rain'].includes(saved.weather)) defaults.weather = saved.weather;
   for (const [name, minimum, maximum] of [['hour', 0, 24], ['cycleMinutes', 5, 60], ['wind', 0, 100], ['windAngle', 0, 360]]) if (Number.isFinite(saved[name]) && saved[name] >= minimum && saved[name] <= maximum) defaults[name] = saved[name];
   for (const name of ['dayCycle', 'glow']) if (typeof saved[name] === 'boolean') defaults[name] = saved[name];

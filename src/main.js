@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {sampleWave} from './waves.js';
 import {weatherState} from './weather.js';
 import {createRain} from './weather-view.js';
 import {createVesselLights} from './vessel-lights.js';
@@ -68,6 +69,14 @@ document.getElementById('app').innerHTML = `
       <label for="swell">SWELL <output id="swellValue">1.0×</output></label>
       <input id="swell" type="range" min="0" max="200" value="100">
       <button id="camera">CAMERA / ARCADE</button>
+      <label><input id="manualCamera" type="checkbox" style="width:auto"> MANUAL CAMERA HEIGHT / TILT</label>
+      <label for="cameraElevation">ANGLE ABOVE WATER <output id="cameraElevationValue"></output></label>
+      <input id="cameraElevation" type="range" min="5" max="85" step="1">
+      <label for="cameraHeight">HEIGHT ABOVE WATER <output id="cameraHeightValue"></output></label>
+      <input id="cameraHeight" type="range" min="3" max="500" step="1">
+      <output id="cameraActual"></output>
+      <small>5° looks along the water; 85° looks down. Sliders enable manual mode. Zoom divides the requested height; hull clearance and render-distance limits can change the actual angle. Orbit still rotates around the boat.</small>
+      <button id="cameraAuto">RESTORE AUTOMATIC HEIGHT / TILT</button>
       <label for="cameraZoom">CAMERA ZOOM <output id="cameraZoomValue"></output></label>
       <input id="cameraZoom" type="range" min="0.5" max="8" step="0.1" value="1">
       <button id="zoomIn">ZOOM IN +</button><button id="zoomOut">ZOOM OUT −</button>
@@ -316,7 +325,11 @@ function togglePause() {
   elements.pause.textContent = paused ? 'RESUME' : 'PAUSE';
 }
 function cameraGoal() {
-  const pose = cameraPose(state, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom);
+  const waterHeight = sampleWave(state.x, state.z, simTime, roughness).h;
+  const pose = cameraPose(state, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
+    preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null);
+  const horizontal = Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ);
+  document.getElementById('cameraActual').textContent = `Actual: ${(pose.y - waterHeight).toFixed(1)} m · ${(Math.atan2(pose.y - pose.lookY, horizontal) * 180 / Math.PI).toFixed(1)}°`;
   cameraPosition.set(pose.x, pose.y, pose.z);
   lookTarget.set(pose.lookX, pose.lookY, pose.lookZ);
   if (Math.abs(camera.fov - pose.fov) > 0.01) {
@@ -338,6 +351,20 @@ function setCameraAngle(angle) {
   document.getElementById('cameraAngleValue').textContent = `${Math.round(angle)}°`;
 }
 setCameraAngle(preferences.cameraAngle);
+function syncCameraPlacement() {
+  document.getElementById('manualCamera').checked = preferences.manualCamera;
+  document.getElementById('cameraElevation').value = preferences.cameraElevation;
+  document.getElementById('cameraHeight').value = preferences.cameraHeight;
+  document.getElementById('cameraElevationValue').textContent = `${preferences.cameraElevation}°`;
+  document.getElementById('cameraHeightValue').textContent = `${preferences.cameraHeight} m (before zoom)`;
+}
+syncCameraPlacement();
+for (const name of ['cameraElevation', 'cameraHeight']) document.getElementById(name).oninput = (event) => {
+  preferences[name] = Number(event.target.value); preferences.manualCamera = true;
+  syncCameraPlacement(); persistPreferences();
+};
+document.getElementById('manualCamera').onchange = (event) => {preferences.manualCamera = event.target.checked; persistPreferences();};
+document.getElementById('cameraAuto').onclick = () => {preferences.manualCamera = false; syncCameraPlacement(); persistPreferences();};
 function setCameraZoom(zoom) {
   preferences.cameraZoom = Math.round(clampCameraZoom(zoom) * 10) / 10;
   document.getElementById('cameraZoom').value = preferences.cameraZoom;
