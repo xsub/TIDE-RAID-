@@ -3,7 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {setPhotographicTextures} from './land-textures.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const REAL_ASSET_ROOT='/assets/real-scenery/';
+export const REAL_ASSET_ROOT=`${import.meta.env?.BASE_URL ?? '/'}assets/real-scenery/`;
 export const REAL_MODEL_IDS={pine:'fir_sapling_medium',broadleaf:'tree_small_02',rock:'rock_07'};
 export function treeImpostor(map) {
   const planes=[];

@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Independent TIDE RAID GitHub Pages deployment
+
+- Added main-branch/manual Pages workflow with clean dependency installation, full tests, production build, artifact upload and a separate least-privilege deployment job. No history rewriting or changes to another game's repository/site.
+- Made built entry points and photographic scenery URLs safe under the `/TIDE-RAID-/` project path; local development and Node tests retain their existing paths.
+- Documented the distinction between TIDE RAID and original WAKE CIRCUIT. Original WAKE CIRCUIT source/export is absent, so it has not been reconstructed, renamed or replaced by this release.
+- Recorded the owner's existing WAKE CIRCUIT URL without changing that deployment. All 97 tests and production build pass; the existing bundle-size advisory remains.
+
 ## 2026-10-18 — Blackjack-style racing catamaran
 
 - Added a selectable Blackjack 42 reference recreation: two pointed sponsons with an open bow tunnel, low enclosed canopy, silver windshield/scoops, glossy dark paint, orange striping, flank lettering, surface-drive propeller and orange rudder. No RC antenna. Custom game geometry from supplied photographs, not an official imported 3D asset or exact product replica.

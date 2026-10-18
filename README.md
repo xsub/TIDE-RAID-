@@ -1,5 +1,11 @@
 # TIDE RAID 2.0
 
+## GitHub Pages
+
+TIDE RAID publishes independently at https://xsub.github.io/TIDE-RAID-/ through `.github/workflows/pages.yml`. Every main-branch push runs tests and a production build before deployment; failed checks do not publish. Enable **Settings → Pages → Source → GitHub Actions** once. Relative build URLs and base-aware photographic asset paths support the repository subdirectory. Local development remains `npm run dev`.
+
+The original **[WAKE CIRCUIT](https://wake-circuit.cleverllama2.chatgpt.site)** remains at its existing published address (provided by the project owner). Its original source/export was not found in the available Git history. This deployment does not modify that site or present an older TIDE RAID reconstruction as the original. Archiving its playable source here is deferred until the original export is available.
+
 Three.js arcade speedboat expedition through a procedural coastal river. Builds on the supplied playable prototype and its four-component analytical wave field.
 
 ## Run
