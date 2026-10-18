@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Playable fleet selection
+
+- Added a saved Your Boat selector in Helm Settings covering every active vessel: sport, runabout, cruiser, sailboat and classic. Changing vessel restarts exploration or returns a trial to its start menu, preventing mid-race model changes.
+- Player variants share the existing arcade physics, audio and 7.4 m normalized hull length, including auxiliary-powered sailing. This is not vessel-specific mass, wind propulsion or full-sized yacht collision modeling.
+- Cached player instances reuse fleet template geometry/materials; switching neither rebuilds models nor disposes assets shared with traffic. Selector is disabled until fleet initialization completes.
+- Added full-fleet selection/size and saved-preference migration tests. Tests and production build pass.
+
 ## 2026-10-18 — Full-circle camera and lower chase perspective
 
 - Added a saved 0–360° camera orbit slider for chase and arcade views, right-button drag on the water, and a rear-quarter reset. Steering remains boat-relative; orbiting does not alter simulation inputs.

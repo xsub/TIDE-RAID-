@@ -55,6 +55,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+Choose **Helm Settings → Your Boat** to control any active fleet model: sport, runabout, cruiser, sailboat or classic. Selection is saved. Switching restarts exploration or returns a trial to its start menu. All models are normalized to the same 7.4 m racing length and use the same arcade handling, collision approximation and engine audio; the sailboat runs under auxiliary power, not simulated wind. Distinct vessel dynamics and full-size yacht physics are not implemented.
+
 ### Camera orbit
 
 In Helm Settings, **Camera Orbit** sets a saved full-circle angle in either camera mode: 0° rear, 90° side, 180° front, 270° opposite side. Right-drag on the water to orbit with a mouse; the slider also supports touch and keyboard. Reset Camera restores the 20° rear-quarter angle. Chase is lower and closer, with modest speed-based FOV expansion; steering remains boat-relative and physics is unchanged. There is no terrain-occlusion avoidance, so front/side views near banks can be obstructed.

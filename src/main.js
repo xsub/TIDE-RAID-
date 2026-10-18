@@ -3,6 +3,7 @@ import {createState, step, recover} from './physics.js';
 import {createAudio} from './audio.js';
 import {createBoat} from './boat.js';
 import {loadFleet, createTrafficView} from './fleet.js';
+import {PLAYER_BOATS, PLAYER_LENGTH} from './player-boats.js';
 import {createTraffic, updateTraffic} from './traffic.js';
 import {resolveHarborCollision} from './harbor-layout.js';
 import {createSpray} from './spray.js';
@@ -28,6 +29,9 @@ document.getElementById('app').innerHTML = `
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
       <button id="beauty">BEAUTY PRESET</button>
+      <label for="playerBoat">YOUR BOAT</label>
+      <select id="playerBoat" disabled>${PLAYER_BOATS.map((boat) => `<option value="${boat.model}">${boat.name}</option>`).join('')}</select>
+      <small>All fleet boats are playable. Shared arcade handling and 7.4 m race hull; sailboat uses auxiliary power. Changing boat restarts the run.</small>
       <label for="detail">WATER SURFACE <output id="quality"></output></label>
       <input id="detail" type="range" min="0" max="100" value="25">
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
@@ -94,6 +98,21 @@ let state = createState();
 let traffic = createTraffic(state);
 let trafficView = null;
 let fleetError = false;
+const playerModels = new Map();
+const playerBoatSelect = document.getElementById('playerBoat');
+playerBoatSelect.value = preferences.playerBoat;
+function showPlayerBoat() {
+  boat.clear();
+  boat.add(playerModels.get(preferences.playerBoat));
+  const selected = PLAYER_BOATS.find((entry) => entry.model === preferences.playerBoat);
+  document.getElementById('fleetStatus').textContent = `${selected.name.toUpperCase()} / 18 TRAFFIC BOATS`;
+}
+playerBoatSelect.onchange = () => {
+  preferences.playerBoat = playerBoatSelect.value;
+  showPlayerBoat();
+  persistPreferences();
+  reset(race.phase === 'explore' ? 'explore' : 'ready');
+};
 loadFleet().then((factory) => {
   const oldParts = [...boat.children];
   boat.clear();
@@ -102,9 +121,10 @@ loadFleet().then((factory) => {
     child.geometry.dispose();
     for (const material of Array.isArray(child.material) ? child.material : [child.material]) {material.map?.dispose(); material.dispose();}
   });
-  boat.add(factory('boat-speed-c', 7.4));
+  for (const entry of PLAYER_BOATS) playerModels.set(entry.model, factory(entry.model, PLAYER_LENGTH));
+  showPlayerBoat();
+  playerBoatSelect.disabled = false;
   trafficView = createTrafficView(scene, factory, traffic);
-  document.getElementById('fleetStatus').textContent = 'COASTAL FLEET / 18 BOATS';
 }).catch(() => {
   fleetError = true;
   document.getElementById('fleetStatus').textContent = 'FLEET LOAD FAILED · RELOAD TO RETRY';
