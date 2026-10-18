@@ -1,10 +1,12 @@
 import * as THREE from 'three';
+import {createCatamaran} from './catamaran.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const VESSEL_STYLES = {'boat-speed-c': 'sport', 'boat-speed-a': 'runabout', 'boat-house-a': 'cruiser', 'boat-tug-a': 'sail', 'boat-speed-d': 'classic'};
+export const VESSEL_STYLES = {'boat-speed-c': 'sport', 'boat-speed-a': 'runabout', 'boat-house-a': 'cruiser', 'boat-tug-a': 'sail', 'boat-speed-d': 'classic', 'boat-cat-42': 'catamaran'};
 
 export function createVessel(style = 'sport') {
+  if (style === 'catamaran') return createCatamaran();
   const group = new THREE.Group();
   group.name = `${style} coastal vessel`;
   const paint = new THREE.MeshPhysicalMaterial({color: 0xf1eee5, roughness: 0.23, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.17});

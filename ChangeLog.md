@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Blackjack-style racing catamaran
+
+- Added a selectable Blackjack 42 reference recreation: two pointed sponsons with an open bow tunnel, low enclosed canopy, silver windshield/scoops, glossy dark paint, orange striping, flank lettering, surface-drive propeller and orange rudder. No RC antenna. Custom game geometry from supplied photographs, not an official imported 3D asset or exact product replica.
+- Shared geometry is batched into four materials plus one browser-generated lettering material, with no new downloads. Fleet loading now includes every selectable vessel rather than only the traffic catalog.
+- Added a 9.4 m / 1,600 kg arcade handling profile. These are game tuning values, not the pictured RC model's specifications. Existing shared buoyancy and single capsule collision approximation remain; separate sponson hydrodynamics are not simulated. Existing boats are unchanged.
+- All 96 tests and production build pass, including split-bow clearance, canopy/material bounds, fleet selection and every vessel's handling stability. Browser drive check reached 105 km/h with no runtime errors. Existing build-size advisory remains. Fine mottled graphics and exact reference body contours are simplified.
+
 ## 2026-10-18 — Real photographic materials and authored scenery assets
 
 - Bundled CC0 Poly Haven photographic surface sets: Aerial Grass Rock, Coast Sand 01, Rock Boulder Dry and Bark Brown 02. Active terrain uses 1024px WebP albedo plus 512px packed height/roughness derived from the downloaded source maps, not synthesized replacements.

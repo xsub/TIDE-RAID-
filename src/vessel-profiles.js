@@ -1,5 +1,6 @@
 const sport={mass:1400,length:7.4,beam:2.8,power:950000,maxThrust:28000,waterDrag:0.0045,planingSpeed:45,planingLift:0.06,rudderArea:0.035,draft:0.55,lateralGrip:2.6};
 export const VESSEL_PROFILES=Object.freeze({
+  'boat-cat-42':Object.freeze({...sport,mass:1600,length:9.4,beam:3.7,power:1100000,maxThrust:30000,waterDrag:0.004,planingSpeed:32,planingLift:0.04,draft:0.45,lateralGrip:2.1}),
   'boat-speed-c':Object.freeze(sport),
   'boat-speed-a':Object.freeze({...sport,mass:1800,power:600000,maxThrust:24000,waterDrag:0.0055,planingSpeed:32,draft:0.65}),
   'boat-house-a':Object.freeze({...sport,mass:4200,length:11,beam:4.16,power:380000,maxThrust:18000,waterDrag:0.006,planingSpeed:25,planingLift:0.025,rudderArea:0.09,draft:1.1,lateralGrip:1.8}),

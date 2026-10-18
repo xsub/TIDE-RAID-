@@ -1,4 +1,4 @@
-export const VESSEL_MASS = {'boat-speed-c': 1400, 'boat-speed-a': 1800, 'boat-house-a': 4200, 'boat-tug-a': 3000, 'boat-speed-d': 1700};
+export const VESSEL_MASS = {'boat-speed-c': 1400, 'boat-speed-a': 1800, 'boat-house-a': 4200, 'boat-tug-a': 3000, 'boat-speed-d': 1700, 'boat-cat-42': 1600};
 
 export function bodyMass(body) {
   return Number.isFinite(body.mass) && body.mass > 0 ? body.mass : 1400;

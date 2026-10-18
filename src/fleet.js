@@ -4,7 +4,7 @@ import {TRAFFIC_TYPES} from './traffic.js';
 import {sampleWave} from './waves.js';
 
 export async function loadFleet() {
-  const names = ['boat-speed-c', ...TRAFFIC_TYPES.map((type) => type.model)];
+  const names = Object.keys(VESSEL_STYLES);
   const templates = new Map();
   for (const name of names) templates.set(name, createVessel(VESSEL_STYLES[name]));
   return (name, length) => {
