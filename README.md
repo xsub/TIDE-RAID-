@@ -57,6 +57,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ### Collision impulses
 
+Player steering now generates rudder torque rather than directly changing heading. Authority depends on forward water flow, immersion, rudder angle and yaw inertia; water resistance damps both steering and impact spin. The same input therefore turns heavier hulls more slowly. Effective flow is capped for stability; coefficients are tuned gameplay approximations, not measured naval data. Traffic retains its navigation controller, and dedicated reverse propulsion remains unimplemented.
+
 Player contacts settle in up to three fixed-order passes per motion interval, exiting early when clear. Very slow normal approaches below 0.5 m/s suppress bounce to reduce resting-contact jitter. Dense opposing constraints can exceed this work budget; this is not a global simultaneous-contact solver.
 
 Fast movement now uses deterministic subdivisions based on translation and hull-tip rotation. Each interval resolves contacts before continuing with the resulting velocity. Normal 120 Hz movement generally uses one interval; the cap is 32. Beyond this safety budget, leftover movement time is discarded. This reduces tunnelling but is not an exact swept time-of-impact solver; moving bodies advance sequentially and tiny/tangent contacts remain approximate.

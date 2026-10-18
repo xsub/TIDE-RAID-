@@ -2,6 +2,7 @@ import {sampleWave} from './waves.js';
 import {START_Z, channel, chunkFeatures, chunkIndex} from './world.js';
 import {settleContacts} from './contacts.js';
 import {advanceHull} from './motion.js';
+import {applyRudder} from './steering.js';
 
 export function channelHeading(z) {
   return Math.atan((channel(z + 1).center - channel(z - 1).center) / 2);
@@ -60,13 +61,12 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   const drag = Math.exp(-((0.1 + speed * 0.0045) * wet + 0.025) * dt);
   state.vx *= drag;
   state.vz *= drag;
-  const steeringRate = -input.turn * Math.min(0.25 + speed / 18, 1) * 0.9 * Math.max(0.12, wet) * (forward < -1 ? -1 : 1);
-  state.yawRate *= Math.exp(-(0.15+1.8*wet)*dt);
+  applyRudder(state,input.turn,forward,wet,dt);
   const planing = Math.min(speed / 45, 1) * wet;
   state.vy += (support * (1 + planing * 0.06) - 9.81) * dt;
   state.vy = Math.max(-12, Math.min(3.0, state.vy));
   let impact=false;
-  advanceHull(state,dt,steeringRate,(body) => {
+  advanceHull(state,dt,0,(body) => {
     impact=settleContacts(body,resolveTraffic)||impact;
   });
   state.y += state.vy * dt;

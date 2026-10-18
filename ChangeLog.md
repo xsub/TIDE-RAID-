@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Handling roadmap 1: rudder-driven yaw
+
+- Replaced direct player heading changes with a rudder-force approximation using water density, effective rudder area, squared water-relative forward speed, rudder angle and stern lever arm. Torque acts through hull yaw inertia; heavier vessels respond more slowly.
+- Rudder authority vanishes without flow or water contact, reverses with reverse flow, and shares the same yaw state as collision impulses. Analytical damped integration adds speed-dependent yaw resistance without an iterative solver. Effective flow is capped for stable arcade handling.
+- Added forward/reverse, stopped/airborne, mass/inertia response, release damping, long-run bounds and deterministic replay tests. All 67 tests and production build pass. Older handling records remain separate.
+- This is a tuned rudder approximation, not calibrated hydrodynamics; player thrust/planing and vessel dimensions remain shared. Reverse-flow torque is supported, but dedicated reverse throttle is not yet implemented. Traffic still uses its navigation heading controller.
+
 ## 2026-10-18 — Collision roadmap 3: bounded contact settling
 
 - Added up to three fixed-order scenery → dock → traffic contact passes per player motion interval, exiting early when clear. Removed the redundant outer dock check. This repairs contacts introduced by preceding corrections without an unbounded iterative solver.
