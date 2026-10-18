@@ -60,12 +60,12 @@ export function createWater(scene) {
 }
 
 export function createScenery(scene) {
-  const grass = naturalMaterial({color: 0xffffff, vertexColors: true, roughness: 1, side: THREE.DoubleSide},0.9);
-  const islandGrass = naturalMaterial({color: 0x56704b, roughness: 1, side: THREE.DoubleSide},0.9);
-  const sand = naturalMaterial({color: 0xd4bc90, roughness: 1, side: THREE.DoubleSide},2);
+  const grass = naturalMaterial({color: 0xc7cbb8, vertexColors: true, roughness: 1, side: THREE.DoubleSide},0.9,'grass');
+  const islandGrass = naturalMaterial({color: 0xa6b292, roughness: 1, side: THREE.DoubleSide},0.9,'grass');
+  const sand = naturalMaterial({color: 0xffffff, roughness: 1, side: THREE.DoubleSide},2,'sand');
   const beachSand = sand.clone(); beachSand.vertexColors = true;
   beachSand.onBeforeCompile=sand.onBeforeCompile;beachSand.customProgramCacheKey=sand.customProgramCacheKey;
-  const rock = naturalMaterial({color: 0x737b74, roughness: 0.95},1.8);
+  const rock = naturalMaterial({color: 0xffffff, roughness: 0.95},1.8,'rock');
   const stone = organicRock(20,14);
   const cylinder = sandyShore();
   const nature = createNature();

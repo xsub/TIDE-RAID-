@@ -16,7 +16,7 @@ export function createAtmosphere(scene, renderer) {
       void main() {
         vec3 direction = normalize(vDirection);
         float altitude = max(0.0, direction.y);
-        vec3 sky = mix(vec3(0.87,0.75,0.59), vec3(0.16,0.35,0.54), pow(altitude, 0.42));
+        vec3 sky = mix(vec3(0.67,0.75,0.79), vec3(0.16,0.35,0.54), pow(altitude, 0.42));
         float sun = max(0.0, dot(direction, uSun));
         sky += vec3(1.0,0.64,0.3) * pow(sun, 18.0) * 0.24;
         sky += vec3(4.0,3.2,2.1) * smoothstep(0.99965,0.9999,sun);
@@ -39,6 +39,6 @@ export function createAtmosphere(scene, renderer) {
   scene.environment = generator.fromScene(environmentScene, 0.04, 0.1, 2000).texture;
   generator.dispose();
   scene.add(sky);
-  scene.fog = new THREE.Fog(0xb2bcb2, 600, 1120);
+  scene.fog = new THREE.Fog(0x9eafb5, 600, 1120);
   return {update(time, camera) {uniforms.uTime.value = time; sky.position.copy(camera.position);}};
 }

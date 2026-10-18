@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Textured coast, cutout foliage and neutral lighting
+
+- Replaced solid pine/broadleaf crowns with shared 3D clusters of textured alpha-tested leaf/needle branches, including ground-level shrubs. Crowns use 168/176 triangles rather than the previous 512/~500; instancing, depth-writing cutouts and existing wind remain. Alpha testing introduces overdraw, so lower triangle counts alone do not guarantee faster rendering.
+- Added shared deterministic 256² rock, sand, meadow and bark albedo plus linear height/roughness textures, and two 128² foliage cutouts. Texture data totals 2.125 MiB before mipmaps (~2.83 MiB with mip chains); maps are generated once, reused across sectors and require no downloads. World-space mapping avoids dependence on terrain UVs; screen-derivative bump detail gives rock/sand/bark lighting relief.
+- Reduced bright ambient fill, warm cast and oversaturation, with cooler haze, matching water-sky color and a more neutral sun/exposure. Shadow-map size and postprocess resolution budgets are unchanged.
+- All 90 tests and production build pass. Tests cover shared/mipmapped color-space-correct texture budgets, foliage gaps/geometry bounds and material shader declarations. Fresh browser compiled without errors; a local settled coast-facing check showed ~88 FPS at 2240×1260 with cinematic effects, not a universal performance guarantee. Existing bundle-size advisory remains.
+- Limits: textures and foliage are procedural approximations, not photographed/scanned assets. Buildings/boats are unchanged and very close foliage still reveals cards. Physics, collisions and replay determinism are unchanged.
+
 ## 2026-10-18 — Organic scenery instead of faceted low-poly forms
 
 - Replaced cone-stack pine geometry with smooth irregular tiered crowns, faceted broadleaf/shrub forms with rounded deformed canopies, low-sided trunks/logs with smoother cylinders and dodecahedral rocks with deterministic weathered rounded meshes.

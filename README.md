@@ -57,6 +57,8 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ### Organic scenery
 
+Current scenery uses shared mipmapped albedo/height/roughness maps for meadow, sand, rock and bark; world-space mapping and derivative bump detail add lighting relief. Pine/broadleaf/shrub crowns use instanced alpha-tested branch/leaf cards rather than solid blobs. Base texture data is 2.125 MiB before mipmaps; texture generation is deterministic and happens once. More neutral sunlight, ambient fill and haze replace the earlier warm/saturated treatment. Cards reduce geometry but add alpha overdraw; device performance still needs measurement. These are procedural textures/cutouts, not photogrammetry or photographic foliage.
+
 Terrain and foliage no longer intentionally use flat faceted shading. Smooth irregular pine crowns, rounded broadleaf canopies/shrubs and weathered rocks share instanced geometry. Island/sandbank edges slope through 64-segment sandy profiles, with denser near-shore terrain sampling and procedural world-space surface variation. Fine grain fades with pixel footprint to limit shimmer. Streaming stays capped at seven sectors; physical collisions/world generation are unchanged. Geometry cost is higher than the earlier low-poly style. This is procedural naturalization, not photogrammetry or a claim of photorealistic assets.
 
 Personal bests are now separated by selected vessel. Slower hulls have provisional scaled medal targets shown on the start menu; these still need player balancing. Invalid finish times and malformed binding/replay allocations are rejected.

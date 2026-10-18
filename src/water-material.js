@@ -62,7 +62,7 @@ export function createWaterMaterial(uniforms) {
         vec3 waterColor = mix(vec3(0.065, 0.48, 0.35), vec3(0.012, 0.13, 0.17), deep);
         float caustic = pow(max(0.0, sin(rippleA * 0.3 + sin(rippleB * 0.25))), 12.0) * (1.0 - deep);
         waterColor += vec3(0.1, 0.21, 0.1) * caustic;
-        vec3 sky = mix(vec3(0.87, 0.76, 0.6), vec3(0.16, 0.35, 0.54), pow(max(0.0,reflection.y),0.42));
+        vec3 sky = mix(vec3(0.67, 0.75, 0.79), vec3(0.16, 0.35, 0.54), pow(max(0.0,reflection.y),0.42));
         vec2 cloudPoint = reflection.xz / max(0.18, reflection.y) * 2.4 + vec2(uTime * 0.0017, uTime * 0.0006);
         float reflectedCloud = sin(cloudPoint.x + sin(cloudPoint.y * 1.7)) * sin(cloudPoint.y * 0.8 + sin(cloudPoint.x * 1.3));
         sky = mix(sky, vec3(0.82,0.85,0.83), smoothstep(0.1,0.7,reflectedCloud) * smoothstep(0.03,0.2,reflection.y) * 0.32);
@@ -82,7 +82,7 @@ export function createWaterMaterial(uniforms) {
         float foam = clamp(crest + shoreFoam + wake * (0.7 + 0.3 * sin(rippleB)), 0.0, 0.88);
         color = mix(color, vec3(0.83, 0.95, 0.9), foam);
         float fog = smoothstep(650.0, 1120.0, distance(cameraPosition, vWorld));
-        color = mix(color, vec3(0.64, 0.69, 0.65), fog);
+        color = mix(color, vec3(0.6, 0.68, 0.71), fog);
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

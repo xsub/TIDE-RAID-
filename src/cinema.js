@@ -17,7 +17,7 @@ export function createCinema(renderer, scene, camera) {
       void main(){
         vec3 color = texture2D(tDiffuse,vUv).rgb;
         float luminance = dot(color,vec3(0.2126,0.7152,0.0722));
-        color = mix(vec3(luminance),color,1.07);
+        color = mix(vec3(luminance),color,1.0);
         color *= mix(vec3(0.96,1.005,1.025),vec3(1.025,1.01,0.98),smoothstep(0.05,1.0,luminance));
         vec2 corner = (vUv - 0.5) * 1.1;
         color *= 1.0 - dot(corner,corner) * 0.14;

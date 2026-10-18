@@ -1,20 +1,21 @@
 import * as THREE from 'three';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {natureLayout} from './nature.js';
-import {organicRock,organicPine,naturalMaterial} from './natural-surfaces.js';
+import {organicRock,naturalMaterial} from './natural-surfaces.js';
+import {foliageTexture,foliageCrown} from './land-textures.js';
 
 export function createNature() {
   const material = (color, doubleSide = false) => naturalMaterial({color, roughness: 1, side: doubleSide ? THREE.DoubleSide : THREE.FrontSide},0.8);
-  const wood = material(0x65513a);
-  const leaves = material(0x66834a);
-  const pineLeaves = material(0x3e6650);
+  const wood = naturalMaterial({color:0xffffff,roughness:1},1.5,'bark');
+  const leaves = material(0xffffff,true);
+  const pineLeaves = material(0xffffff,true);
+  for(const [surface,pine] of [[leaves,false],[pineLeaves,true]]){surface.map=foliageTexture(pine);surface.alphaTest=0.35;surface.alphaToCoverage=true;}
   const palmLeaves = material(0x74944e, true);
-  const stone = material(0x8b9180);
+  const stone = naturalMaterial({color:0xffffff,roughness:1},1.8,'rock');
   const grassMaterial = material(0x879d51, true);
   const flowerMaterial = material(0xffe2a4);
   const trunk = new THREE.CylinderGeometry(0.35, 0.65, 8, 12, 3).translate(0, 4, 0);
-  const pine = organicPine();
-  const broadleaf = mergeGeometries([organicRock(12,8).scale(4.7,4.7,4.3).translate(-2,9,0),organicRock(12,8).scale(4.5,4.5,4.5).translate(1.5,11,0),organicRock(12,8).scale(3.7,3.7,3.7).translate(0.2,8,2.4)]);
+  const pine = foliageCrown(true);
+  const broadleaf = foliageCrown(false);
   const palmVertices = [];
   for (let leaf = 0; leaf < 7; leaf++) {
     const angle = leaf / 7 * Math.PI * 2;
@@ -32,7 +33,7 @@ export function createNature() {
   const palm = new THREE.BufferGeometry();
   palm.setAttribute('position', new THREE.Float32BufferAttribute(palmVertices, 3));
   palm.computeVertexNormals();
-  const shrub = organicRock(10,7);
+  const shrub = foliageCrown(false).translate(0,-6.5,0);
   const rock = organicRock(12,8);
   const log = new THREE.CylinderGeometry(0.35, 0.45, 6, 12).rotateZ(Math.PI / 2);
   const blades = [];
@@ -106,7 +107,7 @@ export function createNature() {
       const layout = natureLayout(index);
       instances(group, trunk, wood, layout.trees, (item) => [item.scale, item.scale * (item.species === 'palm' ? 1.55 : 1), item.scale]);
       for (const [species, geometry, surface] of [['pine', pine, pineLeaves], ['broadleaf', broadleaf, leaves], ['palm', palm, palmLeaves]]) instances(group, geometry, surface, layout.trees.filter((item) => item.species === species), (item) => [item.scale, item.scale, item.scale]);
-      instances(group, shrub, leaves, layout.shrubs, (item) => [item.scale * 2.4, item.scale * 1.8, item.scale * 2]);
+      instances(group, shrub, leaves, layout.shrubs, (item) => [item.scale * 0.45, item.scale * 0.22, item.scale * 0.4]);
       instances(group, rock, stone, layout.rocks, (item) => [item.scale * 1.6, item.scale, item.scale * 1.3]);
       instances(group, reeds, grassMaterial, layout.grass, (item) => [item.scale * 1.4, item.scale, item.scale * 1.4]);
       instances(group, log, wood, layout.logs, (item) => [item.scale, item.scale, item.scale]);

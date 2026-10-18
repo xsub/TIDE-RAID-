@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {surfaceTextures} from './land-textures.js';
 
 export function organicRock(segments=16,rings=10) {
   const geometry=new THREE.SphereGeometry(1,segments,rings);
@@ -49,8 +50,12 @@ export function sandyShore() {
   geometry.setIndex(indices);geometry.computeVertexNormals();return geometry;
 }
 
-export function naturalMaterial(options,scale=1) {
+export function naturalMaterial(options,scale=1,kind=null) {
   const material=new THREE.MeshStandardMaterial({...options,flatShading:false});
+  if(kind) {
+    const textures=surfaceTextures(kind);material.map=textures.map;material.bumpMap=textures.detail;material.roughnessMap=textures.detail;
+    material.bumpScale=kind==='rock' ? 0.3 : kind==='bark' ? 0.14 : 0.06;
+  }
   material.onBeforeCompile=(shader)=>{
     shader.vertexShader=`varying vec3 vNaturalWorld;\n${shader.vertexShader}`;
     shader.vertexShader=shader.vertexShader.replace('#include <worldpos_vertex>',`#include <worldpos_vertex>
@@ -71,7 +76,14 @@ export function naturalMaterial(options,scale=1) {
       float detailFade=1.0-smoothstep(0.08,0.6,max(length(dFdx(surfacePoint)),length(dFdy(surfacePoint))));
       diffuseColor.rgb*=mix(0.76,1.08,surfaceVariation)*(1.0+(grain-0.5)*0.18*detailFade);
     `);
+    if(kind) {
+      const coordinate=`(vNaturalWorld.xz+vNaturalWorld.y*vec2(0.47,0.63))*${(scale*0.16).toFixed(4)}`;
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`diffuseColor*=texture2D(map,${coordinate});`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`float roughnessFactor=roughness*texture2D(roughnessMap,${coordinate}).g;`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`float surfaceHeight=texture2D(bumpMap,${coordinate}).r;
+        normal=perturbNormalArb(-vViewPosition,normal,vec2(dFdx(surfaceHeight),dFdy(surfaceHeight))*bumpScale,faceDirection);`);
+    }
   };
-  material.customProgramCacheKey=()=>`natural-surface-${scale}`;
+  material.customProgramCacheKey=()=>`natural-surface-${scale}-${kind}`;
   return material;
 }
