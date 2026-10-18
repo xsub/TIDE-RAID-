@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {channel, chunkFeatures, chunkIndex, CHUNK_SIZE, CHUNK_COUNT, START_Z} from './world.js';
 import {createWaterMaterial} from './water-material.js';
+import {createNature} from './nature-view.js';
+import {beachWidth, coastHeight, islandHeight} from './nature.js';
 
 export function createWater(scene) {
   const uniforms = {uTime: {value: 0}, uSwell: {value: 1}, uFaceted: {value: 0}, uBoat: {value: new THREE.Vector2()}, uHeading: {value: 0}, uSpeed: {value: 0}};
@@ -52,39 +54,36 @@ export function createWater(scene) {
 
 export function createScenery(scene) {
   const grass = new THREE.MeshStandardMaterial({color: 0xffffff, vertexColors: true, roughness: 1, side: THREE.DoubleSide});
-  const islandGrass = new THREE.MeshStandardMaterial({color: 0x56704b, roughness: 1});
+  const islandGrass = new THREE.MeshStandardMaterial({color: 0x56704b, roughness: 1, side: THREE.DoubleSide});
   const sand = new THREE.MeshStandardMaterial({color: 0xecc787, roughness: 1, flatShading: true, side: THREE.DoubleSide});
   const rock = new THREE.MeshStandardMaterial({color: 0x60777d, roughness: 1, flatShading: true});
   const stone = new THREE.DodecahedronGeometry(1, 0);
   const cylinder = new THREE.CylinderGeometry(0.86, 1, 1, 12);
-  const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.7, 7, 5);
-  const crownGeometry = new THREE.IcosahedronGeometry(1, 0);
-  const trunkMaterial = new THREE.MeshStandardMaterial({color: 0x68553d, roughness: 1});
-  const crownMaterial = new THREE.MeshStandardMaterial({color: 0x4a8551, roughness: 1, flatShading: true});
-  const sharedGeometry = new Set([stone, cylinder, trunkGeometry, crownGeometry]);
-  function elevation(x, z, distance) {
-    return 1.1 + distance * 0.045 + Math.sin(x * 0.017) * Math.sin(z * 0.012) * Math.min(12, distance * 0.15);
-  }
+  const nature = createNature();
+  const sharedGeometry = new Set([stone, cylinder, ...nature.shared]);
   const loaded = new Map();
   function strip(index, side, beach) {
     const positions = [];
     const indices = [];
     const colors = [];
-    const columns = beach ? 1 : 10;
-    for (let row = 0; row <= 20; row++) {
-      const z = START_Z - index * CHUNK_SIZE - row * CHUNK_SIZE / 20;
+    const distances = beach ? [0, 1] : [0, 8, 20, 40, 65, 100, 150, 220, 320, 450, 560, 700];
+    const columns = distances.length - 1;
+    const rows = 40;
+    for (let row = 0; row <= rows; row++) {
+      const z = START_Z - index * CHUNK_SIZE - row * CHUNK_SIZE / rows;
       const banks = channel(z);
       const edge = side === -1 ? banks.left : banks.right;
-      const inner = edge + side * (beach ? 0 : 9);
-      const outer = edge + side * (beach ? 9 : 700);
+      const beachSize = beachWidth(z, side);
       for (let column = 0; column <= columns; column++) {
-        const fraction = column / columns;
-        const x = inner + (outer - inner) * fraction;
-        positions.push(x, beach ? -0.45 + fraction * 1.55 : elevation(x, z, fraction * 691), z);
-        const shade = 0.85 + 0.15 * Math.sin(x * 0.023 + z * 0.011);
-        colors.push(0.32 * shade, 0.55 * shade, 0.30 * shade);
+        const distance = distances[column];
+        const x = edge + side * (beach ? distance * beachSize : beachSize + distance);
+        const height = beach ? -0.45 + distance * 1.55 : coastHeight(x, z, distance);
+        positions.push(x, height, z);
+        const shade = 0.82 + 0.18 * Math.sin(x * 0.023 + z * 0.011);
+        const meadow = 0.5 + 0.5 * Math.sin(x * 0.015 + Math.sin(z * 0.013));
+        colors.push((0.27 + meadow * 0.1) * shade, (0.43 + meadow * 0.08) * shade, (0.23 + meadow * 0.025) * shade);
       }
-      if (row < 20) {
+      if (row < rows) {
         for (let column = 0; column < columns; column++) {
           const base = row * (columns + 1) + column;
           indices.push(base, base + 1, base + columns + 1, base + 1, base + columns + 2, base + columns + 1);
@@ -98,19 +97,31 @@ export function createScenery(scene) {
     geometry.computeVertexNormals();
     return new THREE.Mesh(geometry, beach ? sand : grass);
   }
+  function islandSurface(radius) {
+    const positions = [];
+    const indices = [];
+    const segments = 24;
+    const rings = [0, 0.3, 0.6, 1];
+    rings.forEach((fraction, ring) => {
+      for (let angle = 0; angle < segments; angle++) {
+        const phase = angle / segments * Math.PI * 2;
+        positions.push(Math.cos(phase) * radius * fraction, islandHeight(fraction), Math.sin(phase) * radius * fraction);
+        if (ring === rings.length - 1) continue;
+        const inner = ring * segments + angle;
+        const next = ring * segments + (angle + 1) % segments;
+        indices.push(inner, next + segments, inner + segments, inner, next, next + segments);
+      }
+    });
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return new THREE.Mesh(geometry, islandGrass);
+  }
   function load(index) {
     const group = new THREE.Group();
     for (const side of [-1, 1]) group.add(strip(index, side, false), strip(index, side, true));
     const features = chunkFeatures(index);
-    const trees = [];
-    for (let tree = 0; tree < 48; tree++) {
-      const z = START_Z - index * CHUNK_SIZE - (tree % 24 + 0.5) * CHUNK_SIZE / 24;
-      const side = tree < 24 ? -1 : 1;
-      const distance = 15 + (0.5 + 0.5 * Math.sin(tree * 52.3 + index * 7.4)) * 110;
-      const banks = channel(z);
-      const x = (side < 0 ? banks.left : banks.right) + side * (9 + distance);
-      trees.push({x, z, y: elevation(x, z, distance), scale: 0.7 + 0.3 * Math.sin(tree * 3.9 + index)});
-    }
     for (const feature of features) {
       const {x, z, radius, kind} = feature;
       if (kind === 'rock') {
@@ -124,41 +135,23 @@ export function createScenery(scene) {
         rim.scale.set(radius, 2, radius);
         group.add(rim);
         if (kind === 'island') {
-          const top = new THREE.Mesh(cylinder, islandGrass);
-          top.position.set(x, 2, z);
-          top.scale.set(radius * 0.86, 3, radius * 0.86);
+          const top = islandSurface(radius * 0.86);
+          top.position.set(x, 0, z);
           group.add(top);
           const peak = new THREE.Mesh(stone, rock);
           peak.position.set(x, 6, z);
           peak.scale.set(radius * 0.3, 9, radius * 0.3);
           group.add(peak);
-          for (let tree = 0; tree < 6; tree++) {
-            const angle = tree * Math.PI / 3;
-            trees.push({x: x + Math.cos(angle) * radius * 0.5, z: z + Math.sin(angle) * radius * 0.5, y: 3.3, scale: 0.8});
-          }
         }
       }
     }
-    const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, trees.length);
-    const crowns = new THREE.InstancedMesh(crownGeometry, crownMaterial, trees.length);
-    const transform = new THREE.Object3D();
-    trees.forEach((tree, treeIndex) => {
-      transform.position.set(tree.x, tree.y + 3.5 * tree.scale, tree.z);
-      transform.scale.setScalar(tree.scale);
-      transform.updateMatrix();
-      trunks.setMatrixAt(treeIndex, transform.matrix);
-      transform.position.y = tree.y + 8 * tree.scale;
-      transform.scale.set(4.5 * tree.scale, 6 * tree.scale, 4 * tree.scale);
-      transform.rotation.y = treeIndex * 1.7;
-      transform.updateMatrix();
-      crowns.setMatrixAt(treeIndex, transform.matrix);
-    });
-    group.add(trunks, crowns);
+    nature.add(group, index);
     scene.add(group);
     loaded.set(index, group);
   }
   return {
-    update(z) {
+    update(z, time = 0) {
+      nature.update(time);
       const center = chunkIndex(z);
       const desired = new Set();
       for (let index = Math.max(0, center - 3); index <= Math.min(CHUNK_COUNT - 1, center + 3); index++) {

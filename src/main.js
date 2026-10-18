@@ -96,6 +96,7 @@ let bestSaved = true;
 let accumulator = 0;
 let lastFrame = performance.now();
 let hudTimer = 0;
+let lastMessage = '';
 const keys = new Set();
 const map = document.getElementById('map').getContext('2d');
 const cameraPosition = new THREE.Vector3();
@@ -353,7 +354,7 @@ function frame(now) {
   boat.position.set(state.x, state.y, state.z);
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed);
-  const chunks = scenery.update(state.z);
+  const chunks = scenery.update(state.z, simTime);
   trafficView?.(traffic, simTime, roughness);
   gateGroup.visible = race.phase === 'racing' || race.phase === 'countdown';
   if (gateGroup.visible) {
@@ -392,7 +393,10 @@ function frame(now) {
     if (!paused && race.phase === 'countdown') message = `<h2>${Math.ceil(race.countdown)}</h2><p>FOLLOW THE CHANNEL · AIM FOR ORANGE GATES</p>`;
     if (!paused && race.phase === 'finished') message = `<h2>${race.result.medal} · ${formatTime(race.result.time)}</h2><p>${traffic.overtakes} clean passes · ${race.collisions} impacts · ${race.penalty}s penalties<br>Best jump ${state.longestJump.toFixed(1)}s</p><p>${best}${bestSaved ? '' : ' · SESSION ONLY (saving unavailable)'}</p>${actions}`;
     if (!paused && complete && race.phase === 'explore') message = `EXPEDITION COMPLETE · BEST JUMP ${state.longestJump.toFixed(1)}s${actions}`;
-    if (elements.message.innerHTML !== message) elements.message.innerHTML = message;
+    if (lastMessage !== message) {
+      elements.message.innerHTML = message;
+      lastMessage = message;
+    }
     document.getElementById('controller').textContent = `CONTROLLER / ${pad.connected ? 'CONNECTED' : 'NOT CONNECTED'}`;
     const hints = [`Hold ${keyName('throttle')} / ↑ / RT to accelerate.`, `${keyName('left')} ${keyName('right')} / stick steer. Look ahead into the bend.`, `Hold ${keyName('boost')} / A for boost. Release to recharge.`, 'Pass between the orange posts. Use the scanner to plan your line.'];
     const lessonText = preferences.hints && !paused && !complete && race.phase === 'racing' && lesson.stage < hints.length ? hints[lesson.stage] : '';

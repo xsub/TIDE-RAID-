@@ -31,6 +31,10 @@ The next acceptance gate is observing 8–12 new players on this course: can the
 
 ## World
 
+### Coastal nature
+
+Streamed sectors contain clustered woodland and clearings with pines, broadleaf trees and occasional palms, plus shrubs, grasses, wildflowers, driftwood, rocky outcrops and flying seabirds. Plant sizes, colors and orientations vary deterministically. Beach width and rolling terrain vary along the route, and islands use planted grassy mounds. Nearby land has denser terrain sampling to support shoreline detail. Vegetation and wildlife are rendered with shared geometry and instanced batches; the existing seven-sector residency limit and cleanup apply. These details are decorative, so the river's navigable boundaries and gameplay obstacle layout are unchanged. The visual style remains consistent with the low-poly boats.
+
 ### Boats and traffic
 
 The player and traffic use actual low-poly models from [Watercraft Kit 2.1 by Kenney](https://kenney.nl/assets/watercraft-kit), licensed CC0. Five models and their shared palette texture are bundled under `public/assets/watercraft/`, along with the original `License.txt`. Assets load locally; no third-party asset server is needed during play. The procedural TR-07 remains a temporary loading/exploration fallback.
