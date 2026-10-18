@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 1: camera reliability
+
+- Exterior views now remember independent framing instead of leaking Chase manual tilt/zoom into Arcade or Wreck. Memories are validated on load; Pilot retains its own look settings. Added saved reduced-follow-motion option. Existing coastal camera clearance remains; vegetation/building collision is not yet modeled.
+
 ## 2026-10-18 — Higher exploration swell range
 
 - Exploration now starts/restarts at 2× swell (the old maximum); the slider now reaches 4× (double the old maximum), retaining calm 0×. CPU hull sampling and GPU waves continue using the same multiplier, with no tessellation or solver changes.

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {rememberCamera} from './camera-memory.js';
 import {DEFAULT_SWELL, MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
@@ -87,6 +88,7 @@ document.getElementById('app').innerHTML = `
       <small>Exploration only · 1× original / 2× deeper / 4× very deep. Maximum 80 m; shorelines and shallow banks remain. Changing depth restarts exploration.</small>
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
+      <label><input id="reducedCameraMotion" type="checkbox" style="width:auto"> REDUCED CAMERA MOTION · NO FOLLOW LAG</label>
       <small>Wreck inspection follows the hull underwater. Orbit, tilt and zoom work; manual height is ignored. V resets the current view to its default.</small>
       <small id="pilotHint" hidden>Pilot view: drag with the left or right mouse button to look around, or use J/L and I/K (±75° tilt). V / Reset Camera looks straight ahead. Eye stays at the helm, including the sink-with-boat option. Exterior hull is hidden; no detailed cockpit interior yet. Zoom and height remain exterior-only. Driving remaps take priority over V.</small>
       <label for="mouseLookSensitivity">DRIVER MOUSE SENSITIVITY <output id="mouseLookSensitivityValue"></output></label>
@@ -360,10 +362,12 @@ function rescue() {
   }
 }
 function toggleCamera() {
+  rememberCamera(preferences, mode, ({chase: 'pilot', pilot: 'arcade', arcade: 'wreck', wreck: 'chase'})[mode]);
   mode = ({chase: 'pilot', pilot: 'arcade', arcade: 'wreck', wreck: 'chase'})[mode];
   elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`;
   preferences.camera = mode;
   document.getElementById('cameraView').value = mode;
+  setCameraAngle(preferences.cameraAngle); setCameraZoom(preferences.cameraZoom); syncCameraPlacement();
   snapCamera();
   persistPreferences();
 }
@@ -546,7 +550,9 @@ document.getElementById('cameraView').value = mode;
 document.getElementById('pilotSinkWithBoat').checked = preferences.pilotSinkWithBoat;
 document.getElementById('pilotSinkWithBoat').onchange = (event) => {preferences.pilotSinkWithBoat = event.target.checked; persistPreferences();};
 document.getElementById('cameraView').onchange = (event) => {
+  rememberCamera(preferences, mode, event.target.value);
   mode = event.target.value; preferences.camera = mode;
+  setCameraAngle(preferences.cameraAngle); setCameraZoom(preferences.cameraZoom); syncCameraPlacement();
   elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`; persistPreferences(); snapCamera();
 };
 document.getElementById('floodingDrill').onclick = () => {
@@ -554,6 +560,8 @@ document.getElementById('floodingDrill').onclick = () => {
   voyage.hull = preferences.sinkingMode === 'arcade' ? 0 : 0.08;
 };
 let weatherEpoch = 0;
+document.getElementById('reducedCameraMotion').checked = preferences.reducedCameraMotion;
+document.getElementById('reducedCameraMotion').onchange = (event) => {preferences.reducedCameraMotion = event.target.checked; persistPreferences(); snapCamera();};
 for (const name of ['weather', 'hour', 'dayCycle', 'cycleMinutes', 'wind', 'windAngle', 'glow']) {
   const control = document.getElementById(name);
   if (control.type === 'checkbox') control.checked = preferences[name]; else control.value = preferences[name];
@@ -806,6 +814,7 @@ function frame(now) {
   if (mode === 'pilot') smoothPilotLook(pilotLook, pilotLookTarget, elapsed, preferences.pilotLookSmoothing, pilotLook);
   cameraGoal();
   camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
+  if (preferences.reducedCameraMotion) {camera.position.copy(cameraPosition); smoothLook.copy(lookTarget);}
   if (mode === 'pilot') smoothLook.copy(lookTarget);
   else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   if (mode !== 'pilot') clearCameraTerrain(camera.position, smoothLook, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(camera.position.x, camera.position.z, simTime, roughness).h + 1);

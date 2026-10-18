@@ -1,4 +1,5 @@
 import {isPlayerBoat} from './player-boats.js';
+import {cameraMemory} from './camera-memory.js';
 
 export const DEFAULT_BINDINGS = {throttle: 'KeyW', brake: 'KeyS', left: 'KeyA', right: 'KeyD', boost: 'ShiftLeft', recover: 'KeyH', camera: 'KeyC', pause: 'KeyP', reset: 'KeyR', reverse: 'KeyB'};
 export const isBindable = (code) => /^(Key[A-Z]|Digit[0-9]|Arrow(Up|Down|Left|Right)|Shift(Left|Right)|Space)$/.test(code);
@@ -8,6 +9,7 @@ export function readPreferences(storage) {
   try {saved = JSON.parse(storage.getItem('tide-raid-preferences-v1'));} catch {}
   const defaults = {detail: 75, camera: 'chase', cameraAngle: 20, sensitivity: 1, volume: 0.65, music: 0.32, effects: 0.65, traffic: 0.65, ambience: 0.55, cinema: true, hints: true, bindings: {...DEFAULT_BINDINGS}};
   defaults.playerBoat = 'boat-speed-c';
+  defaults.cameraViews = {}; defaults.reducedCameraMotion = false;
   defaults.shallowThreshold = 1; defaults.shallowMuted = false;
   defaults.riverDepth = 2;
   defaults.pilotSinkWithBoat = false;
@@ -18,6 +20,8 @@ export function readPreferences(storage) {
   defaults.cameraZoom = 1;
   defaults.manualCamera = false; defaults.cameraElevation = 30; defaults.cameraHeight = 15;
   if (!saved || typeof saved !== 'object') return defaults;
+  defaults.cameraViews = cameraMemory(saved.cameraViews);
+  if (typeof saved.reducedCameraMotion === 'boolean') defaults.reducedCameraMotion = saved.reducedCameraMotion;
   if (Number.isFinite(saved.mouseLookSensitivity) && saved.mouseLookSensitivity >= 0.25 && saved.mouseLookSensitivity <= 3) defaults.mouseLookSensitivity = saved.mouseLookSensitivity;
   if (Number.isFinite(saved.pilotLookSmoothing) && saved.pilotLookSmoothing >= 0 && saved.pilotLookSmoothing <= 1) defaults.pilotLookSmoothing = saved.pilotLookSmoothing;
   if (Number.isFinite(saved.pilotYaw) && saved.pilotYaw >= -180 && saved.pilotYaw <= 180) defaults.pilotYaw = saved.pilotYaw;
