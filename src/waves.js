@@ -1,4 +1,5 @@
 import {sampleBoundary, boundaryGLSL} from './water-boundary.js';
+import {harborWater, harborGLSL} from './harbor-water.js';
 
 // Shared analytical water field. Rendered mesh and hull contact sample the same function.
 export const components = [
@@ -28,11 +29,13 @@ export function sampleWave(x,z,t,roughness=1){
   const phase = distance*0.9-t*2.6;
   const reflected = envelope*Math.sin(phase);
   const radialDerivative = envelopeDerivative*Math.sin(phase)+(boundary.distance>0 ? envelope*0.9*Math.cos(phase) : 0);
-  return {h:h*attenuation+reflected,dx:dx*attenuation+(h*attenuationDerivative+radialDerivative)*boundary.dx,dz:dz*attenuation+(h*attenuationDerivative+radialDerivative)*boundary.dz,dt:dt*attenuation-envelope*2.6*Math.cos(phase)};
+  const shelter = harborWater(x,z); const height = h*attenuation+reflected;
+  return {h:height*shelter.scale,dx:(dx*attenuation+(h*attenuationDerivative+radialDerivative)*boundary.dx)*shelter.scale+height*shelter.dx,dz:(dz*attenuation+(h*attenuationDerivative+radialDerivative)*boundary.dz)*shelter.scale+height*shelter.dz,dt:(dt*attenuation-envelope*2.6*Math.cos(phase))*shelter.scale};
 }
 
 export const waveGLSL = `
 ${boundaryGLSL}
+${harborGLSL}
 void tideWaveBoundary(vec2 point, float time, float roughness, float boundaryDistance, vec2 boundaryGradient, out float height, out vec2 slope) {
   height = 0.0;
   slope = vec2(0.0);
@@ -54,6 +57,8 @@ void tideWaveBoundary(vec2 point, float time, float roughness, float boundaryDis
   float radialDerivative = envelopeDerivative*sin(phase)+(boundaryDistance>0.0 ? envelope*0.9*cos(phase) : 0.0);
   slope = slope*attenuation+(height*attenuationDerivative+radialDerivative)*boundaryGradient;
   height = height*attenuation+envelope*sin(phase);
+  float shelter;vec2 shelterGradient;harborField(point,shelter,shelterGradient);
+  slope=slope*shelter+height*shelterGradient;height*=shelter;
 }
 void tideWave(vec2 point, float time, float roughness, out float height, out vec2 slope) {
   float distance; vec2 gradient;

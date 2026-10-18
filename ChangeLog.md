@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 2026-10-18 — Roadmap 5: sheltered harbor water
+
+- Service harbors now shelter exploration waves within a smooth 60 m radius, reducing local amplitude to 30% at the dock. CPU height/slope/time derivative and GPU water use matching shelter fields, including the spatial slope derivative. Trial and Cargo Lab waves remain unsheltered.
+- Existing mooring/fuel/repair facilities now have visibly calmer water. This is a bounded analytical shelter field, not breakwater diffraction; moored fleet assets and a separate docking challenge remain deferred. Full tests and both builds pass before this commit.
+
 ## 2026-10-18 — Roadmap 4: living weather
 
 - Added saved Living Weather toggle with deterministic slow gusts and wave sets driven by wind strength. Exploration effective swell varies within ±20% of the selected base (still capped at 4×); shared CPU/render samples receive the same effective multiplier. Trials retain fixed swell. Windless/disabled weather remains steady.

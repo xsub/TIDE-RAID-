@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {setHarborShelter} from './harbor-water.js';
 import {propulsionResponse} from './propulsion-response.js';
 import {wakeResponse} from './wake-response.js';
 import {rememberCamera} from './camera-memory.js';
@@ -328,6 +329,7 @@ gateGroup.add(gateLine);
 scene.add(gateGroup);
 
 function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
+  setHarborShelter(phase === 'explore');
   audio.setClearanceWarning(null, preferences.shallowThreshold, preferences.shallowMuted, false);
   if (phase !== 'explore' && !trafficView) return;
   state = createState(preferences.playerBoat);
@@ -785,6 +787,7 @@ function frame(now) {
   document.getElementById('cameraHeight').disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
   const weather = weatherState(preferences, simTime - weatherEpoch);
+  weather.harborShelter = exploring;
   const displayedHour = Math.floor(weather.hour * 60);
   document.getElementById('hourValue').textContent = `${String(Math.floor(displayedHour / 60)).padStart(2, '0')}:${String(displayedHour % 60).padStart(2, '0')}`;
   document.getElementById('cycleValue').textContent = `${preferences.cycleMinutes} minutes`;

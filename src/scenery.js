@@ -13,6 +13,7 @@ export function createWater(scene) {
   boundary.generateMipmaps = false; boundary.needsUpdate = true;
   const uniforms = {uTime: {value: 0}, uSwell: {value: 1}, uFaceted: {value: 0}, uBoat: {value: new THREE.Vector2()}, uHeading: {value: 0}, uSpeed: {value: 0}, uDay: {value: 1}, uCloud: {value: 0}, uGlow: {value: 0}, uSunDirection: {value: new THREE.Vector3(-0.58, 0.46, -0.67).normalize()}};
   uniforms.uBoundary = {value: boundary};
+  uniforms.uHarborShelter = {value: 0};
   uniforms.uHeadlight = {value: 1};
   const material = createWaterMaterial(uniforms);
   const group = new THREE.Group();
@@ -49,6 +50,7 @@ export function createWater(scene) {
     setDetail,
     update(x, z, time, swell, heading = 0, speed = 0, weather = null) {
       if (weather) {
+        uniforms.uHarborShelter.value = weather.harborShelter ? 1 : 0;
         uniforms.uHeadlight.value = weather.headlight ?? 1;
         uniforms.uDay.value = weather.daylight; uniforms.uCloud.value = weather.cloud; uniforms.uGlow.value = weather.glow;
         uniforms.uSunDirection.value.set(-0.58, Math.max(0.05, weather.elevation), -0.67).normalize();
