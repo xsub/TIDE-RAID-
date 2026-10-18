@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {cameraKeyMotion} from './camera-keys.js';
 import {sampleWave} from './waves.js';
 import {floodedHandling, resetSinking, settleFloodedHull} from './sinking.js';
 import {createSinkingBubbles} from './sinking-bubbles.js';
@@ -102,6 +103,7 @@ document.getElementById('app').innerHTML = `
       </select>
       <small>Scroll over the water to zoom. Wide shows the channel; Close and Detail enlarge the boat. Chase stops at a safe hull distance.</small>
       <label for="cameraAngle">CAMERA ORBIT <output id="cameraAngleValue"></output></label>
+      <small>Hold J / L to orbit · I / K to raise / lower the viewing angle (enables manual tilt). Pilot view stays fixed; wreck view supports orbit only. Remapped driving keys take priority.</small>
       <input id="cameraAngle" type="range" min="0" max="360" step="1" value="20">
       <small>0° rear · 90° side · 180° front · 270° side. Or right-drag the water. Steering stays boat-relative.</small>
       <button id="cameraRear">RESET CAMERA / REAR QUARTER</button>
@@ -387,11 +389,12 @@ function setCameraAngle(angle) {
   document.getElementById('cameraAngleValue').textContent = `${Math.round(angle)}°`;
 }
 setCameraAngle(preferences.cameraAngle);
+let cameraKeysDirty = false; let cameraKeysIdle = 0;
 function syncCameraPlacement() {
   document.getElementById('manualCamera').checked = preferences.manualCamera;
   document.getElementById('cameraElevation').value = preferences.cameraElevation;
   document.getElementById('cameraHeight').value = preferences.cameraHeight;
-  document.getElementById('cameraElevationValue').textContent = `${preferences.cameraElevation}°`;
+  document.getElementById('cameraElevationValue').textContent = `${Math.round(preferences.cameraElevation)}°`;
   document.getElementById('cameraHeightValue').textContent = `${preferences.cameraHeight} m (before zoom)`;
 }
 syncCameraPlacement();
@@ -460,7 +463,7 @@ addEventListener('keydown', (event) => {
     }
     return;
   }
-  if (event.target.matches('input, textarea, select')) return;
+  if (event.target.matches('input, textarea, select, [contenteditable="true"]') || event.ctrlKey || event.metaKey || event.altKey) return;
   if (event.key === '?') {
     event.preventDefault();
     if (!event.repeat) performanceOverlay.toggle();
@@ -475,7 +478,10 @@ addEventListener('keydown', (event) => {
   if (event.code === preferences.bindings.recover) rescue();
   if (event.code === 'Enter' && (race.phase === 'ready' || race.phase === 'finished')) reset('countdown');
 });
-addEventListener('keyup', (event) => keys.delete(event.code));
+addEventListener('keyup', (event) => {
+  keys.delete(event.code);
+  if (cameraKeysDirty && ['KeyI', 'KeyJ', 'KeyK', 'KeyL'].includes(event.code)) {persistPreferences(); cameraKeysDirty = false;}
+});
 addEventListener('blur', () => {keys.clear(); if (!paused) togglePause();});
 document.addEventListener('visibilitychange', () => {if (document.hidden && !paused) togglePause();});
 for (const button of document.querySelectorAll('[data-key]')) {
@@ -619,6 +625,19 @@ function frame(now) {
   const frameMilliseconds = now - lastFrame;
   const elapsed = Math.min(frameMilliseconds / 1000, 0.05);
   lastFrame = now;
+  const editing = pendingBinding || document.activeElement?.matches('input, textarea, select, [contenteditable="true"]');
+  const cameraMotion = cameraKeyMotion(editing ? new Set() : keys, preferences.bindings, mode, elapsed);
+  if (cameraMotion.orbit || cameraMotion.tilt) {
+    if (cameraMotion.orbit) setCameraAngle((preferences.cameraAngle + cameraMotion.orbit + 360) % 360);
+    if (cameraMotion.tilt) {
+      preferences.cameraElevation = Math.max(5, Math.min(85, preferences.cameraElevation + cameraMotion.tilt));
+      preferences.manualCamera = true; syncCameraPlacement();
+    }
+    cameraKeysDirty = true; cameraKeysIdle = 0;
+  } else if (cameraKeysDirty) {
+    cameraKeysIdle += elapsed;
+    if (cameraKeysIdle > 0.4) {persistPreferences(); cameraKeysDirty = false;}
+  }
   const pad = readGamepad(navigator.getGamepads?.() ?? []);
   if (pad.camera && !previousPad.camera) toggleCamera();
   if (pad.recover && !previousPad.recover) rescue();

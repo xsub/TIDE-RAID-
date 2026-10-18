@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — IJKL camera keyboard controls
+
+- Hold J/L for 360-degree left/right orbit and I/K for higher/lower viewing angle in Chase/Arcade. Tilt automatically enables existing manual placement, clamps to 5–85 degrees and keeps current height. Controls and saved preferences stay synchronized; writes occur on release/idle rather than every frame.
+- Pilot remains fixed; wreck supports J/L orbit but retains its protected tilt. Driving remaps take priority over camera keys, typing/remapping suppresses movement and existing blur clearing prevents stuck keys. Camera can be adjusted while paused without advancing boat physics.
+- All 160 tests and both production entry builds pass, including direction, opposing-key cancellation, simultaneous controls, mode restrictions, remap conflicts and frame-time bounds. Existing shared-bundle advisory remains.
+
 ## 2026-10-18 — Express and offshore cruisers
 
 - Added two selectable reference-inspired white deep-V express cruisers: Express 37 (11.2 m, 5.8 t, twin outboards) and Offshore 44 (13.4 m, 8.5 t, triple outboards). Enclosed glazed hardtops, sloped windshields, cabin windows/hatches, rails, cockpit seating and radar distinguish them from the existing flybridge cruiser.
