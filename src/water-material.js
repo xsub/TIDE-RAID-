@@ -28,6 +28,7 @@ export function createWaterMaterial(uniforms) {
       uniform float uDay;
       uniform float uCloud;
       uniform float uGlow;
+      uniform float uHeadlight;
       uniform vec3 uSunDirection;
       varying vec3 vWorld;
       ${waveGLSL}
@@ -90,7 +91,7 @@ export function createWaterMaterial(uniforms) {
         color *= mix(vec3(0.13,0.22,0.34),vec3(1.0-uCloud*0.23),uDay);
         float beamDistance = max(0.0,-aft);
         float headlight = exp(-across*across/max(2.0,beamDistance*0.18))*smoothstep(0.0,7.0,beamDistance)*exp(-beamDistance*0.065);
-        color += (1.0-uDay)*vec3(0.13,0.2,0.25)*headlight;
+        color += uHeadlight*(1.0-uDay)*vec3(0.13,0.2,0.25)*headlight;
         color += uGlow*vec3(0.03,0.65,0.47)*wake*1.4;
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>

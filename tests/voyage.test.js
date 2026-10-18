@@ -27,7 +27,7 @@ test('damage scales with energy and rules, ignores sustained contact and stays b
 test('optional sinking and fuel remain deterministic and bounded; no sinking stays afloat', () => {
   const run = () => {
     const voyage = createVoyage(); voyage.hull = 0;
-    for (let frame = 0; frame < 4000; frame++) tickVoyage(voyage, createState(), input, rules, 1 / 120);
+    for (let frame = 0; frame < 4000; frame++) tickVoyage(voyage, {...createState(), y: 0}, input, rules, 1 / 120);
     return voyage;
   };
   assert.deepEqual(run(), run()); assert.equal(run().flooding, 1); assert.equal(voyageDrive(run()), false);

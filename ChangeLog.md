@@ -1,5 +1,14 @@
 # ChangeLog
 
+## 2026-10-18 — Progressive flooding, buoyancy loss and escaping-air bubbles
+
+- Replaced exploration's fixed 3 m visual sinking offset with four aggregate flood compartments. Realistic inflow follows damaged opening severity and local water head with biased bow/stern/port/starboard rates; Arcade retains predictable wreck filling. Water persists until harbor pumping/recovery rather than disappearing after damage stops.
+- Temporary added mass, increased draft, a free-surface CG penalty, reduced propulsion and late-stage support loss feed the hull step; dry design parameters are restored after each tick. Uneven fills add smoothed list/trim. Submerged drag and depth/shallows limits bound settling. Engines/lamps/headlight footprint cut out at severe flooding, surface wakes stop and camera stays above water. Trial physics uses the unchanged default flotation argument; records/replays and Cargo Lab are untouched.
+- Added seeded escaping-air/rising bubbles and expanding/popping surface rings: one 192-point reusable buffer/material, at most 12 emissions/sec, finite trapped-air proxy, automatic retirement and reset. Opaque water hides submerged sprites naturally; no particle-fluid or air-pressure simulation is claimed.
+- HUD shows estimated onboard litres and ingress L/s. Added an exploration-only flooding drill and kept no-sinking, service pumps and immediate emergency Recover. Leak locations are damage/bias approximations, not impact-derived breach geometry; compartment interconnection, trapped-air pressure and full floodwater forces/torques remain unmodeled.
+- All 127 tests pass, including all-hull bounded sinking, exact repeatability, pressure/no-sinking behavior, retained floodwater, repair/recovery and bubble-pool replay/reset. Both production pages build; existing shared-bundle advisory remains.
+- Browser flooding drill reached ~88% flooding with the deck sinking through the water and visible surface bubble rings; emergency Recover restored 40% hull and cleared flooding without runtime errors. Visual particle visibility depends on camera distance and opaque-water occlusion.
+
 ## 2026-10-18 — Camera elevation and water-relative height
 
 - Added saved manual camera elevation (5–85° above horizontal water) and height (3–500 m), independently of 360° orbit. Sliders enable manual placement; a button restores existing automatic chase/arcade placement without resetting orbit/zoom.

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import {sampleWave} from './waves.js';
+import {floodedHandling, resetSinking, settleFloodedHull} from './sinking.js';
+import {createSinkingBubbles} from './sinking-bubbles.js';
 import {weatherState} from './weather.js';
 import {createRain} from './weather-view.js';
 import {createVesselLights} from './vessel-lights.js';
@@ -56,6 +58,7 @@ document.getElementById('app').innerHTML = `
         <label for="damageMode">DAMAGE MODEL</label><select id="damageMode"><option value="arcade">Arcade · forgiving wear</option><option value="realistic">Realistic · harsher impacts</option></select>
         <label for="sinkingMode">SINKING</label><select id="sinkingMode"><option value="off">Disallowed · stay afloat</option><option value="arcade">Arcade · sink only when wrecked</option><option value="realistic">Realistic · progressive flooding</option></select>
         <label for="fuelMode">FUEL CONSUMPTION</label><select id="fuelMode"><option value="off">Unlimited fuel</option><option value="arcade">Arcade · shorter fuel strategy</option><option value="realistic">Realistic · estimated engine load</option></select>
+        <button id="floodingDrill">START FLOODING DRILL</button><small>Exploration with sinking enabled only: damages the hull for practice. H / Recover ends the drill and pumps the water out.</small>
         <small>Exploration only. Realistic means game approximation. Green + stations repair/refuel free: stop below 5 km/h, release throttle for 1.5 seconds. H / Recover provides rescue and emergency fuel. Changing rules restarts exploration. Time trials keep original rules.</small>
       </details>
       <button id="exportReplay">EXPORT PHYSICS REPLAY</button><small>Up to 10 minutes, local input/state diagnostics only. No upload.</small>
@@ -154,6 +157,7 @@ let wearView = null;
 let voyage = createVoyage();
 scene.add(boat);
 const spray = createSpray(scene);
+const sinkingBubbles = createSinkingBubbles(scene);
 let state = createState(preferences.playerBoat);
 state.mass = VESSEL_MASS[preferences.playerBoat];
 let traffic = createTraffic(state);
@@ -283,6 +287,7 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   if (phase !== 'explore' && !trafficView) return;
   state = createState(preferences.playerBoat);
   voyage = createVoyage();
+  sinkingBubbles.reset();
   state.mass = VESSEL_MASS[preferences.playerBoat];
   traffic = createTraffic(state);
   replayTape=createReplayTape(state,traffic);
@@ -309,7 +314,7 @@ function rescue() {
   recover(state, simTime, roughness);
   if (race.phase === 'explore') {
     voyage.hull = Math.max(0.4, voyage.hull); voyage.fuel = Math.max(0.2, voyage.fuel);
-    voyage.flooding = 0; voyage.mooring = 0; voyage.servicing = false;
+    resetSinking(voyage); sinkingBubbles.reset(); voyage.mooring = 0; voyage.servicing = false;
   }
 }
 function toggleCamera() {
@@ -326,7 +331,8 @@ function togglePause() {
 }
 function cameraGoal() {
   const waterHeight = sampleWave(state.x, state.z, simTime, roughness).h;
-  const pose = cameraPose(state, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
+  const cameraState = race.phase === 'explore' && voyage.flooding > 0.2 ? {...state, y: Math.max(state.y, waterHeight + 0.2)} : state;
+  const pose = cameraPose(cameraState, mode, preferences.cameraAngle, camera.aspect, innerWidth < innerHeight, channel(state.z).width * 2, preferences.cameraZoom,
     preferences.manualCamera ? {elevation: preferences.cameraElevation, height: preferences.cameraHeight, waterHeight} : null);
   const horizontal = Math.hypot(pose.x - pose.lookX, pose.z - pose.lookZ);
   document.getElementById('cameraActual').textContent = `Actual: ${(pose.y - waterHeight).toFixed(1)} m · ${(Math.atan2(pose.y - pose.lookY, horizontal) * 180 / Math.PI).toFixed(1)}°`;
@@ -454,6 +460,10 @@ for (const button of document.querySelectorAll('[data-key]')) {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(pressedCode));
 }
 document.getElementById('camera').onclick = toggleCamera;
+document.getElementById('floodingDrill').onclick = () => {
+  if (race.phase !== 'explore' || preferences.sinkingMode === 'off') return;
+  voyage.hull = preferences.sinkingMode === 'arcade' ? 0 : 0.08;
+};
 let weatherEpoch = 0;
 for (const name of ['weather', 'hour', 'dayCycle', 'cycleMinutes', 'wind', 'windAngle', 'glow']) {
   const control = document.getElementById(name);
@@ -593,14 +603,24 @@ function frame(now) {
       const driveInput = {...input, throttle: input.throttle && canDrive, reverse: input.reverse && canDrive, boost: boosting && canDrive};
       if (!exploring) replayTape.record(driveInput,simTime,roughness);
       const fullPower = state.power;
+      const dryMass = state.mass; const dryDraft = state.draft; const dryCG = state.cgHeight;
+      const flooded = exploring ? floodedHandling(voyage, state) : null;
+      if (flooded) {state.mass = flooded.mass; state.draft = flooded.draft; state.cgHeight = flooded.cgHeight; state.power *= flooded.power;}
       if (exploring && preferences.damageMode === 'realistic') state.power *= 0.35 + 0.65 * voyage.hull;
       step(state, driveInput, 1 / 120, simTime, roughness, trafficView ? (body) => {
+        if (exploring && voyage.flooding > 0.8) return false;
         let hit=false;
         for(const ship of traffic.boats) hit=collideTraffic(body,ship)||hit;
         return hit;
-      } : null);
+      } : null, flooded?.buoyancy ?? 1);
       state.power = fullPower;
-      if (exploring) tickVoyage(voyage, state, driveInput, preferences, 1 / 120);
+      state.mass = dryMass; state.draft = dryDraft; state.cgHeight = dryCG;
+      if (exploring) {
+        const surface = sampleWave(state.x, state.z, simTime, roughness).h;
+        tickVoyage(voyage, state, driveInput, preferences, 1 / 120, surface);
+        settleFloodedHull(state, voyage, surface, 1 / 120);
+        sinkingBubbles.update(state, voyage, 1 / 120, simTime, roughness, preferences.sinkingMode !== 'off');
+      }
       if (trafficView) updateTraffic(traffic, state, 1 / 120);
       if (!exploring) replayTape.seal(state,traffic);
       spray.update(state, simTime, 1 / 120, roughness);
@@ -626,9 +646,11 @@ function frame(now) {
   document.getElementById('windValue').textContent = `${preferences.wind}%`;
   document.getElementById('windAngleValue').textContent = `${preferences.windAngle}°`;
   const exploring = race.phase === 'explore';
+  weather.headlight = exploring && voyage.flooding >= 0.75 ? 0 : 1;
   if (trafficView && !wearView) wearView = createWearView(boat);
   wearView?.update(voyage, state, exploring);
-  if (exploring) {boat.position.y -= voyage.flooding * 3; boat.rotation.z += voyage.flooding * 0.65;}
+  if (exploring) {boat.rotation.z += voyage.sinking.list; boat.rotation.x += voyage.sinking.trim;}
+  document.getElementById('floodingDrill').disabled = !exploring || preferences.sinkingMode === 'off';
   serviceView.update(state.z, exploring);
   document.getElementById('hullLabel').hidden = !exploring;
   document.getElementById('fuelLabel').hidden = !exploring;
@@ -637,16 +659,16 @@ function frame(now) {
   if (exploring) {
     const nearest = SERVICE_STATIONS.reduce((best, candidate) => Math.hypot(candidate.x - state.x, candidate.z - state.z) < Math.hypot(best.x - state.x, best.z - state.z) ? candidate : best);
     const status = voyage.flooding >= 1 ? 'SUNK · H / RECOVER' : voyage.servicing ? 'MOORED · REPAIRING + REFUELING' : voyage.flooding > 0.1 ? `FLOODING ${Math.round(voyage.flooding * 100)}% · SEEK SERVICE / H` : !voyageDrive(voyage) ? 'STRANDED · H / RECOVER' : voyage.fuel < 0.2 ? 'LOW FUEL · SEEK GREEN +' : 'VOYAGE';
-    document.getElementById('voyageStatus').textContent = `${status} · HULL ${Math.round(voyage.hull * 100)}% · FUEL ${Math.round(voyage.fuel * 100)}% · ${nearest.name} ${Math.round(Math.hypot(nearest.x - state.x, nearest.z - state.z))} m`;
+    document.getElementById('voyageStatus').textContent = `${status} · HULL ${Math.round(voyage.hull * 100)}% · FUEL ${Math.round(voyage.fuel * 100)}% · ${voyage.flooding > 0 ? `WATER ${Math.round(voyage.flooding * state.mass * 1.12 / 1.025)} L / ${voyage.sinking.ingress.toFixed(1)} L/s · ` : ''}${nearest.name} ${Math.round(Math.hypot(nearest.x - state.x, nearest.z - state.z))} m`;
   } else document.getElementById('voyageStatus').textContent = '';
-  water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed, weather);
+  water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 || (exploring && voyage.flooding > 0.55) ? 0 : state.speed, weather);
   const chunks = scenery.update(state.z, simTime,state.x, weather.night);
   trafficView?.(traffic, simTime, roughness, weather.night, state);
   if (!playerLights || playerLightModel !== preferences.playerBoat) {
     if (playerLights) {scene.remove(playerLights); playerLights.children[0].geometry.dispose();}
     playerLights = createVesselLights(state.length, state.beam); scene.add(playerLights); playerLightModel = preferences.playerBoat;
   }
-  playerLights.position.copy(boat.position); playerLights.rotation.copy(boat.rotation); playerLights.visible = weather.night > 0.1;
+  playerLights.position.copy(boat.position); playerLights.rotation.copy(boat.rotation); playerLights.visible = weather.night > 0.1 && (!exploring || voyage.flooding < 0.75);
   searchlight.intensity = weather.night * 1800 * (exploring ? 1 - voyage.flooding : 1);
   searchlight.position.set(state.x, boat.position.y + 1.6, state.z);
   searchlight.target.position.set(state.x - Math.sin(state.heading) * 55, 0, state.z - Math.cos(state.heading) * 55);
@@ -664,7 +686,7 @@ function frame(now) {
   smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   camera.lookAt(smoothLook);
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
-    traffic.boats, !complete && race.phase !== 'ready');
+    traffic.boats, !complete && race.phase !== 'ready' && (!exploring || voyage.flooding < 0.75));
   atmosphere.update(simTime, camera, weather);
   sun.intensity = 0.08 + weather.sun * 2.7;
   sun.color.set(weather.daylight < 0.5 ? 0xabc6ff : weather.elevation < 0.3 ? 0xffbb7a : 0xffedce);

@@ -1,5 +1,13 @@
 # TIDE RAID 2.0
 
+## Progressive sinking and escaping air
+
+Exploration sinking now tracks four simplified bow/stern, port/starboard flood volumes. Realistic mode estimates leak inflow from damage severity and water head; Arcade fills a wreck on a predictable timer. Water stays aboard until pumped at a service harbor or cleared by Recover. Added water mass/draft, a free-surface CG penalty and late-stage flotation loss feed the existing player physics. Uneven flooding adds list/trim; submerged drag, a shallow-water/depth cap, engine/light shutdown and a surface-following camera avoid the old constant downward render offset.
+
+Escaping-air sprites rise from the hull and expand/pop at the analytical wave surface. A seeded 192-particle pool uses one reusable draw buffer/material; finite air supply fades the effect, and pause/recovery/reset do not leave an emitter running. Underwater bubbles can be occluded by the opaque water, while the surface rings remain visible. **Damage & Fuel → Start Flooding Drill** lets you practice with sinking enabled in exploration; H / Recover clears the water and returns partial hull/fuel. Trials and Cargo Lab are unchanged.
+
+This is an accelerated game model: four aggregate compartments, damage-based/bias-weighted openings and simplified pressure flow, not actual hull breach geometry, sealed-air pressure, interconnected compartments, CFD, or validated stability/flooding predictions. Water masses and litre/flow readouts are estimates. Uneven list/trim is a smoothed pose bias; the solver does not integrate the full internal-water pressure/torque field.
+
 ## Experimental Cargo Balance Lab
 
 Open **Helm Settings → Cargo Balance Lab**, or visit `cargo.html` beside the main game. This is a separate entry point, UI and deterministic simulation: it does not load or write TIDE RAID preferences, records or replays, and does not change racing/exploration physics.
@@ -32,7 +40,7 @@ Choose **Explore the Coast**, then **Helm Settings → Damage & Fuel / Explorati
 
 Hull condition/fuel meters, dents, scratches and flooding warnings show wear. Hard collisions, severe landings and grounding damage the boat; realistic damage reduces power. Empty fuel or a wreck disables propulsion. Green **+** symbols mark 16 repair/refuel pontoons, roughly 1.2 km apart, with the nearest harbor distance in the HUD. Stop within 22 m, below 1.5 m/s, and release throttle/reverse for 1.5 seconds; service automatically restores fuel, hull and flooding for free. **H / Recover** provides emergency fuel, partial repairs and clears flooding. Explore without fear of an unrecoverable save.
 
-These are prototype gameplay approximations: estimated load-based fuel, accelerated service, cosmetic bounded mesh dents and visual sinking/engine shutdown, not calibrated marine engineering, hull fragmentation or a coupled compartment-flooding solver. Voyage persistence/economy/missions and voyage-aware replay are not implemented; exploration replay export is blocked. Player trials retain physics replay. Enjoyment and service/fuel balance still require player testing.
+These are prototype gameplay approximations: estimated load-based fuel, accelerated service, bounded mesh dents and simplified four-compartment sinking, not calibrated marine engineering or hull fragmentation. Voyage persistence/economy/missions and voyage-aware replay are not implemented; exploration replay export is blocked. Player trials retain physics replay. Enjoyment and service/fuel balance still require player testing.
 
 ## GitHub Pages
 

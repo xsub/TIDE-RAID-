@@ -29,7 +29,7 @@ export function recover(state, time, roughness = 1) {
   state.y = sampleWave(state.x, state.z, time, roughness).h + 0.6;
 }
 
-export function step(state, input, dt, time, roughness = 1, resolveTraffic = null) {
+export function step(state, input, dt, time, roughness = 1, resolveTraffic = null, flotation = 1) {
   const entryVelocity=state.vy;
   const speed = Math.hypot(state.vx, state.vz);
   const cosine = Math.cos(state.heading);
@@ -54,7 +54,7 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
     if (localZ < 0) front += force / load; else back += force / load;
     if (localX < 0) left += force; else right += force;
   }
-  support *= 0.25;
+  support *= 0.25 * Math.max(0, Math.min(1, flotation));
   const wet = Math.min(1, support / 9.81);
   const forwardBefore = -sine * state.vx - cosine * state.vz;
   const thrust = propulsionAcceleration(state,input,forwardBefore,wet,dt);
