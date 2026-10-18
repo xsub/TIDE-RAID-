@@ -2,11 +2,40 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createVoyage, tickVoyage} from '../src/voyage.js';
-import {tickSinking, resetSinking, floodedHandling, settleFloodedHull} from '../src/sinking.js';
+import {tickSinking, resetSinking, floodedHandling, settleFloodedHull, leakRate} from '../src/sinking.js';
 import {createState, recover, step} from '../src/physics.js';
 import {VESSEL_PROFILES} from '../src/vessel-profiles.js';
 import {sampleWave} from '../src/waves.js';
 import {createSinkingBubbles} from '../src/sinking-bubbles.js';
+
+test('leak rate scales with damage, submersion and water speed, not a fixed sinking timer', () => {
+  const state = {...createState(), speed: 0};
+  for (const mode of ['arcade', 'realistic']) {
+    const threshold = mode === 'arcade' ? 0.12 : 0.3;
+    const mild = leakRate(threshold * 0.8, 0.6, 0, state, mode);
+    const severe = leakRate(threshold * 0.2, 0.6, 0, state, mode);
+    assert.ok(severe > mild * 2);
+    assert.ok(leakRate(0, 1.2, 0, state, mode) > leakRate(0, 0.3, 0, state, mode));
+    assert.ok(leakRate(0, 0.6, 0, {...state, speed: 30}, mode) > leakRate(0, 0.6, 0, state, mode));
+    assert.equal(leakRate(0, 0, 0, {...state, speed: 60}, mode), 0);
+    assert.equal(leakRate(1, 1, 0, state, mode), 0);
+    assert.ok(leakRate(0, 0.6, 0.8, state, mode) < leakRate(0, 0.6, 0, state, mode));
+  }
+});
+
+test('critical flooding reaches engine cutoff sooner with worse damage in both modes', () => {
+  const state = {...createState(), y: 0};
+  const cutoff = (mode, hull) => {
+    const voyage = createVoyage(); voyage.hull = hull;
+    for (let tick = 0; tick < 120000; tick++) {
+      tickSinking(voyage, state, mode, 1 / 120);
+      if (voyage.flooding >= 0.75) return tick / 120;
+    }
+    return Infinity;
+  };
+  assert.ok(cutoff('realistic', 0.02) < cutoff('realistic', 0.2));
+  assert.ok(cutoff('arcade', 0.01) < cutoff('arcade', 0.08));
+});
 
 test('four compartments flood unevenly under pressure and do not magically drain after damage stops', () => {
   const voyage = createVoyage(); voyage.hull = 0.05;

@@ -56,7 +56,7 @@ document.getElementById('app').innerHTML = `
       </details>
       <details><summary>DAMAGE & FUEL / EXPLORATION</summary>
         <label for="damageMode">DAMAGE MODEL</label><select id="damageMode"><option value="arcade">Arcade · forgiving wear</option><option value="realistic">Realistic · harsher impacts</option></select>
-        <label for="sinkingMode">SINKING</label><select id="sinkingMode"><option value="off">Disallowed · stay afloat</option><option value="arcade">Arcade · sink only when wrecked</option><option value="realistic">Realistic · progressive flooding</option></select>
+        <label for="sinkingMode">SINKING</label><select id="sinkingMode"><option value="off">Disallowed · stay afloat</option><option value="arcade">Arcade · slower critical-damage flooding</option><option value="realistic">Realistic · progressive flooding</option></select>
         <label for="fuelMode">FUEL CONSUMPTION</label><select id="fuelMode"><option value="off">Unlimited fuel</option><option value="arcade">Arcade · shorter fuel strategy</option><option value="realistic">Realistic · estimated engine load</option></select>
         <button id="floodingDrill">START FLOODING DRILL</button><small>Exploration with sinking enabled only: damages the hull for practice. H / Recover ends the drill and pumps the water out.</small>
         <small>Exploration only. Realistic means game approximation. Green + stations repair/refuel free: stop below 5 km/h, release throttle for 1.5 seconds. H / Recover provides rescue and emergency fuel. Changing rules restarts exploration. Time trials keep original rules.</small>

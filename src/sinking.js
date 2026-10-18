@@ -1,10 +1,21 @@
 export const createSinking = () => ({water: [0, 0, 0, 0], list: 0, trim: 0, air: 1, ingress: 0});
 export function resetSinking(voyage) {voyage.flooding = 0; voyage.sinking = createSinking();}
+export function leakRate(hull, head, fill, state, mode, bias = 1) {
+  const threshold = mode === 'arcade' ? 0.12 : 0.3;
+  const severity = Math.max(0, Math.min(1, (threshold - hull) / threshold));
+  if (head <= 0 || severity === 0 || mode === 'off') return 0;
+  const capacity = Math.max(0.15, state.mass / 1025 * 0.28);
+  const speed = Math.max(0, Math.min(70, state.speed ?? 0));
+  const ramHead = Math.min(2, speed * speed / (2 * 9.81) * 0.008);
+  const pressure = Math.max(0, head + ramHead - fill * state.draft * 0.45);
+  if (mode === 'arcade') return severity * (0.25 + 0.75 * severity * severity) / 16 * Math.sqrt(Math.min(2, pressure));
+  const opening = (0.004 * severity + 0.014 * severity * severity) * bias;
+  return 0.62 * opening * Math.sqrt(2 * 9.81 * pressure) / capacity;
+}
 export function tickSinking(voyage, state, mode, dt, waterHeight = 0) {
   if (!(dt > 0 && Number.isFinite(dt))) return;
   const sinking = voyage.sinking ??= createSinking();
   if (mode === 'off') {if (voyage.flooding > 0 || sinking.water.some((fill) => fill > 0)) resetSinking(voyage); return;}
-  const severity = mode === 'arcade' ? voyage.hull <= 0 ? 1 : 0 : Math.max(0, (0.3 - voyage.hull) / 0.3);
   const capacity = Math.max(0.15, state.mass / 1025 * 0.28);
   const head = Math.max(0, waterHeight - (state.y - state.draft - 0.35));
   let ingress = 0;
@@ -13,7 +24,7 @@ export function tickSinking(voyage, state, mode, dt, waterHeight = 0) {
     const aft = index >= 2;
     const bias = (aft ? 1.2 : 0.8) * (side < 0 ? 1.2 : 0.8);
     const localHead = Math.max(0, head + side * Math.sin(state.roll) * state.beam * 0.3 + (aft ? 1 : -1) * Math.sin(state.pitch) * state.length * 0.2);
-    const rate = mode === 'arcade' ? severity / 12 : 0.62 * (0.009 * severity * bias) * Math.sqrt(2 * 9.81 * localHead) / capacity;
+    const rate = leakRate(voyage.hull, localHead, sinking.water[index], state, mode, bias);
     const previous = sinking.water[index];
     sinking.water[index] = Math.min(1, Math.max(0, previous + rate * dt));
     ingress += (sinking.water[index] - previous) * capacity / dt;

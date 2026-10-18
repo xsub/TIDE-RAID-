@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Damage-dependent flood timing and intake pressure
+
+- Sinking pace now scales nonlinearly with damage severity in both Arcade and Realistic settings, rather than Arcade using a fixed wreck timer. Arcade starts below 12% hull with slower intake; Realistic starts below 30%. Larger effective openings from worse damage admit water faster.
+- Inflow also follows external submersion/wave pressure, a bounded forward-speed pressure contribution and opposing internal water head. A dry opening admits no water even at speed. Existing compartment saturation, added flood mass, buoyancy loss and pumping determine subsequent settling; no guaranteed sink countdown is presented. Existing HUD shows actual estimated litres and L/s.
+- Accelerated game approximations remain: openings are damage-derived, not calibrated impact holes, and pressure/speed coefficients are tuned rather than validated naval data. No-sinking, trial physics and Cargo Lab are unchanged.
+- All 131 tests and both production builds pass. Tests explicitly compare mild/severe damage time to engine cutoff in both modes, pressure/speed response, dry openings and internal-head resistance. Existing shared-bundle advisory remains.
+
 ## 2026-10-18 — Pilot / driver POV camera
 
 - Added persistent Pilot view to a direct camera-view selector and the C / gamepad Y cycle (Chase → Pilot → Arcade). Each of the six vessels has its own numeric helm height/fore-aft/lateral offsets; the cruiser sits higher than the low racing catamaran.
