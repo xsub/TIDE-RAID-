@@ -25,6 +25,10 @@ export function createWaterMaterial(uniforms) {
       uniform vec2 uBoat;
       uniform float uHeading;
       uniform float uSpeed;
+      uniform float uDay;
+      uniform float uCloud;
+      uniform float uGlow;
+      uniform vec3 uSunDirection;
       varying vec3 vWorld;
       ${waveGLSL}
       vec2 surfaceNoise(vec2 point) {
@@ -56,7 +60,7 @@ export function createWaterMaterial(uniforms) {
         }
         vec3 viewDirection = normalize(cameraPosition - vWorld);
         vec3 reflection = reflect(-viewDirection, normal);
-        vec3 sunDirection = normalize(vec3(-0.58, 0.46, -0.67));
+        vec3 sunDirection = normalize(uSunDirection);
         float fresnel = 0.04 + 0.45 * pow(1.0 - max(dot(normal, viewDirection), 0.0), 4.0);
         float deep = smoothstep(0.0, 55.0, shore);
         vec3 waterColor = mix(vec3(0.065, 0.48, 0.35), vec3(0.012, 0.13, 0.17), deep);
@@ -83,6 +87,11 @@ export function createWaterMaterial(uniforms) {
         color = mix(color, vec3(0.83, 0.95, 0.9), foam);
         float fog = smoothstep(650.0, 1120.0, distance(cameraPosition, vWorld));
         color = mix(color, vec3(0.6, 0.68, 0.71), fog);
+        color *= mix(vec3(0.13,0.22,0.34),vec3(1.0-uCloud*0.23),uDay);
+        float beamDistance = max(0.0,-aft);
+        float headlight = exp(-across*across/max(2.0,beamDistance*0.18))*smoothstep(0.0,7.0,beamDistance)*exp(-beamDistance*0.065);
+        color += (1.0-uDay)*vec3(0.13,0.2,0.25)*headlight;
+        color += uGlow*vec3(0.03,0.65,0.47)*wake*1.4;
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

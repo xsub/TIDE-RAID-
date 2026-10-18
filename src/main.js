@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import {weatherState} from './weather.js';
+import {createRain} from './weather-view.js';
+import {createVesselLights} from './vessel-lights.js';
 import {createState, step, recover} from './physics.js';
 import {createVoyage, tickVoyage, voyageDrive, SERVICE_STATIONS} from './voyage.js';
 import {createServiceView, createWearView} from './voyage-view.js';
@@ -11,7 +14,7 @@ import {createReplayTape,finitePhysicsState} from './replay.js';
 import {VESSEL_MASS} from './collision.js';
 import {createTraffic, updateTraffic, collideTraffic} from './traffic.js';
 import {createSpray} from './spray.js';
-import {createAtmosphere, SUN_DIRECTION} from './atmosphere.js';
+import {createAtmosphere} from './atmosphere.js';
 import {createCinema} from './cinema.js';
 import {cameraPose, CAMERA_ZOOM_PRESETS, clampCameraZoom} from './camera.js';
 import {createPerformanceOverlay} from './performance.js';
@@ -37,6 +40,16 @@ document.getElementById('app').innerHTML = `
     <div class="map-label">CHANNEL SCANNER <span id="chunks"></span></div>
     <details><summary>HELM SETTINGS</summary>
       <button id="beauty">BEAUTY PRESET</button>
+      <details><summary>WEATHER & TIME</summary>
+        <label for="weather">WEATHER</label><select id="weather"><option value="sunny">Sunny</option><option value="cloudy">Cloudy</option><option value="rain">Rain</option></select>
+        <label for="hour">TIME OF DAY <output id="hourValue"></output></label><input id="hour" type="range" min="0" max="24" step="0.25">
+        <label><input id="dayCycle" type="checkbox"> AUTOMATIC DAY / NIGHT CYCLE</label>
+        <label for="cycleMinutes">FULL DAY LENGTH (MINUTES)</label><input id="cycleMinutes" type="range" min="5" max="60" step="5"><output id="cycleValue"></output>
+        <label for="wind">WIND STRENGTH</label><input id="wind" type="range" min="0" max="100"><output id="windValue"></output>
+        <label for="windAngle">WIND DIRECTION</label><input id="windAngle" type="range" min="0" max="360" step="15"><output id="windAngleValue"></output>
+        <label><input id="glow" type="checkbox"> GLOWING NIGHT WAKE</label>
+        <small>Visual weather: wind moves clouds/rain, not the hull. Swell remains separate. Night lamps and forward beams switch on automatically. Glow is a stylized bioluminescent effect. Cycle pauses with the game; time changes do not affect trial physics.</small>
+      </details>
       <details><summary>DAMAGE & FUEL / EXPLORATION</summary>
         <label for="damageMode">DAMAGE MODEL</label><select id="damageMode"><option value="arcade">Arcade · forgiving wear</option><option value="realistic">Realistic · harsher impacts</option></select>
         <label for="sinkingMode">SINKING</label><select id="sinkingMode"><option value="off">Disallowed · stay afloat</option><option value="arcade">Arcade · sink only when wrecked</option><option value="realistic">Realistic · progressive flooding</option></select>
@@ -101,7 +114,7 @@ renderer.toneMappingExposure = 0.98;
 document.getElementById('view').append(renderer.domElement);
 const scene = new THREE.Scene();
 const atmosphere = createAtmosphere(scene, renderer);
-scene.add(new THREE.HemisphereLight(0xc6d8e2, 0x343b2e, 0.65));
+const hemisphere = new THREE.HemisphereLight(0xc6d8e2, 0x343b2e, 0.65); scene.add(hemisphere);
 const sun = new THREE.DirectionalLight(0xffedce, 2.6);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024,1024);
@@ -120,6 +133,11 @@ loadRealScenery().then((assets)=>{
 elements.quality.textContent = water.setDetail(preferences.detail);
 document.getElementById('detail').value = preferences.detail;
 const boat = createBoat();
+const rainView = createRain(scene);
+let playerLights = null;
+let playerLightModel = null;
+const searchlight = new THREE.SpotLight(0xcce9ff, 0, 95, 0.28, 0.7, 2);
+scene.add(searchlight, searchlight.target);
 const serviceView = createServiceView(scene);
 let wearView = null;
 let voyage = createVoyage();
@@ -406,6 +424,16 @@ for (const button of document.querySelectorAll('[data-key]')) {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(pressedCode));
 }
 document.getElementById('camera').onclick = toggleCamera;
+let weatherEpoch = 0;
+for (const name of ['weather', 'hour', 'dayCycle', 'cycleMinutes', 'wind', 'windAngle', 'glow']) {
+  const control = document.getElementById(name);
+  if (control.type === 'checkbox') control.checked = preferences[name]; else control.value = preferences[name];
+  control.oninput = () => {
+    preferences[name] = control.type === 'checkbox' ? control.checked : name === 'weather' ? control.value : Number(control.value);
+    if (['hour', 'dayCycle', 'cycleMinutes'].includes(name)) weatherEpoch = simTime;
+    persistPreferences();
+  };
+}
 for (const name of ['damageMode', 'sinkingMode', 'fuelMode']) {
   const control = document.getElementById(name);
   control.value = preferences[name];
@@ -561,6 +589,12 @@ function frame(now) {
   }
   boat.position.set(state.x, state.y, state.z);
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
+  const weather = weatherState(preferences, simTime - weatherEpoch);
+  const displayedHour = Math.floor(weather.hour * 60);
+  document.getElementById('hourValue').textContent = `${String(Math.floor(displayedHour / 60)).padStart(2, '0')}:${String(displayedHour % 60).padStart(2, '0')}`;
+  document.getElementById('cycleValue').textContent = `${preferences.cycleMinutes} minutes`;
+  document.getElementById('windValue').textContent = `${preferences.wind}%`;
+  document.getElementById('windAngleValue').textContent = `${preferences.windAngle}°`;
   const exploring = race.phase === 'explore';
   if (trafficView && !wearView) wearView = createWearView(boat);
   wearView?.update(voyage, state, exploring);
@@ -575,9 +609,18 @@ function frame(now) {
     const status = voyage.flooding >= 1 ? 'SUNK · H / RECOVER' : voyage.servicing ? 'MOORED · REPAIRING + REFUELING' : voyage.flooding > 0.1 ? `FLOODING ${Math.round(voyage.flooding * 100)}% · SEEK SERVICE / H` : !voyageDrive(voyage) ? 'STRANDED · H / RECOVER' : voyage.fuel < 0.2 ? 'LOW FUEL · SEEK GREEN +' : 'VOYAGE';
     document.getElementById('voyageStatus').textContent = `${status} · HULL ${Math.round(voyage.hull * 100)}% · FUEL ${Math.round(voyage.fuel * 100)}% · ${nearest.name} ${Math.round(Math.hypot(nearest.x - state.x, nearest.z - state.z))} m`;
   } else document.getElementById('voyageStatus').textContent = '';
-  water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed);
-  const chunks = scenery.update(state.z, simTime,state.x);
-  trafficView?.(traffic, simTime, roughness);
+  water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 ? 0 : state.speed, weather);
+  const chunks = scenery.update(state.z, simTime,state.x, weather.night);
+  trafficView?.(traffic, simTime, roughness, weather.night, state);
+  if (!playerLights || playerLightModel !== preferences.playerBoat) {
+    if (playerLights) {scene.remove(playerLights); playerLights.children[0].geometry.dispose();}
+    playerLights = createVesselLights(state.length, state.beam); scene.add(playerLights); playerLightModel = preferences.playerBoat;
+  }
+  playerLights.position.copy(boat.position); playerLights.rotation.copy(boat.rotation); playerLights.visible = weather.night > 0.1;
+  searchlight.intensity = weather.night * 1800 * (exploring ? 1 - voyage.flooding : 1);
+  searchlight.position.set(state.x, boat.position.y + 1.6, state.z);
+  searchlight.target.position.set(state.x - Math.sin(state.heading) * 55, 0, state.z - Math.cos(state.heading) * 55);
+  rainView.update(simTime, state, weather);
   gateGroup.visible = race.phase === 'racing' || race.phase === 'countdown';
   if (gateGroup.visible) {
     const gate = gates[race.next];
@@ -592,9 +635,13 @@ function frame(now) {
   camera.lookAt(smoothLook);
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
     traffic.boats, !complete && race.phase !== 'ready');
-  atmosphere.update(simTime, camera);
+  atmosphere.update(simTime, camera, weather);
+  sun.intensity = 0.08 + weather.sun * 2.7;
+  sun.color.set(weather.daylight < 0.5 ? 0xabc6ff : weather.elevation < 0.3 ? 0xffbb7a : 0xffedce);
+  hemisphere.intensity = 0.22 + weather.daylight * (0.45 - weather.cloud * 0.15);
+  renderer.toneMappingExposure = 0.98 + weather.night * 0.3;
   sun.target.position.set(state.x, 0, state.z);
-  sun.position.copy(sun.target.position).addScaledVector(SUN_DIRECTION, 200);
+  sun.position.set(-0.58, Math.max(0.12, weather.elevation), -0.67).normalize().multiplyScalar(200).add(sun.target.position);
   document.body.classList.toggle('impact', state.collision > 0 && !paused);
   renderer.info.reset();
   cinema.render(preferences.cinema);

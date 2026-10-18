@@ -11,7 +11,7 @@ export function createWater(scene) {
   const boundary = new THREE.DataTexture(boundaryAtlas(), BOUNDARY_WIDTH, BOUNDARY_HEIGHT, THREE.RedFormat, THREE.UnsignedByteType);
   boundary.minFilter = THREE.NearestFilter; boundary.magFilter = THREE.NearestFilter;
   boundary.generateMipmaps = false; boundary.needsUpdate = true;
-  const uniforms = {uTime: {value: 0}, uSwell: {value: 1}, uFaceted: {value: 0}, uBoat: {value: new THREE.Vector2()}, uHeading: {value: 0}, uSpeed: {value: 0}};
+  const uniforms = {uTime: {value: 0}, uSwell: {value: 1}, uFaceted: {value: 0}, uBoat: {value: new THREE.Vector2()}, uHeading: {value: 0}, uSpeed: {value: 0}, uDay: {value: 1}, uCloud: {value: 0}, uGlow: {value: 0}, uSunDirection: {value: new THREE.Vector3(-0.58, 0.46, -0.67).normalize()}};
   uniforms.uBoundary = {value: boundary};
   const material = createWaterMaterial(uniforms);
   const group = new THREE.Group();
@@ -46,7 +46,11 @@ export function createWater(scene) {
   setDetail(25);
   return {
     setDetail,
-    update(x, z, time, swell, heading = 0, speed = 0) {
+    update(x, z, time, swell, heading = 0, speed = 0, weather = null) {
+      if (weather) {
+        uniforms.uDay.value = weather.daylight; uniforms.uCloud.value = weather.cloud; uniforms.uGlow.value = weather.glow;
+        uniforms.uSunDirection.value.set(-0.58, Math.max(0.05, weather.elevation), -0.67).normalize();
+      }
       uniforms.uTime.value = time;
       uniforms.uSwell.value = swell;
       uniforms.uBoat.value.set(x, z);
@@ -173,9 +177,9 @@ export function createScenery(scene,realAssets=null) {
     loaded.set(index, group);
   }
   return {
-    update(z, time = 0, x=channel(z).center) {
+    update(z, time = 0, x=channel(z).center, night = 0) {
       nature.update(time);
-      harbors.update(time);
+      harbors.update(time, night);
       const center = chunkIndex(z);
       const desired = new Set();
       for (let index = Math.max(0, center - 3); index <= Math.min(CHUNK_COUNT - 1, center + 3); index++) {

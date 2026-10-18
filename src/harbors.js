@@ -51,7 +51,13 @@ export function createHarbors() {
   }
   return {
     shared,
-    update(time) {for (const beam of beams) beam.rotation.y = time * 0.3 + beam.position.z * 0.01;},
+    update(time, night = 0) {
+      lantern.emissiveIntensity = 0.5 + night * 5;
+      for (const beam of beams) {
+        beam.rotation.y = time * 0.3 + beam.position.z * 0.01;
+        beam.children[0].material.opacity = 0.008 + night * 0.11;
+      }
+    },
     forget(group) {group.traverse((child) => {if (child.userData.beacon) beams.delete(child); if (child.userData.localMaterial) child.material.dispose();});},
     add(parent, index) {
       const layout = harborLayout(index);

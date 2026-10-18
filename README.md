@@ -1,5 +1,13 @@
 # TIDE RAID 2.0
 
+## Weather and night navigation
+
+**Helm Settings → Weather & Time** offers Sunny / Cloudy / Rain, a 24-hour time slider, optional 5–60 minute full-day cycles, wind strength/direction, and optional glowing night wakes. Controls persist. Cycles use simulation time, so pausing stops the clock. Weather is visual only: wind drives clouds and rain, while the existing Swell slider controls analytical waves independently; hull physics and trial replay are unchanged.
+
+Sun direction/intensity, ambient light, sky/clouds/stars, water shading, fog and environment intensity change with time/weather. Lighthouse beams brighten at night. Player/traffic have automatic red/green/white navigation lamps and forward beam meshes; nearby traffic beams are culled beyond 350 m. One shadow-free player searchlight illuminates standard scenery materials; water gets a cheap analytical forward light footprint. Night glow is stylized bioluminescence, not simulated fluorescence.
+
+Performance limits: 480 reused rain streaks; shared lamp/beam resources; no per-traffic spotlights, extra shadow maps, volumetric ray marching or per-frame reflection-map regeneration. The environment reflection map remains a static daylight capture with time-dependent intensity, and beam meshes do not model physical scattering/occlusion or certified navigation-light sectors. Existing wakes/foam effects are approximate; this is not a meteorological simulator.
+
 ## Damage, sinking and fuel voyages
 
 Choose **Explore the Coast**, then **Helm Settings → Damage & Fuel / Exploration**. Damage has independent Arcade/Realistic rules; sinking can be disallowed or use Arcade/Realistic flooding; fuel can be unlimited or use Arcade/Realistic consumption. Changing rules restarts exploration. Defaults: forgiving damage, no sinking, arcade fuel. Time trials remain unchanged and do not use these rules.

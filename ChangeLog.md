@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-18 — Weather, day/night cycles and navigation lighting
+
+- Added persistent Sunny/Cloudy/Rain presets, 24-hour time control, optional 5–60 minute full-day cycle, wind strength/direction and optional luminous night wakes. Clock follows simulation time and pauses with the game. Wind/weather are visual only; swell, hull physics and trial replay remain unchanged.
+- Sky clouds/stars, sun direction/intensity/color, ambient/environment intensity, fog and water shading follow the selected time/weather. Rain uses a fixed 480-streak reusable buffer. No extra shadow maps or per-frame reflection captures.
+- Lighthouse rotating beams/lanterns brighten at night. Player and traffic gain shared red/green/white running lamps and forward beam meshes; traffic light rigs cull beyond 350 m. A single shadow-free player spotlight lights nearby standard scenery, with an analytical water headlight footprint. Night wake glow is a stylized optional bioluminescent effect.
+- Limitations: static environment reflection capture with changing intensity; no physically scattered/occluded volumetric beams, marine-certified lamp sectors, weather-driven forces or recorded rain/wind audio. All 111 tests and production build pass; browser verified rainy midnight controls and compiled shaders without runtime errors. Existing bundle-size advisory remains; GPU performance is device/view dependent.
+
 ## 2026-10-18 — Exploration damage, fuel and service harbors
 
 - Added independent Arcade/Realistic damage, disallowed/Arcade/Realistic sinking, and unlimited/Arcade/Realistic fuel settings. Preferences persist; changing rules restarts exploration. Defaults are forgiving damage, no sinking, arcade fuel. Time trials keep their existing physics, records and replay rules.

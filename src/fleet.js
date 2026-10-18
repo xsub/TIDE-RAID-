@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createVesselLights} from './vessel-lights.js';
 import {createVessel, VESSEL_STYLES} from './vessels.js';
 import {TRAFFIC_TYPES} from './traffic.js';
 import {sampleWave} from './waves.js';
@@ -23,6 +24,7 @@ export async function loadFleet() {
 export function createTrafficView(scene, factory, traffic) {
   const meshes = traffic.boats.map((ship) => {
     const mesh = factory(ship.model, ship.length);
+    const lights = createVesselLights(ship.length, ship.length * 0.32); mesh.add(lights); mesh.userData.runningLights = lights;
     scene.add(mesh);
     return mesh;
   });
@@ -32,10 +34,11 @@ export function createTrafficView(scene, factory, traffic) {
   const wakes = new THREE.Mesh(wakeGeometry, new THREE.MeshBasicMaterial({color: 0xd4f5e9, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide}));
   wakes.frustumCulled = false;
   scene.add(wakes);
-  return (current, time, swell) => {
+  return (current, time, swell, night = 0, listener = null) => {
     current.boats.forEach((ship, index) => {
       const mesh = meshes[index];
       mesh.visible = ship.active;
+      mesh.userData.runningLights.visible = night > 0.1 && Math.hypot(ship.x - (listener?.x ?? ship.x), ship.z - (listener?.z ?? ship.z)) < 350;
       const wave = sampleWave(ship.x, ship.z, time, swell);
       mesh.position.set(ship.x, wave.h + 0.5, ship.z);
       mesh.rotation.set(Math.atan(-wave.dx * Math.sin(ship.heading) - wave.dz * Math.cos(ship.heading)) * 0.5, ship.heading,

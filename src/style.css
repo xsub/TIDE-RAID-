@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+#weather{width:100%;padding:10px;background:#15383c;color:#eef4e8;font:inherit}#dayCycle,#glow{width:auto;margin-right:6px}
 #hullLabel[hidden],#fuelLabel[hidden]{display:none}
 #damageMode,#sinkingMode,#fuelMode{width:100%;padding:10px 3px;background:#15383c;color:#eef4e8;font:inherit;font-size:10px}#hullMeter,#fuelMeter{width:110px;accent-color:#63ffc1}#voyageStatus{font-size:10px;color:#a9e9cc}
 aside{max-height:calc(100dvh - 130px);overflow-y:auto;overscroll-behavior:contain}
