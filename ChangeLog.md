@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-18 — Water interaction roadmap 2: angular hull response and landing energy
+
+- Added pitch/roll angular rates and exact critically damped attitude response rather than first-order angle interpolation. Hull contact velocities include pitch/roll patch motion, improving damping during bow entry and stern motion.
+- Existing four-point buoyancy resolves bow/stern and port/starboard separately; vessel-sized footprints and planing-dependent pitch damping remain bounded. Landing diagnostics now record vertical entry kinetic energy before buoyancy response.
+- Added no-overshoot/timestep-consistency and squared landing-energy/rescue tests. All tests and production build pass, including low-hop and rough-sea stability. Attitude targets remain tuned pressure proxies, not a full 6-DOF hydrodynamic torque model.
+
 ## 2026-10-18 — Water interaction roadmap 1: draft and grounding
 
 - Added deterministic approximate bed depths from bank distance and island/sandbank slopes, ignoring rocks/docks as depth sources. Three longitudinal hull probes compare depth to vessel draft.

@@ -5,6 +5,7 @@ import {advanceHull} from './motion.js';
 import {applyRudder} from './steering.js';
 import {vesselProfile,propulsionAcceleration} from './vessel-profiles.js';
 import {applyShallows} from './depth.js';
+import {dampedAttitude} from './attitude.js';
 
 export function channelHeading(z) {
   return Math.atan((channel(z + 1).center - channel(z - 1).center) / 2);
@@ -13,7 +14,7 @@ export function channelHeading(z) {
 export function createState(model='boat-speed-c') {
   return {...vesselProfile(model),x: channel(START_Z - 20).center, z: START_Z - 20, y: 1.5,
     vx: 0, vz: 0, vy: 0, heading: channelHeading(START_Z - 20), pitch: 0, roll: 0,
-    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0, impactEnergy: 0, yawRate: 0, depth: 20, grounded: 0, shallowFactor: 1};
+    airtime: 0, longestJump: 0, landing: 0, collision: 0, speed: 0, impactEnergy: 0, yawRate: 0, depth: 20, grounded: 0, shallowFactor: 1, pitchRate: 0, rollRate: 0, landingEnergy: 0};
 }
 
 export function recover(state, time, roughness = 1) {
@@ -23,11 +24,12 @@ export function recover(state, time, roughness = 1) {
   const offset = candidates.find((fraction) => features.every((feature) => Math.hypot(banks.center + banks.width * fraction - feature.x, state.z - feature.z) > feature.radius + 6)) ?? 0;
   Object.assign(state, {x: banks.center + banks.width * offset,
     vx: 0, vz: 0, vy: 0, speed: 0, heading: channelHeading(state.z),
-    pitch: 0, roll: 0, airtime: 0, collision: 0, landing: 0, impactEnergy: 0, yawRate: 0});
+    pitch: 0, roll: 0, airtime: 0, collision: 0, landing: 0, impactEnergy: 0, yawRate: 0, pitchRate: 0, rollRate: 0, landingEnergy: 0});
   state.y = sampleWave(state.x, state.z, time, roughness).h + 0.6;
 }
 
 export function step(state, input, dt, time, roughness = 1, resolveTraffic = null) {
+  const entryVelocity=state.vy;
   const speed = Math.hypot(state.vx, state.vz);
   const cosine = Math.cos(state.heading);
   const sine = Math.sin(state.heading);
@@ -43,7 +45,7 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
     const wave = sampleWave(worldX, worldZ, time, roughness);
     const hullHeight = state.y - 0.6 - localZ * state.pitch + localX * state.roll;
     const immersion = wave.h - hullHeight;
-    const relative = wave.dt + wave.dx * state.vx + wave.dz * state.vz - state.vy;
+    const relative = wave.dt + wave.dx * state.vx + wave.dz * state.vz - state.vy + localZ*state.pitchRate-localX*state.rollRate;
     const force = immersion > -0.08 ? Math.min(28, Math.max(0, immersion * 48 + relative * 4.5)) : 0;
     support += force;
     if (localZ < 0) front += force; else back += force;
@@ -75,8 +77,10 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   state.y += state.vy * dt;
   const pitchTarget = Math.max(-0.45, Math.min(0.45, (front - back) / 110 + planing * 0.045));
   const rollTarget = Math.max(-0.4, Math.min(0.4, (right - left) / 100 - input.turn * speed * 0.002));
-  state.pitch += (pitchTarget - state.pitch) * (1 - Math.exp(-4 * dt));
-  state.roll += (rollTarget - state.roll) * (1 - Math.exp(-4 * dt));
+  const pitch=dampedAttitude(state.pitch,state.pitchRate,pitchTarget,5+planing,dt);
+  const roll=dampedAttitude(state.roll,state.rollRate,rollTarget,6,dt);
+  state.pitch=pitch.angle;state.pitchRate=pitch.rate;
+  state.roll=roll.angle;state.rollRate=roll.rate;
   state.landing = Math.max(0, state.landing - dt);
   state.collision = Math.max(0, state.collision - dt);
   if (wet < 0.03) state.airtime += dt;
@@ -84,6 +88,7 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
     if (state.airtime > 0.18) {
       state.longestJump = Math.max(state.longestJump, state.airtime);
       state.landing = 0.65;
+      state.landingEnergy=0.5*state.mass*Math.max(0,-entryVelocity)**2;
     }
     state.airtime = 0;
   }
