@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2026-10-18 — Organic scenery instead of faceted low-poly forms
+
+- Replaced cone-stack pine geometry with smooth irregular tiered crowns, faceted broadleaf/shrub forms with rounded deformed canopies, low-sided trunks/logs with smoother cylinders and dodecahedral rocks with deterministic weathered rounded meshes.
+- Replaced 12-sided vertical island/sandbank rims with 64-segment sloping sandy profiles and increased island/near-shore terrain sampling. Smooth normals remove the deliberately faceted lighting; procedural world-space color grain/patches add subtle grass/sand/stone/foliage variation with distance-filtered fine detail.
+- Retained shared geometry, vegetation instancing and seven-sector streaming. Collision layouts, replay physics and world generation are unchanged. This adds triangles but no external texture downloads or per-frame geometry deformation beyond existing wind.
+- All 88 tests and production build pass. Tests cover deterministic finite geometry/triangle budgets, smooth instancing and distinct wind/bird shader keys. Fresh browser compiled the shader variants without errors; one coast-facing check reported about 94 FPS at 2240×1260 with cinematic mode (not a device-independent benchmark).
+- Limits: procedurally rounded scenery remains stylized, not photogrammetry/photorealism. Buildings and boats retain their existing models; collision boundaries still approximate their smoother visible meshes.
+
 ## 2026-10-18 — Product robustness: vessel records and input validation
 
 - Personal bests are isolated per vessel, preserving the sport key and older handling-version data. Slower boats use separately displayed provisional medal-time scales; invalid finish times cannot overwrite records.

@@ -5,6 +5,7 @@ import {boundaryAtlas, BOUNDARY_WIDTH, BOUNDARY_HEIGHT} from './water-boundary.j
 import {createNature} from './nature-view.js';
 import {createHarbors} from './harbors.js';
 import {beachWidth, coastHeight, islandHeight} from './nature.js';
+import {organicRock,sandyShore,naturalMaterial} from './natural-surfaces.js';
 
 export function createWater(scene) {
   const boundary = new THREE.DataTexture(boundaryAtlas(), BOUNDARY_WIDTH, BOUNDARY_HEIGHT, THREE.RedFormat, THREE.UnsignedByteType);
@@ -59,13 +60,14 @@ export function createWater(scene) {
 }
 
 export function createScenery(scene) {
-  const grass = new THREE.MeshStandardMaterial({color: 0xffffff, vertexColors: true, roughness: 1, side: THREE.DoubleSide});
-  const islandGrass = new THREE.MeshStandardMaterial({color: 0x56704b, roughness: 1, side: THREE.DoubleSide});
-  const sand = new THREE.MeshStandardMaterial({color: 0xecc787, roughness: 1, flatShading: true, side: THREE.DoubleSide});
+  const grass = naturalMaterial({color: 0xffffff, vertexColors: true, roughness: 1, side: THREE.DoubleSide},0.9);
+  const islandGrass = naturalMaterial({color: 0x56704b, roughness: 1, side: THREE.DoubleSide},0.9);
+  const sand = naturalMaterial({color: 0xd4bc90, roughness: 1, side: THREE.DoubleSide},2);
   const beachSand = sand.clone(); beachSand.vertexColors = true;
-  const rock = new THREE.MeshStandardMaterial({color: 0x60777d, roughness: 1, flatShading: true});
-  const stone = new THREE.DodecahedronGeometry(1, 0);
-  const cylinder = new THREE.CylinderGeometry(0.86, 1, 1, 12);
+  beachSand.onBeforeCompile=sand.onBeforeCompile;beachSand.customProgramCacheKey=sand.customProgramCacheKey;
+  const rock = naturalMaterial({color: 0x737b74, roughness: 0.95},1.8);
+  const stone = organicRock(20,14);
+  const cylinder = sandyShore();
   const nature = createNature();
   const harbors = createHarbors();
   const sharedGeometry = new Set([stone, cylinder, ...nature.shared, ...harbors.shared]);
@@ -74,9 +76,9 @@ export function createScenery(scene) {
     const positions = [];
     const indices = [];
     const colors = [];
-    const distances = beach ? [0, 1] : [0, 8, 20, 40, 65, 100, 150, 220, 320, 450, 560, 700];
+    const distances = beach ? [0,0.2,0.45,0.7,1] : [0,3,7,12,20,30,45,65,100,150,220,320,450,560,700];
     const columns = distances.length - 1;
-    const rows = 40;
+    const rows = 64;
     for (let row = 0; row <= rows; row++) {
       const z = START_Z - index * CHUNK_SIZE - row * CHUNK_SIZE / rows;
       const banks = channel(z);
@@ -109,8 +111,8 @@ export function createScenery(scene) {
   function islandSurface(radius) {
     const positions = [];
     const indices = [];
-    const segments = 24;
-    const rings = [0, 0.3, 0.6, 1];
+    const segments = 64;
+    const rings = [0,0.15,0.3,0.45,0.6,0.75,0.9,1];
     rings.forEach((fraction, ring) => {
       for (let angle = 0; angle < segments; angle++) {
         const phase = angle / segments * Math.PI * 2;
@@ -140,8 +142,8 @@ export function createScenery(scene) {
         group.add(mesh);
       } else {
         const rim = new THREE.Mesh(cylinder, sand);
-        rim.position.set(x, 0.25, z);
-        rim.scale.set(radius, 2, radius);
+        rim.position.set(x, 0, z);
+        rim.scale.set(radius, 1, radius);
         group.add(rim);
         if (kind === 'island') {
           const top = islandSurface(radius * 0.86);

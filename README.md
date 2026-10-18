@@ -55,6 +55,10 @@ The expedition is a finite 18.78 km route through a 304–496 unit wide winding 
 
 ## Water and hull
 
+### Organic scenery
+
+Terrain and foliage no longer intentionally use flat faceted shading. Smooth irregular pine crowns, rounded broadleaf canopies/shrubs and weathered rocks share instanced geometry. Island/sandbank edges slope through 64-segment sandy profiles, with denser near-shore terrain sampling and procedural world-space surface variation. Fine grain fades with pixel footprint to limit shimmer. Streaming stays capped at seven sectors; physical collisions/world generation are unchanged. Geometry cost is higher than the earlier low-poly style. This is procedural naturalization, not photogrammetry or a claim of photorealistic assets.
+
 Personal bests are now separated by selected vessel. Slower hulls have provisional scaled medal targets shown on the start menu; these still need player balancing. Invalid finish times and malformed binding/replay allocations are rejected.
 
 ### Remaining realism roadmap
