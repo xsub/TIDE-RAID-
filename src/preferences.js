@@ -12,6 +12,7 @@ export function readPreferences(storage) {
   defaults.playerBoat = 'boat-speed-c';
   defaults.cameraViews = {}; defaults.reducedCameraMotion = false;
   defaults.sceneryFading = true; defaults.sceneryFadeAmount = 1;
+  defaults.sceneryFadeSpeed = 1;
   defaults.livingWeather = true;
   defaults.movingFronts = true;
   defaults.qualityPreset = 'custom';
@@ -33,6 +34,7 @@ export function readPreferences(storage) {
   defaults.cameraViews = cameraMemory(saved.cameraViews);
   if (typeof saved.reducedCameraMotion === 'boolean') defaults.reducedCameraMotion = saved.reducedCameraMotion;
   if (typeof saved.sceneryFading === 'boolean') defaults.sceneryFading = saved.sceneryFading;
+  if (Number.isFinite(saved.sceneryFadeSpeed) && saved.sceneryFadeSpeed >= 0.25 && saved.sceneryFadeSpeed <= 3) defaults.sceneryFadeSpeed = saved.sceneryFadeSpeed;
   if (Number.isFinite(saved.sceneryFadeAmount) && saved.sceneryFadeAmount >= 0 && saved.sceneryFadeAmount <= 1) defaults.sceneryFadeAmount = saved.sceneryFadeAmount;
   if (Number.isFinite(saved.mouseLookSensitivity) && saved.mouseLookSensitivity >= 0.25 && saved.mouseLookSensitivity <= 3) defaults.mouseLookSensitivity = saved.mouseLookSensitivity;
   if (Number.isFinite(saved.pilotLookSmoothing) && saved.pilotLookSmoothing >= 0 && saved.pilotLookSmoothing <= 1) defaults.pilotLookSmoothing = saved.pilotLookSmoothing;

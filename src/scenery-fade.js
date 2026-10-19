@@ -22,17 +22,18 @@ export function createSceneryFade() {
   const patched = new WeakSet();
   return {
     uniforms,
-    update(eye, boat, enabled, beam = 3, amount = 1, elapsed = null, reset = false) {
+    update(eye, boat, enabled, beam = 3, amount = 1, elapsed = null, reset = false, speed = 1) {
+      const rateScale = Number.isFinite(speed) ? Math.max(0.25, Math.min(3, speed)) : 1;
       nextBoat.set(boat.x, boat.y + 0.6, boat.z);
       const instant = !initialized || reset || elapsed === null;
       const strength = enabled ? (Number.isFinite(amount) ? Math.max(0, Math.min(1, amount)) : 1) : 0;
       const radius = Math.max(5, Math.min(14, beam * 1.5 + 2));
       for (let index = 0; index < 4; index++) {
-        const blend = instant ? 1 : smoothFadeValue(0, 1, elapsed, 40 / (index + 1));
+        const blend = instant ? 1 : smoothFadeValue(0, 1, elapsed, 40 * rateScale / (index + 1));
         eyes[index].lerp(eye, blend); boats[index].lerp(nextBoat, blend);
       }
-      uniforms.uFadeRadius.value = instant ? radius : smoothFadeValue(uniforms.uFadeRadius.value, radius, elapsed);
-      uniforms.uFadeStrength.value = instant ? strength : smoothFadeValue(uniforms.uFadeStrength.value, strength, elapsed, strength > uniforms.uFadeStrength.value ? 14 : 8);
+      uniforms.uFadeRadius.value = instant ? radius : smoothFadeValue(uniforms.uFadeRadius.value, radius, elapsed, 12 * rateScale);
+      uniforms.uFadeStrength.value = instant ? strength : smoothFadeValue(uniforms.uFadeStrength.value, strength, elapsed, (strength > uniforms.uFadeStrength.value ? 14 : 8) * rateScale);
       if (strength === 0 && uniforms.uFadeStrength.value < 0.001) uniforms.uFadeStrength.value = 0;
       uniforms.uFadeEnabled.value = uniforms.uFadeStrength.value > 0 ? 1 : 0;
       initialized = true;

@@ -193,7 +193,7 @@ export function createScenery(scene,realAssets=null) {
     loaded.set(index, group);
   }
   return {
-    updateCameraFade(eye, boat, enabled, beam, amount, elapsed, reset) {fade.update(eye, boat, enabled, beam, amount, elapsed, reset);},
+    updateCameraFade(eye, boat, enabled, beam, amount, elapsed, reset, speed) {fade.update(eye, boat, enabled, beam, amount, elapsed, reset, speed);},
     update(z, time = 0, x=channel(z).center, night = 0) {
       nature.update(time);
       harbors.update(time, night);

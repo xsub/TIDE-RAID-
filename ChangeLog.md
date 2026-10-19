@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-19 — Adjustable scenery fade speed
+
+- Added saved Scenery Fade Speed slider beside the existing fading controls: 0.25× slow through 3× fast, default 1× preserves previous timing. It scales both disappearing/restoring strength, sightline-trail response and radius smoothing; restoration retains its gentler timing. Toggle/amount remain independent, and disabling fading retains the selected speed.
+- Speed changes adjust bounded CPU damping rates only: no added shader taps, allocations, draw calls or random inputs. Camera contact and cut resets remain immediate, pilot POV stays opaque, and physics/Cargo Lab are unchanged. Slow settings intentionally leave a longer soft cutaway trail.
+- All 241 tests and both production entry builds pass, covering safe migration, persistence, invalid values, ordered in/out/tracking speeds, deterministic repeats, stationary-input frame-rate independence, reused buffers and cut reset. Browser verified 2× persisted across reload, restored 1×, and reported no runtime errors. Existing shared-bundle size advisory remains.
+
 ## 2026-10-19 — Smooth scenery cutaway transitions
 
 - Feathered the cutaway's camera/boat end caps instead of switching at hard planes. Four continuously damped sightlines blend a short spatial trail, softening entry and letting occluding tree/house portions return gradually as the camera moves away. Strength and radius changes also ease with elapsed time; fade-out is gentler than fade-in.
