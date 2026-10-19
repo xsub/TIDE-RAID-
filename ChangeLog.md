@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Smooth scenery cutaway transitions
+
+- Feathered the cutaway's camera/boat end caps instead of switching at hard planes. Four continuously damped sightlines blend a short spatial trail, softening entry and letting occluding tree/house portions return gradually as the camera moves away. Strength and radius changes also ease with elapsed time; fade-out is gentler than fade-in.
+- Existing saved toggle and 0–100% strength remain unchanged. Off/zero smoothly clears the visual effect while solid camera avoidance resumes immediately. Camera cuts clear stale sightlines; pilot POV immediately disables cutaways. No changes to simulation, boat handling or Cargo Lab.
+- Fixed four-tap shader budget, eight reused position vectors and shared scalar uniforms; no new draw calls, textures, render targets, per-object update lists or random inputs. This adds bounded fragment work versus the single-sightline version. Dither remains visible/quantized at pixel scale and rapid camera motion can leave a brief soft trail; this is not full transparency or temporal antialiasing.
+- All 237 tests and both production entry builds pass, including deterministic repeated motion, stationary-input frame-rate-independent damping, gradual enable/disable, retained strength, history-buffer reuse, cut reset and shader end-cap checks. Browser smoke-tested exterior settings and shader compilation without reported runtime errors; original 100%/on and pilot view restored. Existing shared-bundle warning remains; device-specific frame-rate and close-quarters feel need playtesting.
+
 ## 2026-10-19 — Saved scenery fading controls
 
 - Added Fade Blocking Trees & Buildings checkbox and 0–100% Scenery Fade Amount slider under Helm Settings beside camera controls. Defaults retain the existing enabled/full-strength cutaway. Disabling keeps the selected amount for re-enabling; both settings persist with validated values.
