@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Exterior camera obstacle avoidance
+
+- Chase, arcade and wreck cameras now clear cached bounds for trees, decorative/channel rocks, village houses, lighthouse towers and docks. Exploration also checks moored hulls against the shared wave height. Driver POV remains fixed at the helm; boat physics and Cargo Lab are unchanged.
+- Analytical segment/expanded-footprint checks catch thin obstacles between terrain samples, with 0.8 m lens clearance. Corrections lift the exterior camera; existing follow interpolation restores framing after obstructions. A bounded second pass prevents a lift into previously passed overhead bounds. Checks visit only sectors spanned by the camera boom, reject non-overlapping footprints early, and cache static layouts within the fixed 94-sector world. No mesh raycasts, additional rendering passes or random inputs.
+- Conservative boxes approximate foliage, roofs and hulls rather than individual triangles. Near-target obstacles can cause large upward corrections; targets already inside an object cannot always have an unobstructed sightline. This is not cinematic path planning, and device-specific performance still needs playtesting.
+- All 220 tests and both production entry builds pass, including thin/parallel intersections, underwater bypass, eye-inside recovery, cache reuse, deterministic results and exploration-only moored-hull clearance. Browser smoke check completed; existing shared-bundle size advisory remains.
+
 ## 2026-10-19 — Moored harbor boats and dockside life
 
 - Added deterministic cached marina layouts with up to four anchored boats per sector: mixed runabouts, classics and small cruisers beside village piers and service-harbor mooring buoys. Placement rejects shallow/obstructed water, preserves the central channel and keeps 40 m clear around service centers. Rescue spawns now avoid marina hulls.

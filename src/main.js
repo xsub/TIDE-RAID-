@@ -13,6 +13,7 @@ import {wakeResponse} from './wake-response.js';
 import {rememberCamera} from './camera-memory.js';
 import {MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
+import {clearCameraObjects} from './camera-obstacles.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
 import {cameraKeyMotion} from './camera-keys.js';
@@ -909,6 +910,7 @@ function frame(now) {
   if (mode === 'pilot') smoothLook.copy(lookTarget);
   else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   if (mode !== 'pilot') clearCameraTerrain(camera.position, smoothLook, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(camera.position.x, camera.position.z, simTime, roughness).h + 1);
+  if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave);
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
   const underwaterEnabled = ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring;
