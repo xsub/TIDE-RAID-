@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Independent scenery fade directions
+
+- Added two saved controls shared by trees and buildings: Fade Out / Hide Scenery and Fade In / Restore Scenery, each 0.25×–3×. Defaults are 1× so existing timing is preserved. The original Scenery Fade Speed remains an overall multiplier; toggle and strength remain independent, and disabled controls retain their values.
+- Hiding/strength increases use fade-out speed; restoration/strength decreases use fade-in speed. Leading sightline samples use hiding response and trailing samples use restoration response within the existing four-tap approximation. Both directions influence a moving cutaway, rather than maintaining a per-object opacity timeline. Camera cuts/contact and pilot behavior remain unchanged.
+- Only bounded damping-rate calculations change; no additional shader taps, allocations, render passes or random inputs. Boat physics and Cargo Lab remain untouched. Slow restoration can deliberately leave a longer soft trail, and dither remains pixel-quantized.
+- All 245 tests and both production entry builds pass, covering migration, validation, independent persistence, directional strength isolation, leading/trailing response, deterministic repeats, master multiplier and stationary-input frame-rate independence. Browser verified 3× hide / 0.25× restore persisted across reload and restored both to 1×, without reported runtime errors. Existing shared-bundle advisory remains.
+
 ## 2026-10-19 — Adjustable scenery fade speed
 
 - Added saved Scenery Fade Speed slider beside the existing fading controls: 0.25× slow through 3× fast, default 1× preserves previous timing. It scales both disappearing/restoring strength, sightline-trail response and radius smoothing; restoration retains its gentler timing. Toggle/amount remain independent, and disabling fading retains the selected speed.

@@ -111,7 +111,11 @@ document.getElementById('app').innerHTML = `
       <input id="sceneryFadeAmount" type="range" min="0" max="100" step="5">
       <label for="sceneryFadeSpeed">SCENERY FADE SPEED <output id="sceneryFadeSpeedValue"></output></label>
       <input id="sceneryFadeSpeed" type="range" min="0.25" max="3" step="0.25">
-      <p class="note">Slow 0.25× → fast 3×. 1× keeps the original timing. Controls both fading away and returning; camera contact stays immediate.</p>
+      <label for="sceneryFadeOutSpeed">FADE OUT · HIDE SCENERY <output id="sceneryFadeOutSpeedValue"></output></label>
+      <input id="sceneryFadeOutSpeed" type="range" min="0.25" max="3" step="0.25">
+      <label for="sceneryFadeInSpeed">FADE IN · RESTORE SCENERY <output id="sceneryFadeInSpeedValue"></output></label>
+      <input id="sceneryFadeInSpeed" type="range" min="0.25" max="3" step="0.25">
+      <p class="note">Applies to trees and buildings. Slow 0.25× → fast 3×. Scenery Fade Speed multiplies both directional speeds; 1× preserves previous timing. Fade out controls hiding response; fade in controls restoration and the trailing cutaway. Camera contact stays immediate.</p>
       <p class="note">0% keeps scenery solid; 100% gives the strongest see-through cutaway. Off or 0% restores camera pull-in. Driver POV never fades scenery.</p>
       <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
       <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option><option value="lighthouse">Lighthouse tour · visit 3 coastal landmarks</option><option value="rescue">Rescue · help stranded crew, return to harbor</option></select>
@@ -629,12 +633,18 @@ function updateSceneryFadeControls() {
   sceneryFadeAmount.disabled = !preferences.sceneryFading;
   sceneryFadeSpeed.value = preferences.sceneryFadeSpeed;
   sceneryFadeSpeed.disabled = !preferences.sceneryFading;
+  for (const name of ['sceneryFadeInSpeed', 'sceneryFadeOutSpeed']) {
+    const control = document.getElementById(name);
+    control.value = preferences[name]; control.disabled = !preferences.sceneryFading;
+    document.getElementById(`${name}Value`).textContent = `${preferences[name].toFixed(2)}×`;
+  }
   document.getElementById('sceneryFadeSpeedValue').textContent = `${preferences.sceneryFadeSpeed.toFixed(2)}×`;
   document.getElementById('sceneryFadeAmountValue').textContent = `${Math.round(preferences.sceneryFadeAmount * 100)}%`;
 }
 sceneryFadeToggle.onchange = () => {preferences.sceneryFading = sceneryFadeToggle.checked; updateSceneryFadeControls(); persistPreferences();};
 sceneryFadeAmount.oninput = () => {preferences.sceneryFadeAmount = Number(sceneryFadeAmount.value) / 100; updateSceneryFadeControls(); persistPreferences();};
 sceneryFadeSpeed.oninput = () => {preferences.sceneryFadeSpeed = Number(sceneryFadeSpeed.value); updateSceneryFadeControls(); persistPreferences();};
+for (const name of ['sceneryFadeInSpeed', 'sceneryFadeOutSpeed']) document.getElementById(name).oninput = (event) => {preferences[name] = Number(event.target.value); updateSceneryFadeControls(); persistPreferences();};
 updateSceneryFadeControls();
 document.getElementById('livingWeather').checked = preferences.livingWeather;
 document.getElementById('livingWeather').onchange = (event) => {preferences.livingWeather = event.target.checked; persistPreferences();};
@@ -940,7 +950,7 @@ function frame(now) {
   else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   if (mode !== 'pilot') clearCameraTerrain(camera.position, smoothLook, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(camera.position.x, camera.position.z, simTime, roughness).h + 1);
   if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave, null, 0, false, sceneryFadeActive(preferences, mode));
-  scenery.updateCameraFade(camera.position, state, sceneryFadeActive(preferences, mode), state.beam, preferences.sceneryFadeAmount, elapsed, cameraCut || mode === 'pilot', preferences.sceneryFadeSpeed);
+  scenery.updateCameraFade(camera.position, state, sceneryFadeActive(preferences, mode), state.beam, preferences.sceneryFadeAmount, elapsed, cameraCut || mode === 'pilot', preferences.sceneryFadeSpeed, preferences.sceneryFadeInSpeed, preferences.sceneryFadeOutSpeed);
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
   const underwaterEnabled = ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring;

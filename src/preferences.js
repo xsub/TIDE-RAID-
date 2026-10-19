@@ -13,6 +13,7 @@ export function readPreferences(storage) {
   defaults.cameraViews = {}; defaults.reducedCameraMotion = false;
   defaults.sceneryFading = true; defaults.sceneryFadeAmount = 1;
   defaults.sceneryFadeSpeed = 1;
+  defaults.sceneryFadeInSpeed = 1; defaults.sceneryFadeOutSpeed = 1;
   defaults.livingWeather = true;
   defaults.movingFronts = true;
   defaults.qualityPreset = 'custom';
@@ -35,6 +36,7 @@ export function readPreferences(storage) {
   if (typeof saved.reducedCameraMotion === 'boolean') defaults.reducedCameraMotion = saved.reducedCameraMotion;
   if (typeof saved.sceneryFading === 'boolean') defaults.sceneryFading = saved.sceneryFading;
   if (Number.isFinite(saved.sceneryFadeSpeed) && saved.sceneryFadeSpeed >= 0.25 && saved.sceneryFadeSpeed <= 3) defaults.sceneryFadeSpeed = saved.sceneryFadeSpeed;
+  for (const name of ['sceneryFadeInSpeed', 'sceneryFadeOutSpeed']) if (Number.isFinite(saved[name]) && saved[name] >= 0.25 && saved[name] <= 3) defaults[name] = saved[name];
   if (Number.isFinite(saved.sceneryFadeAmount) && saved.sceneryFadeAmount >= 0 && saved.sceneryFadeAmount <= 1) defaults.sceneryFadeAmount = saved.sceneryFadeAmount;
   if (Number.isFinite(saved.mouseLookSensitivity) && saved.mouseLookSensitivity >= 0.25 && saved.mouseLookSensitivity <= 3) defaults.mouseLookSensitivity = saved.mouseLookSensitivity;
   if (Number.isFinite(saved.pilotLookSmoothing) && saved.pilotLookSmoothing >= 0 && saved.pilotLookSmoothing <= 1) defaults.pilotLookSmoothing = saved.pilotLookSmoothing;
