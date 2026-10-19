@@ -69,7 +69,7 @@ export function step(state, input, dt, time, roughness = 1, resolveTraffic = nul
   state.vx *= drag;
   state.vz *= drag;
   applyShallows(state,dt);
-  applyRudder(state,input.turn,forward,wet,dt);
+  applyRudder(state,input.turn,forward,wet,dt,input);
   const planing = Math.min(speed / state.planingSpeed, 1) * wet * state.shallowFactor;
   state.vy += (support * (1 + planing * state.planingLift) - 9.81) * dt;
   state.vy = Math.max(-12, Math.min(3.0, state.vy));

@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-19 — Restore express/offshore cruiser steering authority
+
+- Express 37 and Offshore 44 now steer using vectored outboard thrust in addition to the existing flow-dependent rudder force. Their previous small-rudder-only model was too weak against their mass/yaw inertia, especially at low speed.
+- Steering torque follows available engine power, thrust/reverse/boost, water contact and stern lever arm. No powered steering in air, without thrust, or after engine shutdown; passive coasting rudder remains. The heavier Offshore 44 retains a slower response. Other vessel profiles and existing replay-state defaults are unchanged.
+- All 193 tests and both production entry builds pass. New coverage checks useful yaw at 0/5/20 m/s, slower heavy-hull response, reverse sign, dry/failed propulsion and actual left/right turns through full hull integration with deterministic repeatability. Existing shared-bundle advisory remains; on-device handling feel still needs playtesting.
+
 ## 2026-10-18 — Lighthouse tour and active target markers
 
 - Added optional three-landmark lighthouse tours using the actual generated coastal lighthouse locations, with offshore approach targets, sequential progress and a completion score. Release throttle below 72 km/h within 45 m to register; timers pause with simulation and Recover cancels the activity.
