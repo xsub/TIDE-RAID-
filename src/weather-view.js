@@ -10,7 +10,7 @@ export function createRain(scene) {
     rain.visible = weather.rain > 0;
     if (!rain.visible) return;
     rain.position.set(state.x, 0, state.z);
-    material.opacity = 0.22 + weather.daylight * 0.2;
+    material.opacity = (0.22 + weather.daylight * 0.2) * weather.rain;
     const driftX = Math.cos(weather.windAngle) * weather.wind;
     const driftZ = Math.sin(weather.windAngle) * weather.wind;
     for (let index = 0; index < count; index++) {

@@ -53,7 +53,7 @@ export function createAtmosphere(scene, renderer) {
     uniforms.uWind.value.set(Math.cos(weather.windAngle), Math.sin(weather.windAngle)).multiplyScalar(0.0005 + weather.wind * 0.008);
     scene.environmentIntensity = 0.14 + weather.daylight * (0.86 - weather.cloud * 0.3);
     scene.fog.color.copy(nightFog).lerp(dayFog, weather.daylight);
-    scene.fog.near = weather.rain ? 180 : 600; scene.fog.far = weather.rain ? 750 : 1120;
+    scene.fog.near = 600 - weather.rain * 420; scene.fog.far = 1120 - weather.rain * 370;
     sky.visible = underwater < 0.5;
     scene.background = underwater >= 0.5 ? submergedFog : null;
     scene.fog.color.lerp(submergedFog, underwater);

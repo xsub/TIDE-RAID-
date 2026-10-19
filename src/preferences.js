@@ -12,6 +12,7 @@ export function readPreferences(storage) {
   defaults.playerBoat = 'boat-speed-c';
   defaults.cameraViews = {}; defaults.reducedCameraMotion = false;
   defaults.livingWeather = true;
+  defaults.movingFronts = true;
   defaults.qualityPreset = 'custom';
   defaults.wavelength = DEFAULT_WAVELENGTH; defaults.seaDefaultsVersion = 2;
   defaults.shallowThreshold = 1; defaults.shallowMuted = false;
@@ -24,6 +25,7 @@ export function readPreferences(storage) {
   defaults.cameraZoom = 1;
   defaults.manualCamera = false; defaults.cameraElevation = 30; defaults.cameraHeight = 15;
   if (!saved || typeof saved !== 'object') return defaults;
+  if (typeof saved.movingFronts === 'boolean') defaults.movingFronts = saved.movingFronts;
   if (Number.isFinite(saved.wavelength) && saved.wavelength >= 1 && saved.wavelength <= 4 && (saved.wavelength !== 1 || saved.seaDefaultsVersion >= 2)) defaults.wavelength = saved.wavelength;
   if (['custom', 'low', 'balanced', 'high', 'auto'].includes(saved.qualityPreset)) defaults.qualityPreset = saved.qualityPreset;
   if (typeof saved.livingWeather === 'boolean') defaults.livingWeather = saved.livingWeather;

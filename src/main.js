@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createWeatherFront} from './weather-front.js';
 import {createRescueView} from './rescue-view.js';
 import {collideRescueBoat} from './rescue-mission.js';
 import {setWavelength, seaForPhase} from './wave-settings.js';
@@ -72,7 +73,8 @@ document.getElementById('app').innerHTML = `
         <label for="wind">WIND STRENGTH</label><input id="wind" type="range" min="0" max="100"><output id="windValue"></output>
         <label for="windAngle">WIND DIRECTION</label><input id="windAngle" type="range" min="0" max="360" step="15"><output id="windAngleValue"></output>
         <label><input id="glow" type="checkbox"> GLOWING NIGHT WAKE</label>
-        <small>Visual weather: wind moves clouds/rain, not the hull. Swell remains separate. Night lamps and forward beams switch on automatically. Glow is a stylized bioluminescent effect. Cycle pauses with the game; time changes do not affect trial physics.</small>
+        <label><input id="movingFronts" type="checkbox"> MOVING RAIN SQUALLS · LIVING WEATHER</label><output id="frontStatus"></output><small>Dark cloud banks and rain curtains move with wind. Rain, visibility and exploration wave sets change as a front passes. Disable this or Living Weather for steady conditions. Analytical bands, not atmospheric fluid simulation.</small>
+        <small>Wind moves clouds/rain; Living Weather also varies exploration wave sets around your selected swell. Night lamps and forward beams switch on automatically. Glow is a stylized bioluminescent effect. Cycle pauses with the game; time changes do not affect trial physics.</small>
       </details>
       <details><summary>DAMAGE & FUEL / EXPLORATION</summary>
         <label for="damageMode">DAMAGE MODEL</label><select id="damageMode"><option value="arcade">Arcade · forgiving wear</option><option value="realistic">Realistic · harsher impacts</option></select>
@@ -205,6 +207,7 @@ document.getElementById('qualityPreset').onchange = (event) => {
 };
 const boat = createBoat();
 const rainView = createRain(scene);
+const frontView = createWeatherFront(scene);
 let playerLights = null;
 let playerLightModel = null;
 const searchlight = new THREE.SpotLight(0xcce9ff, 0, 95, 0.28, 0.7, 2);
@@ -600,6 +603,8 @@ document.getElementById('floodingDrill').onclick = () => {
   document.getElementById('sinkingMode').value = preferences.sinkingMode; persistPreferences();
 };
 let weatherEpoch = 0;
+document.getElementById('movingFronts').checked = preferences.movingFronts;
+document.getElementById('movingFronts').onchange = (event) => {preferences.movingFronts = event.target.checked; persistPreferences();};
 document.getElementById('reducedCameraMotion').checked = preferences.reducedCameraMotion;
 document.getElementById('livingWeather').checked = preferences.livingWeather;
 document.getElementById('livingWeather').onchange = (event) => {preferences.livingWeather = event.target.checked; persistPreferences();};
@@ -777,7 +782,7 @@ function frame(now) {
       const before = {x: state.x, z: state.z, collision: state.collision};
       const boosting = useBoost(race, input.boost, input.throttle && !input.brake, 1 / 120);
       const exploring = race.phase === 'explore';
-      if (exploring) roughness = clampSwell(baseSwell * weatherState(preferences, simTime - weatherEpoch).waveFactor);
+      if (exploring) roughness = clampSwell(baseSwell * weatherState(preferences, simTime - weatherEpoch, state).waveFactor);
       if (exploring) state.serviceDocks = 1;
       const canDrive = !exploring || voyageDrive(voyage);
       if (exploring && voyage.flooding < 0.55) wakeResponse(state, traffic.boats, simTime, 1 / 120);
@@ -834,7 +839,8 @@ function frame(now) {
   for (const id of ['manualCamera', 'cameraElevation', 'cameraAuto']) document.getElementById(id).disabled = mode === 'pilot';
   document.getElementById('cameraHeight').disabled = mode === 'pilot' || mode === 'wreck';
   boat.rotation.set(state.pitch, state.heading, state.roll, 'YXZ');
-  const weather = weatherState(preferences, simTime - weatherEpoch);
+  const weather = weatherState(preferences, simTime - weatherEpoch, state);
+  document.getElementById('frontStatus').textContent = weather.frontEnabled ? `SQUALL ${weather.frontStrength > 0.1 ? 'PASSING' : weather.frontDistance > 0 ? 'APPROACHING' : 'MOVING AWAY'} · ${Math.round(Math.abs(weather.frontDistance))} m · ${weather.frontSpeed.toFixed(1)} m/s` : 'MOVING FRONTS OFF';
   document.getElementById('coastalActivity').disabled = race.phase !== 'explore';
   document.getElementById('activityStatus').textContent = activityText(activity, state);
   weather.harborShelter = race.phase === 'explore';
@@ -909,6 +915,7 @@ function frame(now) {
   audio.update(state, paused, input.throttle, input.boost && race.boost > 0 && !race.boostLocked,
     traffic.boats, !complete && race.phase !== 'ready' && (!exploring || voyage.flooding < 0.75), underwater);
   atmosphere.update(simTime, camera, weather, underwater);
+  frontView.update(weather, simTime - weatherEpoch, underwater);
   sun.intensity = 0.08 + weather.sun * 2.7;
   sun.color.set(weather.daylight < 0.5 ? 0xabc6ff : weather.elevation < 0.3 ? 0xffbb7a : 0xffedce);
   hemisphere.intensity = 0.22 + weather.daylight * (0.45 - weather.cloud * 0.15);

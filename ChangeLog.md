@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Visible moving rain squalls and weather fronts
+
+- Added saved Moving Rain Squalls toggle under Weather & Time. Deterministic wind-advected cloud banks and rain curtains can be seen approaching; a position-based band field smoothly changes local rain, cloud cover, visibility, wind and exploration wave sets. Living Weather disables evolution when unchecked; manual Rain remains available. Trial wave amplitude/wavelength rules stay fixed.
+- Two render batches (one curtain, three instanced cloud forms), no textures, lights or shadows. Existing 480 rain streaks scale opacity with local rainfall; fog responds continuously rather than jumping at the first drop. Fronts hide underwater. Timers follow paused simulation time; changing day/time resets the existing weather epoch and can rephase fronts.
+- These are periodic analytical squall bands, not meteorological simulation or volumetric clouds. Device performance and visual realism require playtesting.
+- All 207 tests and both production entry builds pass. Browser verified an approaching→passing→departing front and clean final cloud shaders; the explicit drill enabled Arcade sinking from Off, reached full flooding/ground contact and put the wreck camera ~25 m underwater. Original sinking choice restored without resetting water. Existing shared-bundle advisory remains.
+
 ## 2026-10-19 — Reliable explicit sinking drill
 
 - Flooding Drill now starts exploration when needed, explicitly enables Arcade sinking if Off, and suspends automatic harbor repair/pumping during the drill. This prevents a nearby service station from silently healing the breach. Recover ends drill protection; normal play retains the user's sinking preference.
