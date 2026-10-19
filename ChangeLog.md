@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-19 — Saved scenery fading controls
+
+- Added Fade Blocking Trees & Buildings checkbox and 0–100% Scenery Fade Amount slider under Helm Settings beside camera controls. Defaults retain the existing enabled/full-strength cutaway. Disabling keeps the selected amount for re-enabling; both settings persist with validated values.
+- Off or 0% disables shader fading and restores solid tree/house sightline avoidance. Positive strengths adjust the existing dithered cutaway; pilot POV still never fades scenery. Strength updates only a shared uniform, without shader recompilation, extra draw calls, random inputs or boat-physics changes. The underlying fixed dither pattern means very small strength changes may look stepped.
+- All 233 tests and both production entry builds pass, including persistence/migration, malformed values, zero-strength solid-camera fallback and uniform reuse without material recompilation. Browser checked 35%/off persistence across reload and restored default 100%/on, with no reported runtime errors. Existing shared-bundle advisory remains.
+
 ## 2026-10-19 — Boat-visible tree and building cutaways
 
 - Exterior views now softly dissolve the portions of trees and village houses crossing the camera-to-boat sightline. A feathered, hull-width-scaled corridor uses a fixed screen-space dither, restoring normal rendering automatically when the sightline moves away. This is a local see-through cutaway, not whole-object transparency; pilot view disables it.

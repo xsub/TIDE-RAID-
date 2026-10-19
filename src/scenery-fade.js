@@ -1,18 +1,23 @@
 import * as THREE from 'three';
 
+export function sceneryFadeActive(preferences, mode) {
+  return mode !== 'pilot' && preferences.sceneryFading === true && preferences.sceneryFadeAmount > 0;
+}
+
 export function createSceneryFade() {
   const uniforms = {
     uFadeEye: {value: new THREE.Vector3()}, uFadeBoat: {value: new THREE.Vector3()},
-    uFadeRadius: {value: 6}, uFadeEnabled: {value: 0},
+    uFadeRadius: {value: 6}, uFadeEnabled: {value: 0}, uFadeStrength: {value: 1},
   };
   const patched = new WeakSet();
   return {
     uniforms,
-    update(eye, boat, enabled, beam = 3) {
+    update(eye, boat, enabled, beam = 3, amount = 1) {
       uniforms.uFadeEye.value.copy(eye);
       uniforms.uFadeBoat.value.set(boat.x, boat.y + 0.6, boat.z);
       uniforms.uFadeRadius.value = Math.max(5, Math.min(14, beam * 1.5 + 2));
-      uniforms.uFadeEnabled.value = enabled ? 1 : 0;
+      uniforms.uFadeStrength.value = Number.isFinite(amount) ? Math.max(0, Math.min(1, amount)) : 1;
+      uniforms.uFadeEnabled.value = enabled && uniforms.uFadeStrength.value > 0 ? 1 : 0;
     },
     patch(material, masked = false) {
       if (patched.has(material)) return material;
@@ -33,14 +38,14 @@ export function createSceneryFade() {
           vFadeMask = ${masked ? 'cameraFade' : '1.0'};
         `);
         shader.fragmentShader = `varying vec3 vFadeWorld; varying float vFadeMask;
-          uniform vec3 uFadeEye; uniform vec3 uFadeBoat; uniform float uFadeRadius; uniform float uFadeEnabled;
+          uniform vec3 uFadeEye; uniform vec3 uFadeBoat; uniform float uFadeRadius; uniform float uFadeEnabled; uniform float uFadeStrength;
           ${shader.fragmentShader}`;
         shader.fragmentShader = shader.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
           if (uFadeEnabled > 0.5 && vFadeMask > 0.5) {
             vec3 fadeRay = uFadeBoat - uFadeEye;
             float fadeAlong = dot(vFadeWorld - uFadeEye, fadeRay) / max(dot(fadeRay, fadeRay), 0.001);
             float fadeDistance = length(vFadeWorld - (uFadeEye + clamp(fadeAlong, 0.0, 1.0) * fadeRay));
-            float fadeAmount = (1.0 - smoothstep(uFadeRadius * 0.35, uFadeRadius, fadeDistance)) * step(0.0, fadeAlong) * step(fadeAlong, 1.0) * 0.96;
+            float fadeAmount = (1.0 - smoothstep(uFadeRadius * 0.35, uFadeRadius, fadeDistance)) * step(0.0, fadeAlong) * step(fadeAlong, 1.0) * 0.96 * uFadeStrength;
             float fadePattern = mod(dot(mod(floor(gl_FragCoord.xy), 4.0), vec2(1.0, 4.0)) * 5.0, 16.0) / 16.0;
             if (fadePattern < fadeAmount) discard;
           }

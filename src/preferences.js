@@ -11,6 +11,7 @@ export function readPreferences(storage) {
   const defaults = {detail: 75, camera: 'chase', cameraAngle: 20, sensitivity: 1, volume: 0.65, music: 0.32, effects: 0.65, traffic: 0.65, ambience: 0.55, cinema: true, hints: true, bindings: {...DEFAULT_BINDINGS}};
   defaults.playerBoat = 'boat-speed-c';
   defaults.cameraViews = {}; defaults.reducedCameraMotion = false;
+  defaults.sceneryFading = true; defaults.sceneryFadeAmount = 1;
   defaults.livingWeather = true;
   defaults.movingFronts = true;
   defaults.qualityPreset = 'custom';
@@ -31,6 +32,8 @@ export function readPreferences(storage) {
   if (typeof saved.livingWeather === 'boolean') defaults.livingWeather = saved.livingWeather;
   defaults.cameraViews = cameraMemory(saved.cameraViews);
   if (typeof saved.reducedCameraMotion === 'boolean') defaults.reducedCameraMotion = saved.reducedCameraMotion;
+  if (typeof saved.sceneryFading === 'boolean') defaults.sceneryFading = saved.sceneryFading;
+  if (Number.isFinite(saved.sceneryFadeAmount) && saved.sceneryFadeAmount >= 0 && saved.sceneryFadeAmount <= 1) defaults.sceneryFadeAmount = saved.sceneryFadeAmount;
   if (Number.isFinite(saved.mouseLookSensitivity) && saved.mouseLookSensitivity >= 0.25 && saved.mouseLookSensitivity <= 3) defaults.mouseLookSensitivity = saved.mouseLookSensitivity;
   if (Number.isFinite(saved.pilotLookSmoothing) && saved.pilotLookSmoothing >= 0 && saved.pilotLookSmoothing <= 1) defaults.pilotLookSmoothing = saved.pilotLookSmoothing;
   if (Number.isFinite(saved.pilotYaw) && saved.pilotYaw >= -180 && saved.pilotYaw <= 180) defaults.pilotYaw = saved.pilotYaw;

@@ -14,6 +14,7 @@ import {rememberCamera} from './camera-memory.js';
 import {MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
 import {clearCameraObjects} from './camera-obstacles.js';
+import {sceneryFadeActive} from './scenery-fade.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
 import {cameraKeyMotion} from './camera-keys.js';
@@ -105,6 +106,10 @@ document.getElementById('app').innerHTML = `
       <button id="camera">CAMERA / ARCADE</button>
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <label><input id="reducedCameraMotion" type="checkbox" style="width:auto"> REDUCED CAMERA MOTION · NO FOLLOW LAG</label>
+      <label><input id="sceneryFading" type="checkbox" style="width:auto"> FADE BLOCKING TREES & BUILDINGS</label>
+      <label for="sceneryFadeAmount">SCENERY FADE AMOUNT <output id="sceneryFadeAmountValue"></output></label>
+      <input id="sceneryFadeAmount" type="range" min="0" max="100" step="5">
+      <p class="note">0% keeps scenery solid; 100% gives the strongest see-through cutaway. Off or 0% restores camera pull-in. Driver POV never fades scenery.</p>
       <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
       <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option><option value="lighthouse">Lighthouse tour · visit 3 coastal landmarks</option><option value="rescue">Rescue · help stranded crew, return to harbor</option></select>
       <small>Rescue: follow the orange ring / SOS marker to a stranded runabout. Stop within 14 m below 3.6 km/h, release throttle/reverse for 4 seconds to help and embark the crew. Return to the marked harbor and stop within 18 m for 2 seconds. Avoid collisions/flooding. Crew transfer is abstracted, not towing. Recover/restart/another activity cancels the rescue.</small>
@@ -612,6 +617,17 @@ let weatherEpoch = 0;
 document.getElementById('movingFronts').checked = preferences.movingFronts;
 document.getElementById('movingFronts').onchange = (event) => {preferences.movingFronts = event.target.checked; persistPreferences();};
 document.getElementById('reducedCameraMotion').checked = preferences.reducedCameraMotion;
+const sceneryFadeToggle = document.getElementById('sceneryFading');
+const sceneryFadeAmount = document.getElementById('sceneryFadeAmount');
+function updateSceneryFadeControls() {
+  sceneryFadeToggle.checked = preferences.sceneryFading;
+  sceneryFadeAmount.value = preferences.sceneryFadeAmount * 100;
+  sceneryFadeAmount.disabled = !preferences.sceneryFading;
+  document.getElementById('sceneryFadeAmountValue').textContent = `${Math.round(preferences.sceneryFadeAmount * 100)}%`;
+}
+sceneryFadeToggle.onchange = () => {preferences.sceneryFading = sceneryFadeToggle.checked; updateSceneryFadeControls(); persistPreferences();};
+sceneryFadeAmount.oninput = () => {preferences.sceneryFadeAmount = Number(sceneryFadeAmount.value) / 100; updateSceneryFadeControls(); persistPreferences();};
+updateSceneryFadeControls();
 document.getElementById('livingWeather').checked = preferences.livingWeather;
 document.getElementById('livingWeather').onchange = (event) => {preferences.livingWeather = event.target.checked; persistPreferences();};
 document.getElementById('reducedCameraMotion').onchange = (event) => {preferences.reducedCameraMotion = event.target.checked; persistPreferences(); snapCamera();};
@@ -908,15 +924,15 @@ function frame(now) {
   cameraGoal();
   if (mode !== 'pilot') {
     clearCameraTerrain(cameraPosition, lookTarget, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(cameraPosition.x, cameraPosition.z, simTime, roughness).h + 1);
-    clearCameraObjects(cameraPosition, lookTarget, exploring, simTime, roughness, sampleWave, cameraObstacleFollow, elapsed, cameraCut || preferences.reducedCameraMotion, true);
+    clearCameraObjects(cameraPosition, lookTarget, exploring, simTime, roughness, sampleWave, cameraObstacleFollow, elapsed, cameraCut || preferences.reducedCameraMotion, sceneryFadeActive(preferences, mode));
   } else cameraObstacleFollow.fraction = 1;
   camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
   if (preferences.reducedCameraMotion) {camera.position.copy(cameraPosition); smoothLook.copy(lookTarget);}
   if (mode === 'pilot') smoothLook.copy(lookTarget);
   else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   if (mode !== 'pilot') clearCameraTerrain(camera.position, smoothLook, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(camera.position.x, camera.position.z, simTime, roughness).h + 1);
-  if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave, null, 0, false, true);
-  scenery.updateCameraFade(camera.position, state, mode !== 'pilot', state.beam);
+  if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave, null, 0, false, sceneryFadeActive(preferences, mode));
+  scenery.updateCameraFade(camera.position, state, sceneryFadeActive(preferences, mode), state.beam, preferences.sceneryFadeAmount);
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
   const underwaterEnabled = ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring;
