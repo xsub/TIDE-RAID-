@@ -39,3 +39,18 @@ test('spray replays exactly after reset and stays bounded', () => {
     else globalThis.devicePixelRatio = previous;
   }
 });
+
+test('wake spray reuses the existing pool, emits once per event and resets deterministically', () => {
+  const previous = globalThis.devicePixelRatio; globalThis.devicePixelRatio = 1;
+  try {
+    const scene = new THREE.Scene(); const spray = createSpray(scene); const geometry = scene.children[0].geometry;
+    const state = {x: 0, z: 0, speed: 0, heading: 0, airtime: 0, beam: 3, length: 8, wakeEvent: 1, wakeImpact: 0.7, wakeSide: 1};
+    spray.update(state, 1, 1 / 120, 2); const birth = geometry.attributes.aBirth.array; const positions = geometry.attributes.position.array;
+    const first = positions.slice(); const count = [...birth].filter((time) => time === 1).length;
+    assert.ok(count >= 12 && count <= 44); assert.equal(birth.length, 384);
+    spray.update(state, 2, 1 / 120, 2); assert.equal([...birth].filter((time) => time === 2).length, 0);
+    spray.reset(); spray.update(state, 1, 1 / 120, 2); assert.deepEqual(positions, first);
+    spray.reset(); spray.update({...state, airtime: 1}, 1, 1 / 120, 2); assert.ok([...birth].every((time) => time === -100));
+    spray.update(state, 2, 1 / 120, 2); assert.ok([...birth].every((time) => time === -100));
+  } finally {if (previous === undefined) delete globalThis.devicePixelRatio; else globalThis.devicePixelRatio = previous;}
+});

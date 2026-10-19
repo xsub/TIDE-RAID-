@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Wake-crossing spray and water-impact audio
+
+- Exploration wake crossings now produce discrete impact events based on relative velocity across the trailing wake edge. Entry/release hysteresis and a 0.5 s simulation cooldown prevent continuous retriggering while riding a wake; airborne crossings are suppressed. Existing directional rocking remains.
+- Added side-biased 12–44 droplet bursts inside the existing deterministic 384-particle pool, without another draw call. Short two-layer filtered-noise splashes vary with crossing impact/speed and pan toward the incoming wake. Audio uses existing master/effects/underwater paths, smooth envelopes and one reused panner, not recordings of real boats.
+- Audio consumes events even when off/paused, preventing delayed bursts on resume; effects-volume zero, heavy flooding, airborne state and simultaneous collisions/landings suppress unnecessary playback. Sources/filters/envelopes disconnect after use and audio rate is capped. Trials and Cargo Lab remain unchanged.
+- All 211 tests and both production entry builds pass, including event hysteresis/cooldown, bounded sound mapping, deterministic pool reset, airborne suppression, stereo direction, cleanup and no delayed mute/pause playback. Existing shared-bundle advisory remains. Subjective realism/listening and device-specific rendering performance still need playtesting; synthesized water layers are not recorded sea audio.
+
 ## 2026-10-19 — Visible moving rain squalls and weather fronts
 
 - Added saved Moving Rain Squalls toggle under Weather & Time. Deterministic wind-advected cloud banks and rain curtains can be seen approaching; a position-based band field smoothly changes local rain, cloud cover, visibility, wind and exploration wave sets. Living Weather disables evolution when unchecked; manual Rain remains available. Trial wave amplitude/wavelength rules stay fixed.

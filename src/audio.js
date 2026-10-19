@@ -3,6 +3,7 @@ import {impactFeedback} from './impact-feedback.js';
 import {landingSound} from './landing-sound.js';
 import {underwaterAudio} from './underwater-model.js';
 import {clearanceWarning} from './clearance-warning.js';
+import {wakeSound} from './wake-sound.js';
 
 export function engineMix(speed, throttle, airborne, boost) {
   const load = Math.min(1, Math.max(0, speed) / 55);
@@ -44,6 +45,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
   let lastLanding = false;
   let lastSplashTime = -Infinity;
   let splashIndex = 0;
+  let lastWakeEvent = 0; let lastWakeSoundTime = -Infinity; let wakePanner;
   let warningConfig = {clearance: null, threshold: 1, muted: false, active: false};
   let warningActive = false; let warningStart = 0; let warningVoice;
   function gain(destination, value = 0) {
@@ -113,11 +115,16 @@ export function createAudio(contextFactory = () => new AudioContext()) {
     source.connect(filter).connect(envelope); source.start(); source.stop(context.currentTime + 1.1);
     source.onended = () => {source.disconnect(); filter.disconnect(); envelope.disconnect();};
   }
-  function splash(energy, speed) {
-    const mix = landingSound(energy, speed);
+  function splash(energy, speed, wake = false, side = 0) {
+    const mix = wake ? wakeSound(energy, speed) : landingSound(energy, speed);
     const time = context.currentTime;
-    if (!mix.gain || time - lastSplashTime < 0.14) return;
+    if (!mix.gain || time - lastSplashTime < 0.14 || (wake && time - lastWakeSoundTime < 0.5)) return;
     lastSplashTime = time;
+    if (wake) {
+      lastWakeSoundTime = time;
+      if (!wakePanner) {wakePanner = context.createStereoPanner(); wakePanner.connect(buses.effects);}
+      wakePanner.pan.setTargetAtTime(Math.max(-0.65, Math.min(0.65, side * 0.55)), time, 0.03);
+    }
     splashIndex++;
     for (const sprayLayer of [false, true]) {
       const source = context.createBufferSource(); source.buffer = noise;
@@ -125,10 +132,10 @@ export function createAudio(contextFactory = () => new AudioContext()) {
       highpass.frequency.value = sprayLayer ? 650 : 120; highpass.Q.value = 0.45;
       const lowpass = context.createBiquadFilter(); lowpass.type = 'lowpass'; lowpass.Q.value = 0.45;
       const start = time + (sprayLayer ? 0.018 : 0);
-      const duration = sprayLayer ? mix.duration : 0.11;
+      const duration = sprayLayer ? mix.duration : wake ? 0.085 : 0.11;
       lowpass.frequency.setValueAtTime(sprayLayer ? mix.cutoff : 750, start);
       lowpass.frequency.exponentialRampToValueAtTime(sprayLayer ? 700 : 320, start + duration);
-      const envelope = gain(buses.effects);
+      const envelope = gain(wake ? wakePanner : buses.effects);
       envelope.gain.setValueAtTime(0, start);
       envelope.gain.linearRampToValueAtTime(mix.gain * (sprayLayer ? 0.8 : 0.55), start + (sprayLayer ? 0.035 : 0.008));
       envelope.gain.exponentialRampToValueAtTime(0.00001, start + duration);
@@ -150,6 +157,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
       return enabled;
     },
     update(state, paused, throttle, boost = false, ships = [], engineActive = true, underwater = 0) {
+      const wakeEvent = state.wakeEvent ?? 0; const newWake = wakeEvent > lastWakeEvent; lastWakeEvent = wakeEvent;
       if (!context) return;
       const time = context.currentTime;
       const audible = enabled && !paused;
@@ -194,6 +202,7 @@ export function createAudio(contextFactory = () => new AudioContext()) {
       music.update(time, audible && levels.music > 0);
       if (audible && engineActive && state.collision > 0 && !lastImpact) burst(true,state.impactEnergy,state.impactMaterial);
       if (audible && engineActive && state.landing > 0 && !lastLanding) splash(state.landingEnergy, state.speed);
+      if (audible && engineActive && levels.effects > 0 && newWake && (state.airtime ?? 0) <= 0.15 && !(state.landing > 0) && !(state.collision > 0)) splash(state.wakeImpact, state.speed, true, state.wakeSide ?? 0);
       lastImpact = state.collision > 0; lastLanding = state.landing > 0;
     },
   };

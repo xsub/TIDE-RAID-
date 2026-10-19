@@ -46,6 +46,25 @@ function mockContext() {
     createBuffer(channels, length) {const data = Array.from({length: channels}, () => new Float32Array(length)); return {getChannelData: (channel) => data[channel]};}};
 }
 
+test('wake splash uses two cleaned-up layers with bounded rate and no delayed mute/pause events', async () => {
+  const context = mockContext(); const audio = createAudio(() => context); audio.setMix('music', 0);
+  const state = {x: 0, z: 0, vx: 0, vz: 0, heading: 0, speed: 15, airtime: 0, collision: 0, landing: 0, wakeEvent: 1, wakeImpact: 0.8, wakeSide: -1};
+  audio.update(state, false, false); await audio.toggle();
+  const sources = () => context.created.filter((node) => node.kind === 'source').length;
+  const initial = sources(); audio.update(state, false, false); assert.equal(sources(), initial);
+  state.wakeEvent++; audio.update(state, false, false); assert.equal(sources(), initial + 2);
+  const count = context.created.length; audio.update(state, false, false); assert.equal(context.created.length, count);
+  const panner = context.created.filter((node) => node.kind === 'panner').at(-1); assert.ok(panner.pan.value < 0);
+  state.wakeEvent++; context.currentTime = 0.1; audio.update(state, false, false); assert.equal(sources(), initial + 2);
+  state.wakeEvent++; context.currentTime = 1; audio.update(state, true, false); audio.update(state, false, false); assert.equal(sources(), initial + 2);
+  audio.setMix('effects', 0); state.wakeEvent++; context.currentTime = 2; audio.update(state, false, false); assert.equal(sources(), initial + 2);
+  audio.setMix('effects', 0.65); state.wakeEvent++; context.currentTime = 3; state.wakeSide = 1; audio.update(state, false, false, false, [], true, 1);
+  assert.equal(sources(), initial + 4); assert.ok(panner.pan.value > 0);
+  const transients = context.created.filter((node) => node.kind === 'source' && node.onended);
+  for (const source of transients) assert.doesNotThrow(() => source.onended());
+  await audio.toggle(); state.wakeEvent++; context.currentTime = 4; audio.update(state, false, false); await audio.toggle(); audio.update(state, false, false); assert.equal(sources(), initial + 4);
+});
+
 test('underwater audio reuses its filter and respects pause/mute while restoring the surface mix', async () => {
   const context = mockContext(); const audio = createAudio(() => context);
   audio.setMix('music', 0); await audio.toggle();

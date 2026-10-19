@@ -39,15 +39,32 @@ export function createSpray(scene) {
   let cursor = 0;
   let accumulator = 0;
   let seed = 731;
+  let lastWakeEvent = 0;
   function random() {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
   }
   return {
-    reset() {birth.fill(-100); geometry.attributes.aBirth.needsUpdate = true; accumulator = 0; cursor = 0; seed = 731;},
+    reset() {birth.fill(-100); geometry.attributes.aBirth.needsUpdate = true; accumulator = 0; cursor = 0; seed = 731; lastWakeEvent = 0;},
     update(state, time, dt, swell) {
       uniforms.uTime.value = time;
-      if (state.speed < 5 || state.airtime > 0.15) return;
+      const wakeEvent = state.wakeEvent ?? 0; const crossing = wakeEvent > lastWakeEvent; lastWakeEvent = wakeEvent;
+      let wakeBurst = false;
+      if (crossing && (state.airtime ?? 0) <= 0.15 && state.wakeImpact >= 0.07) {
+        const impact = Math.min(1, state.wakeImpact); const droplets = Math.floor(12 + impact * 32);
+        const cosine = Math.cos(state.heading); const sine = Math.sin(state.heading); const side = Math.sign(state.wakeSide ?? 1) || 1;
+        for (let droplet = 0; droplet < droplets; droplet++) {
+          const index = cursor++ % count; const across = side * (state.beam ?? 2.8) * 0.45;
+          const along = -(state.length ?? 7.4) * (0.1 + random() * 0.25);
+          const x = state.x + across * cosine + along * sine; const z = state.z - across * sine + along * cosine;
+          positions.set([x, sampleWave(x, z, time, swell).h + 0.2, z], index * 3);
+          const spread = side * (1 + random() * 2 + impact * 2);
+          velocities.set([cosine * spread + (state.vx ?? 0) * 0.15, 0.7 + random() * (1 + impact * 2), -sine * spread + (state.vz ?? 0) * 0.15], index * 3);
+          birth[index] = time;
+        }
+        wakeBurst = true;
+      }
+      if (state.speed < 5 || state.airtime > 0.15) {if (wakeBurst) for (const attribute of Object.values(geometry.attributes)) attribute.needsUpdate = true; return;}
       accumulator += dt * Math.min(130, state.speed * 4);
       while (accumulator >= 1) {
         accumulator--;
