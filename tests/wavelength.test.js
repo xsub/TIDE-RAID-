@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {setWavelength, getWavelength, waterMeshPolicy} from '../src/wave-settings.js';
+import {setWavelength, getWavelength, waterMeshPolicy, seaForPhase} from '../src/wave-settings.js';
 import {sampleWave, components, waveGLSL} from '../src/waves.js';
 import {sampleBoundary} from '../src/water-boundary.js';
 import {channel} from '../src/world.js';
@@ -52,10 +52,20 @@ test('water refinement is bounded, cached, reflected in GPU settings and relaxes
   } finally {setWavelength(1);}
 });
 
-test('wavelength preference validates, persists and defaults to original waves', () => {
-  assert.equal(readPreferences(undefined).wavelength, 1);
-  assert.equal(readPreferences({getItem: () => JSON.stringify({wavelength: 9})}).wavelength, 1);
+test('wavelength preference validates, persists and defaults to broader exploration waves', () => {
+  assert.equal(readPreferences(undefined).wavelength, 2);
+  assert.equal(readPreferences({getItem: () => JSON.stringify({wavelength: 9})}).wavelength, 2);
   let saved; const storage = {getItem: () => saved, setItem: (key, value) => {saved = value;}};
   savePreferences(storage, {...readPreferences(undefined), wavelength: 2.5}); assert.equal(readPreferences(storage).wavelength, 2.5);
   assert.equal(setWavelength(NaN), 1); assert.equal(getWavelength(), 1);
+});
+
+test('old default migrates once; custom wavelength and later explicit 1x choices survive', () => {
+  const read = (settings) => readPreferences({getItem: () => JSON.stringify(settings)});
+  assert.equal(read({wavelength: 1}).wavelength, 2);
+  assert.equal(read({wavelength: 3}).wavelength, 3);
+  assert.equal(read({wavelength: 1, seaDefaultsVersion: 2}).wavelength, 1);
+  assert.deepEqual(seaForPhase('explore', read({wavelength: 1}).wavelength), {swell: 4, wavelength: 2});
+  for (const phase of ['ready', 'countdown', 'racing', 'finished']) assert.deepEqual(seaForPhase(phase, 3), {swell: 1, wavelength: 1});
+  assert.deepEqual(seaForPhase('explore', 2.5), {swell: 4, wavelength: 2.5});
 });

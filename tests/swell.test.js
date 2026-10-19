@@ -4,9 +4,9 @@ import {DEFAULT_SWELL, MAX_SWELL, TRIAL_SWELL, clampSwell} from '../src/swell.js
 import {sampleWave} from '../src/waves.js';
 import {createState, step} from '../src/physics.js';
 
-test('exploration starts at the previous maximum with twice that available, trials unchanged', () => {
-  assert.equal(DEFAULT_SWELL, 2); assert.equal(MAX_SWELL, 4); assert.equal(TRIAL_SWELL, 1);
-  assert.equal(clampSwell(10), 4); assert.equal(clampSwell(-1), 0); assert.equal(clampSwell(NaN), 2);
+test('exploration starts at 4x maximum swell while trials remain unchanged', () => {
+  assert.equal(DEFAULT_SWELL, 4); assert.equal(MAX_SWELL, 4); assert.equal(TRIAL_SWELL, 1);
+  assert.equal(clampSwell(10), 4); assert.equal(clampSwell(-1), 0); assert.equal(clampSwell(NaN), 4);
   const old = sampleWave(100, -1000, 3, 2); const maximum = sampleWave(100, -1000, 3, MAX_SWELL);
   for (const name of ['h', 'dx', 'dz', 'dt']) assert.equal(maximum[name], old[name] * 2);
 });

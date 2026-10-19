@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-19 — Exploration defaults: 4× swell / 2× wavelength
+
+- Exploration starts/restarts at 4× base swell and defaults to 2× wavelength. Existing old-default 1× wavelength preferences migrate once to 2×; custom saved wavelengths are preserved, and an explicit new 1× choice remains valid afterward.
+- A shared phase-selection helper keeps Ready/countdown/time trials/finished states at 1× swell and 1× wavelength, independent of exploration choices. Existing trial physics and records are unchanged. Living-weather variation remains opt-out and effective swell remains capped at 4×.
+- All 198 tests and both production entry builds pass, including defaults, one-time migration, saved custom settings and unchanged trial phase settings. Existing shared-bundle advisory remains.
+
 ## 2026-10-19 — Independent wavelength and high-swell mesh refinement
 
 - Added saved 1–4× Wavelength slider for exploration. Spatial frequencies scale inversely with wavelength while amplitude coefficients remain unchanged; periods scale by its square root. Tall swells can therefore be broader/less steep without lowering their height. Shore reflections and CPU derivatives follow the same parameters as GPU water. Time trials keep 1× wavelength and Cargo Lab is unchanged.

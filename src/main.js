@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import {setWavelength} from './wave-settings.js';
+import {setWavelength, seaForPhase} from './wave-settings.js';
 import {QUALITY_PRESETS, createQualityController} from './quality-controller.js';
 import {createActivity, tickActivity, activityText, activityTarget} from './coastal-activity.js';
 import {setHarborShelter} from './harbor-water.js';
 import {propulsionResponse} from './propulsion-response.js';
 import {wakeResponse} from './wake-response.js';
 import {rememberCamera} from './camera-memory.js';
-import {DEFAULT_SWELL, MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
+import {MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
@@ -89,8 +89,8 @@ document.getElementById('app').innerHTML = `
       <label for="qualityPreset">PERFORMANCE PRESET</label><select id="qualityPreset"><option value="custom">Custom · original quality</option><option value="low">Low · resolution / water / effects</option><option value="balanced">Balanced</option><option value="high">High</option><option value="auto">Auto · adaptive resolution</option></select><output id="resolutionStatus"></output><small>Auto lowers resolution after sustained slow frames and restores it cautiously. Physics stays at 120 Hz. Low disables cinematic postprocessing; custom retains your settings. No guaranteed FPS on every device.</small>
       <input id="detail" type="range" min="0" max="100" value="25">
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
-      <label for="swell">SWELL <output id="swellValue">${DEFAULT_SWELL.toFixed(1)}×</output></label>
-      <input id="swell" type="range" min="0" max="${MAX_SWELL * 100}" value="${DEFAULT_SWELL * 100}">
+      <label for="swell">SWELL <output id="swellValue">${TRIAL_SWELL.toFixed(1)}×</output></label>
+      <input id="swell" type="range" min="0" max="${MAX_SWELL * 100}" value="${TRIAL_SWELL * 100}">
       <label for="wavelength">WAVELENGTH <output id="wavelengthValue"></output></label><input id="wavelength" type="range" min="1" max="4" step="0.1"><small>Longer waves keep their height but spread crests farther apart and reduce steepness. Try 2× wavelength with 4× swell. Above 3× swell, short waves also get bounded extra mesh detail near the boat. Mesh detail is rendering, not additional fluid physics. Trials keep 1× wavelength.</small>
       <label for="riverDepth">RIVER DEPTH <output id="riverDepthValue"></output></label>
       <input id="riverDepth" type="range" min="0.5" max="4" step="0.25">
@@ -261,8 +261,8 @@ loadFleet().then((factory) => {
   document.getElementById('fleetStatus').textContent = 'FLEET LOAD FAILED · RELOAD TO RETRY';
 });
 let simTime = 0;
-let roughness = DEFAULT_SWELL;
-let baseSwell = DEFAULT_SWELL;
+let roughness = TRIAL_SWELL;
+let baseSwell = TRIAL_SWELL;
 let mode = preferences.camera;
 elements.camera.textContent = `CAMERA / ${mode.toUpperCase()}`;
 let paused = false;
@@ -371,15 +371,13 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
   complete = false;
   accumulator = 0;
   spray.reset();
-  if (phase !== 'explore') {
-    roughness = TRIAL_SWELL;
-  }
+  const sea = seaForPhase(phase, preferences.wavelength);
+  roughness = sea.swell;
   document.getElementById('swell').disabled = phase !== 'explore';
-  setWavelength(phase === 'explore' ? preferences.wavelength : 1);
+  setWavelength(sea.wavelength);
   document.getElementById('wavelength').disabled = phase !== 'explore';
-  document.getElementById('wavelength').value = phase === 'explore' ? preferences.wavelength : 1;
-  document.getElementById('wavelengthValue').textContent = `${phase === 'explore' ? preferences.wavelength.toFixed(1) : '1.0'}×`;
-  if (phase === 'explore') roughness = DEFAULT_SWELL;
+  document.getElementById('wavelength').value = sea.wavelength;
+  document.getElementById('wavelengthValue').textContent = `${sea.wavelength.toFixed(1)}×`;
   baseSwell = roughness;
   document.getElementById('swell').value = String(roughness * 100);
   elements.swellValue.textContent = `${roughness.toFixed(1)}×`;
