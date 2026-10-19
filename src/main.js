@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {createMooredView} from './moored-view.js';
+import {collideMooredBoats} from './moored-boats.js';
 import {createWeatherFront} from './weather-front.js';
 import {createRescueView} from './rescue-view.js';
 import {collideRescueBoat} from './rescue-mission.js';
@@ -221,6 +223,7 @@ const sinkingBubbles = createSinkingBubbles(scene);
 let state = createState(preferences.playerBoat);
 let activity = createActivity('off', state);
 const rescueView = createRescueView(scene);
+const mooredView = createMooredView(scene);
 const activityBeacon = new THREE.Mesh(new THREE.TorusGeometry(12, 0.35, 4, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xffc46c, transparent: true, opacity: 0.8, depthWrite: false}));
 activityBeacon.visible = false; scene.add(activityBeacon);
 document.getElementById('coastalActivity').onchange = (event) => {activity = createActivity(event.target.value, state);};
@@ -264,6 +267,7 @@ loadFleet().then((factory) => {
   playerBoatSelect.disabled = false;
   trafficView = createTrafficView(scene, factory, traffic);
   rescueView.setFactory(factory);
+  mooredView.setFactory(factory);
 }).catch(() => {
   fleetError = true;
   document.getElementById('fleetStatus').textContent = 'FLEET LOAD FAILED · RELOAD TO RETRY';
@@ -802,6 +806,7 @@ function frame(now) {
         if (exploring && voyage.flooding > 0.8) return false;
         let hit=false;
         if (exploring) hit = collideRescueBoat(body, activity);
+        if (exploring) hit = collideMooredBoats(body) || hit;
         for(const ship of traffic.boats) hit=collideTraffic(body,ship)||hit;
         return hit;
       } : null, flooded?.buoyancy ?? 1);
@@ -853,6 +858,7 @@ function frame(now) {
   const exploring = race.phase === 'explore';
   weather.headlight = exploring && voyage.flooding >= 0.75 ? 0 : 1;
   rescueView.update(activity, state, simTime, roughness, exploring);
+  mooredView.update(state, simTime, roughness, exploring);
   document.querySelector('#coastalActivity option[value="rescue"]').disabled = !trafficView;
   activityBeacon.visible = exploring && !['off', 'done'].includes(activity.phase);
   if (activityBeacon.visible) {

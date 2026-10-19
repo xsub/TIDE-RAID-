@@ -4,6 +4,7 @@ import {waterDepth} from './depth.js';
 import {SERVICE_STATIONS} from './voyage.js';
 import {capsulePair} from './capsule.js';
 import {contactImpulse} from './collision.js';
+import {mooredLayout} from './moored-boats.js';
 
 export function rescueSite(state) {
   const clearance = Math.max(15, (state.length ?? 7.4) * 0.5 + 8);
@@ -14,6 +15,7 @@ export function rescueSite(state) {
     for (let index = Math.max(0, sector - 1); index <= Math.min(CHUNK_COUNT - 1, sector + 1); index++) {
       if (chunkFeatures(index).some((feature) => Math.hypot(x - feature.x, z - feature.z) < feature.radius + clearance)) safe = false;
       if (harborLayout(index).docks.some((dock) => Math.abs(x - dock.x) < dock.width / 2 + clearance && Math.abs(z - dock.z) < dock.depth / 2 + clearance)) safe = false;
+      if (mooredLayout(index).some((boat) => Math.hypot(x - boat.x, z - boat.z) < clearance + boat.length / 2)) safe = false;
     }
     if (!safe || Math.hypot(x - state.x, z - state.z) < 100 || SERVICE_STATIONS.some((station) => Math.hypot(x - station.x, z - station.z) < 50)) continue;
     if (waterDepth(x, z, state.depthScale) < Math.max(3, (state.draft ?? 1) + 1)) continue;

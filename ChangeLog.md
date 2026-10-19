@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Moored harbor boats and dockside life
+
+- Added deterministic cached marina layouts with up to four anchored boats per sector: mixed runabouts, classics and small cruisers beside village piers and service-harbor mooring buoys. Placement rejects shallow/obstructed water, preserves the central channel and keeps 40 m clear around service centers. Rescue spawns now avoid marina hulls.
+- Reuses three fleet templates as material-batched instanced geometry, capped at six visible boats per type / 18 total. One rope batch plus one instanced buoy batch; no new lights, textures, engine sounds or shadow passes. Shared-wave bobbing, limited roll/pitch and subtle restrained yaw follow simulation time. Visibility/placement refreshes on 32 m cells; transform buffers and counters are reused.
+- Exploration-only anchored capsule collisions reuse existing impact/rotation handling. Hulls are treated as fixed moorings rather than independently simulated ropes/rigid bodies. Trials/Cargo Lab remain unchanged. Objects are culled around ~500 m and may appear/disappear at streaming boundaries.
+- All 215 tests and both production entry builds pass, covering cached placement, service/channel clearance, depth/separation, anchored contacts, instance caps, shared assets/buffer reuse and rescue exclusion. Browser smoke-tested exploration and marina rendering without shader/runtime errors; original camera restored. Existing shared-bundle advisory remains; device-specific performance and close docking feel still need playtesting.
+
 ## 2026-10-19 — Wake-crossing spray and water-impact audio
 
 - Exploration wake crossings now produce discrete impact events based on relative velocity across the trailing wake edge. Entry/release hysteresis and a 0.5 s simulation cooldown prevent continuous retriggering while riding a wake; airborne crossings are suppressed. Existing directional rocking remains.
