@@ -16,6 +16,11 @@ export function sinkingStatus(voyage, mode) {
   const threshold = mode === 'arcade' ? 0.12 : 0.3;
   return voyage.hull < threshold ? `${mode.toUpperCase()} · BREACHED · ingress requires a submerged opening` : `${mode.toUpperCase()} · WATERTIGHT · leaks below ${Math.round(threshold * 100)}% hull · use Flooding Drill to practice`;
 }
+export function startFloodingDrill(settings, voyage) {
+  if (settings.sinkingMode === 'off') settings.sinkingMode = 'arcade';
+  voyage.hull = settings.sinkingMode === 'arcade' ? 0 : 0.05;
+  voyage.drill = true; voyage.mooring = 0; voyage.servicing = false;
+}
 
 export const SERVICE_STATIONS = Object.freeze(Array.from({length: Math.ceil(CHUNK_COUNT / 6)}, (_, station) => {
   const index = station * 6;
@@ -48,7 +53,7 @@ export function tickVoyage(voyage, state, input, rules, dt, waterHeight = 0) {
   if (rules.fuelMode === 'off') voyage.fuel = 1;
   tickSinking(voyage, state, rules.sinkingMode, dt, waterHeight);
   const station = SERVICE_STATIONS.find((candidate) => Math.hypot(state.x - candidate.x, state.z - candidate.z) < 22);
-  voyage.mooring = station && state.speed < 1.5 && !input.throttle && !input.reverse && voyage.flooding < 1 ? voyage.mooring + dt : 0;
+  voyage.mooring = station && !voyage.drill && state.speed < 1.5 && !input.throttle && !input.reverse && voyage.flooding < 1 ? voyage.mooring + dt : 0;
   voyage.servicing = voyage.mooring >= 1.5;
   if (voyage.servicing) {
     voyage.hull = Math.min(1, voyage.hull + dt * 0.16);

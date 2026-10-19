@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 2026-10-19 — Reliable explicit sinking drill
+
+- Flooding Drill now starts exploration when needed, explicitly enables Arcade sinking if Off, and suspends automatic harbor repair/pumping during the drill. This prevents a nearby service station from silently healing the breach. Recover ends drill protection; normal play retains the user's sinking preference.
+- Always-visible voyage telemetry names the active sinking mode and drill state. Trial sinking is not introduced: the explicit drill action switches to exploration. Added docked-drill regression coverage.
+
 ## 2026-10-19 — Stranded-boat rescue missions
 
 - Added optional Rescue activity: approach a stranded runabout, hold within 14 m below 1 m/s for 4 seconds with throttle/reverse released, then return the crew to the marked harbor and hold within 18 m for 2 seconds. Collision, unsafe speed, flooding and leaving range interrupt the hold. Completion scores only once; existing Recover/restart/activity-change cancellation remains.

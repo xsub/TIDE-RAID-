@@ -1,5 +1,5 @@
 export const createSinking = () => ({water: [0, 0, 0, 0], list: 0, trim: 0, air: 1, ingress: 0});
-export function resetSinking(voyage) {voyage.flooding = 0; voyage.sinking = createSinking();}
+export function resetSinking(voyage) {voyage.flooding = 0; voyage.sinking = createSinking(); voyage.drill = false;}
 export function leakRate(hull, head, fill, state, mode, bias = 1) {
   const threshold = mode === 'arcade' ? 0.12 : 0.3;
   const severity = Math.max(0, Math.min(1, (threshold - hull) / threshold));
