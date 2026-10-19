@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {getWavelength, waterMeshPolicy} from './wave-settings.js';
 import {channel, chunkFeatures, chunkIndex, CHUNK_SIZE, CHUNK_COUNT, START_Z} from './world.js';
 import {createWaterMaterial} from './water-material.js';
 import {boundaryAtlas, BOUNDARY_WIDTH, BOUNDARY_HEIGHT} from './water-boundary.js';
@@ -14,12 +15,14 @@ export function createWater(scene) {
   const uniforms = {uTime: {value: 0}, uSwell: {value: 1}, uFaceted: {value: 0}, uBoat: {value: new THREE.Vector2()}, uHeading: {value: 0}, uSpeed: {value: 0}, uDay: {value: 1}, uCloud: {value: 0}, uGlow: {value: 0}, uSunDirection: {value: new THREE.Vector3(-0.58, 0.46, -0.67).normalize()}};
   uniforms.uBoundary = {value: boundary};
   uniforms.uHarborShelter = {value: 0};
+  uniforms.uWavelength = {value: 1};
   uniforms.uHeadlight = {value: 1};
   const material = createWaterMaterial(uniforms);
   const group = new THREE.Group();
   scene.add(group);
   let geometry = new THREE.BufferGeometry();
   let segments;
+  let centerSegments; let centerGeometry = new THREE.BufferGeometry(); let requestedDetail = 25;
   let nearGeometry = new THREE.BufferGeometry();
   const tiles = [];
   const size = 256;
@@ -29,21 +32,25 @@ export function createWater(scene) {
     tiles.push(tile);
     group.add(tile);
   }
-  function setDetail(value) {
-    const next = [10, 18, 30, 46, 64][Math.min(4, Math.floor(value / 21))];
-    if (next !== segments) {
+  function setDetail(value, swell = 1) {
+    requestedDetail = value;
+    const policy = waterMeshPolicy(value, swell, getWavelength()); const next = policy.segments;
+    if (next !== segments || policy.center !== centerSegments) {
       geometry?.dispose();
       nearGeometry.dispose();
+      centerGeometry.dispose();
       geometry = new THREE.PlaneGeometry(size, size, next, next);
       geometry.rotateX(-Math.PI / 2);
       nearGeometry = new THREE.PlaneGeometry(size, size, next * 2, next * 2);
       nearGeometry.rotateX(-Math.PI / 2);
-      tiles.forEach((tile, index) => {tile.geometry = Math.abs(index % 5 - 2) <= 1 && Math.abs(Math.floor(index / 5) - 2) <= 1 ? nearGeometry : geometry;});
+      centerGeometry = new THREE.PlaneGeometry(size, size, policy.center, policy.center).rotateX(-Math.PI / 2);
+      tiles.forEach((tile, index) => {tile.geometry = index === 12 ? centerGeometry : Math.abs(index % 5 - 2) <= 1 && Math.abs(Math.floor(index / 5) - 2) <= 1 ? nearGeometry : geometry;});
       segments = next;
+      centerSegments = policy.center;
     }
     const faceted = value < 55;
     uniforms.uFaceted.value = faceted ? 1 : 0;
-    return `${faceted ? 'Faceted' : 'Smooth'} · ${52 * segments * segments * 2 / 1000}k triangles`;
+    return `${faceted ? 'Faceted' : 'Smooth'} · ${(96 * segments * segments + 2 * centerSegments * centerSegments) / 1000}k triangles${policy.refined ? ' · rough-sea refinement' : ''}`;
   }
   setDetail(25);
   return {
@@ -57,12 +64,15 @@ export function createWater(scene) {
       }
       uniforms.uTime.value = time;
       uniforms.uSwell.value = swell;
+      uniforms.uWavelength.value = getWavelength();
+      const quality = setDetail(requestedDetail, weather?.baseSwell ?? swell);
       uniforms.uBoat.value.set(x, z);
       uniforms.uHeading.value = heading;
       uniforms.uSpeed.value = speed;
       const originX = Math.round(x / size) * size;
       const originZ = Math.round(z / size) * size;
       tiles.forEach((tile, index) => tile.position.set(originX + (index % 5 - 2) * size, 0, originZ + (Math.floor(index / 5) - 2) * size));
+      return quality;
     },
   };
 }

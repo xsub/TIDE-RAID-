@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Independent wavelength and high-swell mesh refinement
+
+- Added saved 1–4× Wavelength slider for exploration. Spatial frequencies scale inversely with wavelength while amplitude coefficients remain unchanged; periods scale by its square root. Tall swells can therefore be broader/less steep without lowering their height. Shore reflections and CPU derivatives follow the same parameters as GPU water. Time trials keep 1× wavelength and Cargo Lab is unchanged.
+- Above 3× selected swell with wavelength below 2×, water automatically enforces a bounded mesh floor and extra detail on the center tile. At maximum detail this increases rendered triangles from ~426k to ~524k, not a whole-world subdivision. Broader waves return to the chosen normal mesh budget. Geometry changes only when the discrete policy changes, not on every gust/frame; labels disclose refinement. Explicit faceted shading remains available.
+- More polygons only improve rendering; this remains the shared analytical wave model, not a particle-fluid solver. Changing wavelength can visibly rephase waves; this control is intended for configuring the sea, not physically evolving the spectrum.
+- All 197 tests and both production entry builds pass, covering preserved height energy, reduced slopes, finite-difference derivatives, bounded/cached mesh changes, matching wavelength uniform and saved preferences. Browser verified 4× short-wave refinement (~524k triangles) and 2× wavelength (~426k) without shader/runtime errors; test preferences restored. Existing shared-bundle advisory remains and device-specific performance needs playtesting.
+
 ## 2026-10-19 — Restore express/offshore cruiser steering authority
 
 - Express 37 and Offshore 44 now steer using vectored outboard thrust in addition to the existing flow-dependent rudder force. Their previous small-rudder-only model was too weak against their mass/yaw inertia, especially at low speed.

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {setWavelength} from './wave-settings.js';
 import {QUALITY_PRESETS, createQualityController} from './quality-controller.js';
 import {createActivity, tickActivity, activityText, activityTarget} from './coastal-activity.js';
 import {setHarborShelter} from './harbor-water.js';
@@ -90,6 +91,7 @@ document.getElementById('app').innerHTML = `
       <small>Faceted → smooth. Surface tessellation only; shared analytical waves, no particle-fluid solver.</small>
       <label for="swell">SWELL <output id="swellValue">${DEFAULT_SWELL.toFixed(1)}×</output></label>
       <input id="swell" type="range" min="0" max="${MAX_SWELL * 100}" value="${DEFAULT_SWELL * 100}">
+      <label for="wavelength">WAVELENGTH <output id="wavelengthValue"></output></label><input id="wavelength" type="range" min="1" max="4" step="0.1"><small>Longer waves keep their height but spread crests farther apart and reduce steepness. Try 2× wavelength with 4× swell. Above 3× swell, short waves also get bounded extra mesh detail near the boat. Mesh detail is rendering, not additional fluid physics. Trials keep 1× wavelength.</small>
       <label for="riverDepth">RIVER DEPTH <output id="riverDepthValue"></output></label>
       <input id="riverDepth" type="range" min="0.5" max="4" step="0.25">
       <small>Exploration only · 1× original / 2× deeper / 4× very deep. Maximum 80 m; shorelines and shallow banks remain. Changing depth restarts exploration.</small>
@@ -153,6 +155,7 @@ const elements = Object.fromEntries(['speed', 'air', 'progress', 'distance', 'qu
 let storage;
 try {storage = localStorage;} catch {}
 const preferences = readPreferences(storage);
+setWavelength(1);
 document.querySelector('details').open = innerWidth > 900;
 const renderer = new THREE.WebGLRenderer({antialias: true});
 const qualityController = createQualityController();
@@ -372,6 +375,10 @@ function reset(phase = race.phase === 'explore' ? 'explore' : 'countdown') {
     roughness = TRIAL_SWELL;
   }
   document.getElementById('swell').disabled = phase !== 'explore';
+  setWavelength(phase === 'explore' ? preferences.wavelength : 1);
+  document.getElementById('wavelength').disabled = phase !== 'explore';
+  document.getElementById('wavelength').value = phase === 'explore' ? preferences.wavelength : 1;
+  document.getElementById('wavelengthValue').textContent = `${phase === 'explore' ? preferences.wavelength.toFixed(1) : '1.0'}×`;
   if (phase === 'explore') roughness = DEFAULT_SWELL;
   baseSwell = roughness;
   document.getElementById('swell').value = String(roughness * 100);
@@ -639,6 +646,15 @@ document.getElementById('swell').oninput = (event) => {
   baseSwell = roughness;
   elements.swellValue.textContent = `${roughness.toFixed(1)}×`;
 };
+document.getElementById('wavelength').value = 1;
+document.getElementById('wavelength').disabled = race.phase !== 'explore';
+document.getElementById('wavelengthValue').textContent = '1.0×';
+document.getElementById('wavelength').oninput = (event) => {
+  if (race.phase !== 'explore') return;
+  preferences.wavelength = setWavelength(Number(event.target.value));
+  document.getElementById('wavelengthValue').textContent = `${preferences.wavelength.toFixed(1)}×`;
+};
+document.getElementById('wavelength').onchange = persistPreferences;
 document.getElementById('riverDepth').value = preferences.riverDepth;
 document.getElementById('riverDepthValue').textContent = `${preferences.riverDepth.toFixed(2)}×`;
 document.getElementById('riverDepth').disabled = race.phase !== 'explore';
@@ -811,6 +827,7 @@ function frame(now) {
   document.getElementById('coastalActivity').disabled = race.phase !== 'explore';
   document.getElementById('activityStatus').textContent = activityText(activity, state);
   weather.harborShelter = race.phase === 'explore';
+  weather.baseSwell = baseSwell;
   const displayedHour = Math.floor(weather.hour * 60);
   document.getElementById('hourValue').textContent = `${String(Math.floor(displayedHour / 60)).padStart(2, '0')}:${String(displayedHour % 60).padStart(2, '0')}`;
   document.getElementById('cycleValue').textContent = `${preferences.cycleMinutes} minutes`;
@@ -839,7 +856,7 @@ function frame(now) {
     const status = voyage.flooding >= 1 ? 'SUNK · H / RECOVER' : voyage.servicing ? 'MOORED · REPAIRING + REFUELING' : voyage.flooding > 0.1 ? `FLOODING ${Math.round(voyage.flooding * 100)}% · SEEK SERVICE / H` : !voyageDrive(voyage) ? 'STRANDED · H / RECOVER' : voyage.fuel < 0.2 ? 'LOW FUEL · SEEK GREEN +' : 'VOYAGE';
     document.getElementById('voyageStatus').textContent = `${status} · HULL ${Math.round(voyage.hull * 100)}% · FUEL ${Math.round(voyage.fuel * 100)}% · ${voyage.flooding > 0 ? `WATER ${Math.round(voyage.flooding * state.mass * 1.12 / 1.025)} L / ${voyage.sinking.ingress.toFixed(1)} L/s · ` : ''}${nearest.name} ${Math.round(Math.hypot(nearest.x - state.x, nearest.z - state.z))} m`;
   } else document.getElementById('voyageStatus').textContent = '';
-  water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 || (exploring && voyage.flooding > 0.55) ? 0 : state.speed, weather);
+  elements.quality.textContent = water.update(state.x, state.z, simTime, roughness, state.heading, state.airtime > 0.15 || (exploring && voyage.flooding > 0.55) ? 0 : state.speed, weather);
   const chunks = scenery.update(state.z, simTime,state.x, weather.night);
   trafficView?.(traffic, simTime, roughness, weather.night, state);
   if (!playerLights || playerLightModel !== preferences.playerBoat) {
