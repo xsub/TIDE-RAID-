@@ -290,6 +290,7 @@ let lastMessage = '';
 const keys = new Set();
 const map = document.getElementById('map').getContext('2d');
 const cameraPosition = new THREE.Vector3();
+const cameraObstacleFollow = {fraction: 1};
 const lookTarget = new THREE.Vector3();
 const smoothLook = new THREE.Vector3();
 const pilotLook = {yaw: preferences.pilotYaw, pitch: preferences.pilotPitch};
@@ -905,6 +906,10 @@ function frame(now) {
   pilotLookTarget.yaw = preferences.pilotYaw; pilotLookTarget.pitch = preferences.pilotPitch;
   if (mode === 'pilot') smoothPilotLook(pilotLook, pilotLookTarget, elapsed, preferences.pilotLookSmoothing, pilotLook);
   cameraGoal();
+  if (mode !== 'pilot') {
+    clearCameraTerrain(cameraPosition, lookTarget, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(cameraPosition.x, cameraPosition.z, simTime, roughness).h + 1);
+    clearCameraObjects(cameraPosition, lookTarget, exploring, simTime, roughness, sampleWave, cameraObstacleFollow, elapsed, cameraCut || preferences.reducedCameraMotion);
+  } else cameraObstacleFollow.fraction = 1;
   camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
   if (preferences.reducedCameraMotion) {camera.position.copy(cameraPosition); smoothLook.copy(lookTarget);}
   if (mode === 'pilot') smoothLook.copy(lookTarget);

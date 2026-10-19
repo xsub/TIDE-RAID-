@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Smoother obstacle-aware camera boom
+
+- Replaced tree/building overflight corrections with full 3D segment checks that shorten the exterior camera boom before an obstacle. Tall or nearby objects no longer multiply camera height by the inverse contact distance. Underwater/overhead misses remain clear; an eye starting inside a bound escapes through its nearest face rather than always jumping upward.
+- A 3 m anticipation envelope eases the requested boom inward, then restores distance more gently after clearance. Exponential damping uses elapsed time, with an immediate 0.8 m safety limit after normal camera interpolation to prevent clipping. Camera cuts reset boom memory; reduced-motion mode bypasses additional damping, and pilot view remains unchanged. Abrupt new obstructions can still require immediate inward correction; conservative foliage/building boxes and existing terrain clearance remain approximations.
+- Reuses cached sector bounds, early footprint rejection and bounded analytical passes, without mesh raycasts, new rendering work or changes to boat physics. The final safety-only query skips anticipation work. Same inputs/timesteps produce the same response; no random camera inputs.
+- All 224 tests and both production entry builds pass. Added coverage for tall near-target obstacles, gentle recovery, hard safety limits, frame-rate-independent damping under a stationary limit, bounds ordering, moored-hull clearance and camera-cut reset. Existing shared-bundle size advisory remains; close-quarters feel and device-specific performance still need playtesting.
+
 ## 2026-10-19 — Exterior camera obstacle avoidance
 
 - Chase, arcade and wreck cameras now clear cached bounds for trees, decorative/channel rocks, village houses, lighthouse towers and docks. Exploration also checks moored hulls against the shared wave height. Driver POV remains fixed at the helm; boat physics and Cargo Lab are unchanged.

@@ -5,7 +5,7 @@ import {mooredLayout} from './moored-boats.js';
 import {cameraGroundHeight} from './camera-safety.js';
 
 const sectors = new Map();
-const axes = ['x', 'z'];
+const axes = ['x', 'y', 'z'];
 export function cameraObstacleLayout(index) {
   if (sectors.has(index)) return sectors.get(index);
   const bounds = [];
@@ -27,14 +27,14 @@ export function cameraObstacleLayout(index) {
   const result = Object.freeze(bounds); sectors.set(index, result); return result;
 }
 
-export function clearCameraBounds(eye, target, bounds, margin = 0.8, forceAbove = false) {
+export function clearCameraBounds(eye, target, bounds, margin = 0.8) {
   for (const box of bounds) {
     if (Math.max(eye.x, target.x) < box.minX - margin || Math.min(eye.x, target.x) > box.maxX + margin || Math.max(eye.z, target.z) < box.minZ - margin || Math.min(eye.z, target.z) > box.maxZ + margin) continue;
     let enter = 0; let exit = 1;
     for (const axis of axes) {
       const delta = eye[axis] - target[axis];
-      const low = box[axis === 'x' ? 'minX' : 'minZ'] - margin;
-      const high = box[axis === 'x' ? 'maxX' : 'maxZ'] + margin;
+      const low = box[axis === 'x' ? 'minX' : axis === 'y' ? 'bottom' : 'minZ'] - margin;
+      const high = box[axis === 'x' ? 'maxX' : axis === 'y' ? 'top' : 'maxZ'] + margin;
       if (Math.abs(delta) < 1e-9) {
         if (target[axis] < low || target[axis] > high) {exit = -1; break;}
       } else {
@@ -43,29 +43,55 @@ export function clearCameraBounds(eye, target, bounds, margin = 0.8, forceAbove 
       }
     }
     if (enter > exit) continue;
-    const firstHeight = target.y + (eye.y - target.y) * enter;
-    const lastHeight = target.y + (eye.y - target.y) * exit;
-    if ((!forceAbove && Math.max(firstHeight, lastHeight) < box.bottom - margin) || Math.min(firstHeight, lastHeight) > box.top + margin) continue;
-    if (enter > 0.001) eye.y = Math.max(eye.y, target.y + (box.top + margin - target.y) / enter);
-    else if (exit >= 1) eye.y = Math.max(eye.y, box.top + margin);
+    if (enter > 0) {
+      const distance = Math.hypot(eye.x - target.x, eye.y - target.y, eye.z - target.z);
+      const fraction = Math.max(0, enter - 0.001 / Math.max(0.001, distance));
+      for (const axis of axes) eye[axis] = target[axis] + (eye[axis] - target[axis]) * fraction;
+    } else if (exit >= 1) {
+      const faces = [
+        ['x', box.minX - margin], ['x', box.maxX + margin],
+        ['y', box.bottom - margin], ['y', box.top + margin],
+        ['z', box.minZ - margin], ['z', box.maxZ + margin],
+      ];
+      let nearest = faces[0];
+      for (const face of faces) if (Math.abs(eye[face[0]] - face[1]) < Math.abs(eye[nearest[0]] - nearest[1])) nearest = face;
+      eye[nearest[0]] = nearest[1];
+    }
   }
   return eye;
 }
 
-export function clearCameraObjects(eye, target, exploring, time, swell, wave) {
+export function smoothCameraBoom(previous, desired, limit, elapsed) {
+  const duration = Math.max(0, Math.min(0.1, elapsed));
+  return Math.min(limit, previous + (desired - previous) * (1 - Math.exp(-(desired < previous ? 14 : 2.5) * duration)));
+}
+
+export function clearCameraObjects(eye, target, exploring, time, swell, wave, follow = null, elapsed = 0, reset = false) {
   const first = Math.max(0, Math.min(chunkIndex(eye.z - 32), chunkIndex(target.z - 32)) - 1);
   const last = Math.min(CHUNK_COUNT - 1, Math.max(chunkIndex(eye.z + 32), chunkIndex(target.z + 32)) + 1);
-  const initialHeight = eye.y;
-  for (let pass = 0; pass < 2; pass++) {
-    if (pass && eye.y === initialHeight) break;
+  const desired = {...eye}; const safe = {...eye};
+  for (let pass = follow ? 0 : 1; pass < 2; pass++) {
+    const candidate = pass ? safe : desired;
+    const margin = pass ? 0.8 : 3;
     for (let index = first; index <= last; index++) {
-      clearCameraBounds(eye, target, cameraObstacleLayout(index), 0.8, pass > 0);
+      clearCameraBounds(candidate, target, cameraObstacleLayout(index), margin);
       if (exploring) for (const boat of mooredLayout(index)) {
         if (boat.x + boat.beam < Math.min(eye.x, target.x) || boat.x - boat.beam > Math.max(eye.x, target.x) || boat.z + boat.length < Math.min(eye.z, target.z) || boat.z - boat.length > Math.max(eye.z, target.z)) continue;
         const surface = wave(boat.x, boat.z, time, swell).h;
-        clearCameraBounds(eye, target, [{minX: boat.x - boat.beam / 2 - 0.4, maxX: boat.x + boat.beam / 2 + 0.4, minZ: boat.z - boat.length / 2 - 0.4, maxZ: boat.z + boat.length / 2 + 0.4, bottom: surface - 1.5, top: surface + (boat.model === 'boat-house-a' ? 5 : 2.5)}], 0.8, pass > 0);
+        clearCameraBounds(candidate, target, [{minX: boat.x - boat.beam / 2 - 0.4, maxX: boat.x + boat.beam / 2 + 0.4, minZ: boat.z - boat.length / 2 - 0.4, maxZ: boat.z + boat.length / 2 + 0.4, bottom: surface - 1.5, top: surface + (boat.model === 'boat-house-a' ? 5 : 2.5)}], margin);
       }
     }
   }
+  const distance = Math.hypot(eye.x - target.x, eye.y - target.y, eye.z - target.z);
+  const fraction = (point) => distance > 0.00001 ? Math.min(1, Math.hypot(point.x - target.x, point.y - target.y, point.z - target.z) / distance) : 1;
+  const limit = fraction(safe);
+  if (follow) {
+    const projected = axes.reduce((total, axis) => total + (safe[axis] - target[axis]) * (eye[axis] - target[axis]), 0) / Math.max(0.00000001, distance * distance);
+    if (axes.some((axis) => Math.abs(safe[axis] - target[axis] - (eye[axis] - target[axis]) * projected) > 0.001) || (distance < 0.00001 && Math.hypot(safe.x - eye.x, safe.y - eye.y, safe.z - eye.z) > 0.001)) {
+      follow.fraction = 1; Object.assign(eye, safe); return eye;
+    }
+    follow.fraction = reset ? limit : smoothCameraBoom(follow.fraction ?? 1, fraction(desired), limit, elapsed);
+    for (const axis of axes) eye[axis] = target[axis] + (eye[axis] - target[axis]) * follow.fraction;
+  } else Object.assign(eye, safe);
   return eye;
 }
