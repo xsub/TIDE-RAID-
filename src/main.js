@@ -15,6 +15,7 @@ import {MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
 import {clearCameraObjects} from './camera-obstacles.js';
 import {sceneryFadeMask} from './scenery-fade.js';
+import {applySceneryFadePreset, currentSceneryFadePreset, resetSceneryFading} from './scenery-fade-presets.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
 import {cameraKeyMotion} from './camera-keys.js';
@@ -118,10 +119,14 @@ document.getElementById('app').innerHTML = `
       <p class="note">Applies to trees and buildings. Slow 0.25× → fast 3×. Scenery Fade Speed multiplies both directional speeds; 1× preserves previous timing. Fade out controls hiding response; fade in controls restoration and the trailing cutaway. Camera contact stays immediate.</p>
       <p class="note">0% keeps scenery solid; 100% gives the strongest see-through cutaway. Off or 0% restores camera pull-in. Driver POV never fades scenery.</p>
       ${['tree', 'building'].map((kind) => `<details><summary>${kind === 'tree' ? 'TREE' : 'BUILDING'} FADING · INDEPENDENT</summary>
+        <label for="${kind}FadePreset">${kind.toUpperCase()} FADING PRESET</label><select id="${kind}FadePreset"><option value="custom">Custom / defaults</option><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="strong">Strong</option></select>
         <label for="${kind}FadeAmount">${kind.toUpperCase()} FADE STRENGTH <output id="${kind}FadeAmountValue"></output></label><input id="${kind}FadeAmount" type="range" min="0" max="100" step="5">
         <label for="${kind}FadeOutSpeed">${kind.toUpperCase()} FADE OUT · HIDE <output id="${kind}FadeOutSpeedValue"></output></label><input id="${kind}FadeOutSpeed" type="range" min="0.25" max="3" step="0.25">
         <label for="${kind}FadeInSpeed">${kind.toUpperCase()} FADE IN · RESTORE <output id="${kind}FadeInSpeedValue"></output></label><input id="${kind}FadeInSpeed" type="range" min="0.25" max="3" step="0.25">
+        <button id="${kind}FadeReset">RESET ${kind.toUpperCase()} FADING</button>
       </details>`).join('')}
+      <button id="sceneryFadeReset">RESET ALL FADING TO DEFAULTS</button>
+      <small>Presets change only that type's strength and speeds. They retain the master toggle/speed. Reset All restores fading on, 100% strength and all speeds to 1× without changing other game settings.</small>
       <small>Independent controls override the shared amount/directional speeds for that type. Changing a shared control applies it to both types again. Overall Scenery Fade Speed still multiplies both. Set a type's strength to 0% to keep only that type solid.</small>
       <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
       <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option><option value="lighthouse">Lighthouse tour · visit 3 coastal landmarks</option><option value="rescue">Rescue · help stranded crew, return to harbor</option></select>
@@ -634,6 +639,10 @@ const sceneryFadeToggle = document.getElementById('sceneryFading');
 const sceneryFadeAmount = document.getElementById('sceneryFadeAmount');
 const sceneryFadeSpeed = document.getElementById('sceneryFadeSpeed');
 function updateSceneryFadeControls() {
+  for (const kind of ['tree', 'building']) {
+    const preset = document.getElementById(`${kind}FadePreset`);
+    preset.value = currentSceneryFadePreset(preferences, kind); preset.disabled = !preferences.sceneryFading;
+  }
   for (const kind of ['tree', 'building']) for (const suffix of ['Amount', 'InSpeed', 'OutSpeed']) {
     const name = `${kind}Fade${suffix}`; const control = document.getElementById(name);
     control.value = preferences[name] * (suffix === 'Amount' ? 100 : 1); control.disabled = !preferences.sceneryFading;
@@ -658,6 +667,11 @@ sceneryFadeSpeed.oninput = () => {preferences.sceneryFadeSpeed = Number(sceneryF
 for (const suffix of ['InSpeed', 'OutSpeed']) document.getElementById(`sceneryFade${suffix}`).oninput = (event) => {preferences[`sceneryFade${suffix}`] = Number(event.target.value); preferences[`treeFade${suffix}`] = preferences[`buildingFade${suffix}`] = Number(event.target.value); updateSceneryFadeControls(); persistPreferences();};
 for (const kind of ['tree', 'building']) for (const suffix of ['Amount', 'InSpeed', 'OutSpeed']) document.getElementById(`${kind}Fade${suffix}`).oninput = (event) => {preferences[`${kind}Fade${suffix}`] = Number(event.target.value) / (suffix === 'Amount' ? 100 : 1); updateSceneryFadeControls(); persistPreferences();};
 updateSceneryFadeControls();
+for (const kind of ['tree', 'building']) {
+  document.getElementById(`${kind}FadePreset`).onchange = (event) => {applySceneryFadePreset(preferences, kind, event.target.value); updateSceneryFadeControls(); persistPreferences();};
+  document.getElementById(`${kind}FadeReset`).onclick = () => {resetSceneryFading(preferences, kind); updateSceneryFadeControls(); persistPreferences();};
+}
+document.getElementById('sceneryFadeReset').onclick = () => {resetSceneryFading(preferences); updateSceneryFadeControls(); persistPreferences();};
 document.getElementById('livingWeather').checked = preferences.livingWeather;
 document.getElementById('livingWeather').onchange = (event) => {preferences.livingWeather = event.target.checked; persistPreferences();};
 document.getElementById('reducedCameraMotion').onchange = (event) => {preferences.reducedCameraMotion = event.target.checked; persistPreferences(); snapCamera();};

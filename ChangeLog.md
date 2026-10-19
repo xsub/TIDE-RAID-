@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Per-type fading presets and scoped resets
+
+- Added Subtle, Balanced and Strong presets independently to Tree Fading and Building Fading. Presets set only that type's strength/hide/restore values (35% / 0.75× / 0.75×; 65% / 1.5× / 1×; 100% / 2.5× / 0.75×), retaining the other type, master toggle and overall speed. Sliders remain editable and preset selection is derived from actual values, so manual edits show Custom/defaults without stale preset state.
+- Added Reset Tree Fading, Reset Building Fading and Reset All Fading to Defaults. Per-type resets affect only that profile; Reset All restores enabled fading, 100% strengths and every fading speed to 1×. Camera, sound, weather, boat and other game settings are untouched. Reset values persist normally.
+- Pure, bounded settings operations only on user actions: no changes to shader cost, camera collision checks, physics, randomness or render passes. Existing dither/trail approximations remain.
+- All 252 tests and both production entry builds pass, covering frozen/bounded preset values, isolation, persistence, custom edits, scoped/default resets, invalid inputs and repeatable application. Browser verified Subtle trees / Strong buildings survived reload, a manual edit returned to Custom, and fading-only reset worked without reported runtime errors. Existing shared-bundle advisory remains.
+
 ## 2026-10-19 — Independent tree and building fading
 
 - Added collapsible Tree Fading and Building Fading sections, each with saved 0–100% strength and independent 0.25×–3× hide/restore speeds. Existing preferences seed both profiles on migration, preserving the previous appearance and timing. Shared strength/directional controls still apply a value to both types; overall speed remains a multiplier. The master toggle preserves all profile values.
