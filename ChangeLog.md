@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 2026-10-19 — Independent tree and building fading
+
+- Added collapsible Tree Fading and Building Fading sections, each with saved 0–100% strength and independent 0.25×–3× hide/restore speeds. Existing preferences seed both profiles on migration, preserving the previous appearance and timing. Shared strength/directional controls still apply a value to both types; overall speed remains a multiplier. The master toggle preserves all profile values.
+- Each type now binds its own reusable uniform/history channel, so tree strength and response no longer alter house fading or vice versa. A zero-strength type restores solid camera avoidance just for that type; lens contact, other obstacles and pilot POV remain protected. Shader cost stays four sightline taps per material, not eight; only a second fixed-size CPU history is added. No additional draw calls, texture allocations, random inputs or boat-physics changes.
+- All 248 tests and both production entry builds pass, covering legacy migration, malformed values, independent persistence, shader-channel isolation, history reuse, separate rates, per-type zero strength and lens contact. Browser verified 25% trees / 75% buildings plus 3× tree hide / 0.25× building restore survived reload, then restored original values and pilot view. No reported shader/runtime errors. Existing dither/trail limitations and shared-bundle advisory remain.
+
 ## 2026-10-19 — Independent scenery fade directions
 
 - Added two saved controls shared by trees and buildings: Fade Out / Hide Scenery and Fade In / Restore Scenery, each 0.25×–3×. Defaults are 1× so existing timing is preserved. The original Scenery Fade Speed remains an overall multiplier; toggle and strength remain independent, and disabled controls retain their values.

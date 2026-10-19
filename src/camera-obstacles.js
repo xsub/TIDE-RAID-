@@ -29,7 +29,8 @@ export function cameraObstacleLayout(index) {
 
 export function clearCameraBounds(eye, target, bounds, margin = 0.8, fadeOccluders = false) {
   for (const box of bounds) {
-    if (fadeOccluders && (box.kind === 'tree' || box.kind === 'building') && (eye.x < box.minX - margin || eye.x > box.maxX + margin || eye.y < box.bottom - margin || eye.y > box.top + margin || eye.z < box.minZ - margin || eye.z > box.maxZ + margin)) continue;
+    const fadeable = fadeOccluders === true ? (box.kind === 'tree' || box.kind === 'building') : ((box.kind === 'tree' && (fadeOccluders & 1)) || (box.kind === 'building' && (fadeOccluders & 2)));
+    if (fadeable && (eye.x < box.minX - margin || eye.x > box.maxX + margin || eye.y < box.bottom - margin || eye.y > box.top + margin || eye.z < box.minZ - margin || eye.z > box.maxZ + margin)) continue;
     if (Math.max(eye.x, target.x) < box.minX - margin || Math.min(eye.x, target.x) > box.maxX + margin || Math.max(eye.z, target.z) < box.minZ - margin || Math.min(eye.z, target.z) > box.maxZ + margin) continue;
     let enter = 0; let exit = 1;
     for (const axis of axes) {

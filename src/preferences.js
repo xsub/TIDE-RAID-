@@ -14,6 +14,9 @@ export function readPreferences(storage) {
   defaults.sceneryFading = true; defaults.sceneryFadeAmount = 1;
   defaults.sceneryFadeSpeed = 1;
   defaults.sceneryFadeInSpeed = 1; defaults.sceneryFadeOutSpeed = 1;
+  for (const kind of ['tree', 'building']) {
+    defaults[`${kind}FadeAmount`] = 1; defaults[`${kind}FadeInSpeed`] = 1; defaults[`${kind}FadeOutSpeed`] = 1;
+  }
   defaults.livingWeather = true;
   defaults.movingFronts = true;
   defaults.qualityPreset = 'custom';
@@ -38,6 +41,11 @@ export function readPreferences(storage) {
   if (Number.isFinite(saved.sceneryFadeSpeed) && saved.sceneryFadeSpeed >= 0.25 && saved.sceneryFadeSpeed <= 3) defaults.sceneryFadeSpeed = saved.sceneryFadeSpeed;
   for (const name of ['sceneryFadeInSpeed', 'sceneryFadeOutSpeed']) if (Number.isFinite(saved[name]) && saved[name] >= 0.25 && saved[name] <= 3) defaults[name] = saved[name];
   if (Number.isFinite(saved.sceneryFadeAmount) && saved.sceneryFadeAmount >= 0 && saved.sceneryFadeAmount <= 1) defaults.sceneryFadeAmount = saved.sceneryFadeAmount;
+  for (const kind of ['tree', 'building']) for (const suffix of ['Amount', 'InSpeed', 'OutSpeed']) {
+    const name = `${kind}Fade${suffix}`;
+    const minimum = suffix === 'Amount' ? 0 : 0.25; const maximum = suffix === 'Amount' ? 1 : 3;
+    defaults[name] = Number.isFinite(saved[name]) && saved[name] >= minimum && saved[name] <= maximum ? saved[name] : defaults[`sceneryFade${suffix}`];
+  }
   if (Number.isFinite(saved.mouseLookSensitivity) && saved.mouseLookSensitivity >= 0.25 && saved.mouseLookSensitivity <= 3) defaults.mouseLookSensitivity = saved.mouseLookSensitivity;
   if (Number.isFinite(saved.pilotLookSmoothing) && saved.pilotLookSmoothing >= 0 && saved.pilotLookSmoothing <= 1) defaults.pilotLookSmoothing = saved.pilotLookSmoothing;
   if (Number.isFinite(saved.pilotYaw) && saved.pilotYaw >= -180 && saved.pilotYaw <= 180) defaults.pilotYaw = saved.pilotYaw;

@@ -14,7 +14,7 @@ import {rememberCamera} from './camera-memory.js';
 import {MAX_SWELL, TRIAL_SWELL, clampSwell} from './swell.js';
 import {cameraGroundHeight, clearCameraTerrain, cameraDefaults} from './camera-safety.js';
 import {clearCameraObjects} from './camera-obstacles.js';
-import {sceneryFadeActive} from './scenery-fade.js';
+import {sceneryFadeMask} from './scenery-fade.js';
 import {dragPilotLook, smoothPilotLook} from './pilot-look.js';
 import {viewShortcut} from './view-shortcuts.js';
 import {cameraKeyMotion} from './camera-keys.js';
@@ -117,6 +117,12 @@ document.getElementById('app').innerHTML = `
       <input id="sceneryFadeInSpeed" type="range" min="0.25" max="3" step="0.25">
       <p class="note">Applies to trees and buildings. Slow 0.25× → fast 3×. Scenery Fade Speed multiplies both directional speeds; 1× preserves previous timing. Fade out controls hiding response; fade in controls restoration and the trailing cutaway. Camera contact stays immediate.</p>
       <p class="note">0% keeps scenery solid; 100% gives the strongest see-through cutaway. Off or 0% restores camera pull-in. Driver POV never fades scenery.</p>
+      ${['tree', 'building'].map((kind) => `<details><summary>${kind === 'tree' ? 'TREE' : 'BUILDING'} FADING · INDEPENDENT</summary>
+        <label for="${kind}FadeAmount">${kind.toUpperCase()} FADE STRENGTH <output id="${kind}FadeAmountValue"></output></label><input id="${kind}FadeAmount" type="range" min="0" max="100" step="5">
+        <label for="${kind}FadeOutSpeed">${kind.toUpperCase()} FADE OUT · HIDE <output id="${kind}FadeOutSpeedValue"></output></label><input id="${kind}FadeOutSpeed" type="range" min="0.25" max="3" step="0.25">
+        <label for="${kind}FadeInSpeed">${kind.toUpperCase()} FADE IN · RESTORE <output id="${kind}FadeInSpeedValue"></output></label><input id="${kind}FadeInSpeed" type="range" min="0.25" max="3" step="0.25">
+      </details>`).join('')}
+      <small>Independent controls override the shared amount/directional speeds for that type. Changing a shared control applies it to both types again. Overall Scenery Fade Speed still multiplies both. Set a type's strength to 0% to keep only that type solid.</small>
       <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
       <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option><option value="lighthouse">Lighthouse tour · visit 3 coastal landmarks</option><option value="rescue">Rescue · help stranded crew, return to harbor</option></select>
       <small>Rescue: follow the orange ring / SOS marker to a stranded runabout. Stop within 14 m below 3.6 km/h, release throttle/reverse for 4 seconds to help and embark the crew. Return to the marked harbor and stop within 18 m for 2 seconds. Avoid collisions/flooding. Crew transfer is abstracted, not towing. Recover/restart/another activity cancels the rescue.</small>
@@ -628,6 +634,11 @@ const sceneryFadeToggle = document.getElementById('sceneryFading');
 const sceneryFadeAmount = document.getElementById('sceneryFadeAmount');
 const sceneryFadeSpeed = document.getElementById('sceneryFadeSpeed');
 function updateSceneryFadeControls() {
+  for (const kind of ['tree', 'building']) for (const suffix of ['Amount', 'InSpeed', 'OutSpeed']) {
+    const name = `${kind}Fade${suffix}`; const control = document.getElementById(name);
+    control.value = preferences[name] * (suffix === 'Amount' ? 100 : 1); control.disabled = !preferences.sceneryFading;
+    document.getElementById(`${name}Value`).textContent = suffix === 'Amount' ? `${Math.round(preferences[name] * 100)}%` : `${preferences[name].toFixed(2)}×`;
+  }
   sceneryFadeToggle.checked = preferences.sceneryFading;
   sceneryFadeAmount.value = preferences.sceneryFadeAmount * 100;
   sceneryFadeAmount.disabled = !preferences.sceneryFading;
@@ -642,9 +653,10 @@ function updateSceneryFadeControls() {
   document.getElementById('sceneryFadeAmountValue').textContent = `${Math.round(preferences.sceneryFadeAmount * 100)}%`;
 }
 sceneryFadeToggle.onchange = () => {preferences.sceneryFading = sceneryFadeToggle.checked; updateSceneryFadeControls(); persistPreferences();};
-sceneryFadeAmount.oninput = () => {preferences.sceneryFadeAmount = Number(sceneryFadeAmount.value) / 100; updateSceneryFadeControls(); persistPreferences();};
+sceneryFadeAmount.oninput = () => {preferences.sceneryFadeAmount = Number(sceneryFadeAmount.value) / 100; preferences.treeFadeAmount = preferences.buildingFadeAmount = preferences.sceneryFadeAmount; updateSceneryFadeControls(); persistPreferences();};
 sceneryFadeSpeed.oninput = () => {preferences.sceneryFadeSpeed = Number(sceneryFadeSpeed.value); updateSceneryFadeControls(); persistPreferences();};
-for (const name of ['sceneryFadeInSpeed', 'sceneryFadeOutSpeed']) document.getElementById(name).oninput = (event) => {preferences[name] = Number(event.target.value); updateSceneryFadeControls(); persistPreferences();};
+for (const suffix of ['InSpeed', 'OutSpeed']) document.getElementById(`sceneryFade${suffix}`).oninput = (event) => {preferences[`sceneryFade${suffix}`] = Number(event.target.value); preferences[`treeFade${suffix}`] = preferences[`buildingFade${suffix}`] = Number(event.target.value); updateSceneryFadeControls(); persistPreferences();};
+for (const kind of ['tree', 'building']) for (const suffix of ['Amount', 'InSpeed', 'OutSpeed']) document.getElementById(`${kind}Fade${suffix}`).oninput = (event) => {preferences[`${kind}Fade${suffix}`] = Number(event.target.value) / (suffix === 'Amount' ? 100 : 1); updateSceneryFadeControls(); persistPreferences();};
 updateSceneryFadeControls();
 document.getElementById('livingWeather').checked = preferences.livingWeather;
 document.getElementById('livingWeather').onchange = (event) => {preferences.livingWeather = event.target.checked; persistPreferences();};
@@ -942,15 +954,15 @@ function frame(now) {
   cameraGoal();
   if (mode !== 'pilot') {
     clearCameraTerrain(cameraPosition, lookTarget, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(cameraPosition.x, cameraPosition.z, simTime, roughness).h + 1);
-    clearCameraObjects(cameraPosition, lookTarget, exploring, simTime, roughness, sampleWave, cameraObstacleFollow, elapsed, cameraCut || preferences.reducedCameraMotion, sceneryFadeActive(preferences, mode));
+    clearCameraObjects(cameraPosition, lookTarget, exploring, simTime, roughness, sampleWave, cameraObstacleFollow, elapsed, cameraCut || preferences.reducedCameraMotion, sceneryFadeMask(preferences, mode));
   } else cameraObstacleFollow.fraction = 1;
   camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
   if (preferences.reducedCameraMotion) {camera.position.copy(cameraPosition); smoothLook.copy(lookTarget);}
   if (mode === 'pilot') smoothLook.copy(lookTarget);
   else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   if (mode !== 'pilot') clearCameraTerrain(camera.position, smoothLook, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(camera.position.x, camera.position.z, simTime, roughness).h + 1);
-  if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave, null, 0, false, sceneryFadeActive(preferences, mode));
-  scenery.updateCameraFade(camera.position, state, sceneryFadeActive(preferences, mode), state.beam, preferences.sceneryFadeAmount, elapsed, cameraCut || mode === 'pilot', preferences.sceneryFadeSpeed, preferences.sceneryFadeInSpeed, preferences.sceneryFadeOutSpeed);
+  if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave, null, 0, false, sceneryFadeMask(preferences, mode));
+  scenery.updateCameraFade(camera.position, state, mode !== 'pilot' && preferences.sceneryFading, state.beam, preferences.sceneryFadeAmount, elapsed, cameraCut || mode === 'pilot', preferences.sceneryFadeSpeed, preferences.sceneryFadeInSpeed, preferences.sceneryFadeOutSpeed, preferences);
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
   const underwaterEnabled = ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring;

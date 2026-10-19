@@ -4,12 +4,17 @@ export function sceneryFadeActive(preferences, mode) {
   return mode !== 'pilot' && preferences.sceneryFading === true && preferences.sceneryFadeAmount > 0;
 }
 
+export function sceneryFadeMask(preferences, mode) {
+  if (mode === 'pilot' || !preferences.sceneryFading) return 0;
+  return ((preferences.treeFadeAmount ?? preferences.sceneryFadeAmount) > 0 ? 1 : 0) | ((preferences.buildingFadeAmount ?? preferences.sceneryFadeAmount) > 0 ? 2 : 0);
+}
+
 export function smoothFadeValue(current, target, elapsed, rate = 12) {
   const duration = Number.isFinite(elapsed) ? Math.max(0, Math.min(0.1, elapsed)) : 0;
   return current + (target - current) * (1 - Math.exp(-rate * duration));
 }
 
-export function createSceneryFade() {
+function createFadeChannel() {
   const eyes = Array.from({length: 4}, () => new THREE.Vector3());
   const boats = Array.from({length: 4}, () => new THREE.Vector3());
   const nextBoat = new THREE.Vector3();
@@ -80,6 +85,19 @@ export function createSceneryFade() {
       material.customProgramCacheKey = () => `${previousKey}-boat-cutaway-${masked ? 'masked' : 'tree'}-v2`;
       material.needsUpdate = true;
       return material;
+    },
+  };
+}
+
+export function createSceneryFade() {
+  const trees = createFadeChannel(); const buildings = createFadeChannel();
+  return {
+    uniforms: trees.uniforms,
+    buildingUniforms: buildings.uniforms,
+    patch(material, masked = false) {return (masked ? buildings : trees).patch(material, masked);},
+    update(eye, boat, enabled, beam = 3, amount = 1, elapsed = null, reset = false, speed = 1, fadeInSpeed = 1, fadeOutSpeed = 1, profiles = null) {
+      trees.update(eye, boat, enabled, beam, profiles?.treeFadeAmount ?? amount, elapsed, reset, speed, profiles?.treeFadeInSpeed ?? fadeInSpeed, profiles?.treeFadeOutSpeed ?? fadeOutSpeed);
+      buildings.update(eye, boat, enabled, beam, profiles?.buildingFadeAmount ?? amount, elapsed, reset, speed, profiles?.buildingFadeInSpeed ?? fadeInSpeed, profiles?.buildingFadeOutSpeed ?? fadeOutSpeed);
     },
   };
 }
