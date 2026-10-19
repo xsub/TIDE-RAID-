@@ -27,8 +27,9 @@ export function cameraObstacleLayout(index) {
   const result = Object.freeze(bounds); sectors.set(index, result); return result;
 }
 
-export function clearCameraBounds(eye, target, bounds, margin = 0.8) {
+export function clearCameraBounds(eye, target, bounds, margin = 0.8, fadeOccluders = false) {
   for (const box of bounds) {
+    if (fadeOccluders && (box.kind === 'tree' || box.kind === 'building') && (eye.x < box.minX - margin || eye.x > box.maxX + margin || eye.y < box.bottom - margin || eye.y > box.top + margin || eye.z < box.minZ - margin || eye.z > box.maxZ + margin)) continue;
     if (Math.max(eye.x, target.x) < box.minX - margin || Math.min(eye.x, target.x) > box.maxX + margin || Math.max(eye.z, target.z) < box.minZ - margin || Math.min(eye.z, target.z) > box.maxZ + margin) continue;
     let enter = 0; let exit = 1;
     for (const axis of axes) {
@@ -66,7 +67,7 @@ export function smoothCameraBoom(previous, desired, limit, elapsed) {
   return Math.min(limit, previous + (desired - previous) * (1 - Math.exp(-(desired < previous ? 14 : 2.5) * duration)));
 }
 
-export function clearCameraObjects(eye, target, exploring, time, swell, wave, follow = null, elapsed = 0, reset = false) {
+export function clearCameraObjects(eye, target, exploring, time, swell, wave, follow = null, elapsed = 0, reset = false, fadeOccluders = false) {
   const first = Math.max(0, Math.min(chunkIndex(eye.z - 32), chunkIndex(target.z - 32)) - 1);
   const last = Math.min(CHUNK_COUNT - 1, Math.max(chunkIndex(eye.z + 32), chunkIndex(target.z + 32)) + 1);
   const desired = {...eye}; const safe = {...eye};
@@ -74,7 +75,7 @@ export function clearCameraObjects(eye, target, exploring, time, swell, wave, fo
     const candidate = pass ? safe : desired;
     const margin = pass ? 0.8 : 3;
     for (let index = first; index <= last; index++) {
-      clearCameraBounds(candidate, target, cameraObstacleLayout(index), margin);
+      clearCameraBounds(candidate, target, cameraObstacleLayout(index), margin, fadeOccluders);
       if (exploring) for (const boat of mooredLayout(index)) {
         if (boat.x + boat.beam < Math.min(eye.x, target.x) || boat.x - boat.beam > Math.max(eye.x, target.x) || boat.z + boat.length < Math.min(eye.z, target.z) || boat.z - boat.length > Math.max(eye.z, target.z)) continue;
         const surface = wave(boat.x, boat.z, time, swell).h;

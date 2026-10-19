@@ -4,7 +4,7 @@ import {channel} from './world.js';
 import {beachWidth, coastHeight} from './nature.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
-export function createHarbors() {
+export function createHarbors(fade = null) {
   const surfaces = [0xe7dfc9, 0xd7ab84, 0xc3d5d0, 0xdcc98c].map((color) => new THREE.MeshStandardMaterial({color, roughness: 0.9}));
   const roof = new THREE.MeshStandardMaterial({color: 0x994f3b, roughness: 0.9});
   const wood = new THREE.MeshStandardMaterial({color: 0x806347, roughness: 0.95});
@@ -29,6 +29,7 @@ export function createHarbors() {
   function part(group, geometry, material, position, scale, rotation = 0) {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(...position); mesh.scale.set(...scale); mesh.rotation.y = rotation;
+    mesh.userData.cameraFade = group.userData.cameraFade ? 1 : 0;
     group.add(mesh);
     return mesh;
   }
@@ -39,6 +40,7 @@ export function createHarbors() {
       if (!child.isMesh || child.userData.beacon) continue;
       const list = batches.get(child.material) ?? [];
       const geometry = child.geometry.index ? child.geometry.toNonIndexed() : child.geometry.clone();
+      if (fade) geometry.setAttribute('cameraFade', new THREE.Float32BufferAttribute(new Float32Array(geometry.attributes.position.count).fill(child.userData.cameraFade), 1));
       list.push(geometry.applyMatrix4(child.matrix));
       batches.set(child.material, list);
       group.remove(child);
@@ -46,7 +48,7 @@ export function createHarbors() {
     for (const [material, geometries] of batches) {
       const merged = mergeGeometries(geometries);
       for (const geometry of geometries) geometry.dispose();
-      group.add(new THREE.Mesh(merged, material));
+      group.add(new THREE.Mesh(merged, fade ? fade.patch(material, true) : material));
     }
   }
   return {
@@ -63,6 +65,7 @@ export function createHarbors() {
       const layout = harborLayout(index);
       const group = new THREE.Group();
       group.name = `Coastal settlement ${index}`;
+      group.userData.cameraFade = true;
       for (const house of layout.buildings) {
         const y = ground(house.x, house.z, house.side);
         part(group, box, stone, [house.x, y + 0.1, house.z], [house.width + 1, 1.8, house.depth + 1]);
@@ -77,6 +80,7 @@ export function createHarbors() {
         }
         part(group, box, wood, [front - house.side * 2, y + 0.8, house.z], [3.5, 0.25, 5]);
       }
+      group.userData.cameraFade = false;
       for (const dock of layout.docks) {
         const planks = Math.ceil(dock.width / 0.65);
         for (let plank = 0; plank < planks; plank++) part(group, box, wood, [dock.x - dock.width / 2 + (plank + 0.5) * dock.width / planks, 2.1, dock.z], [dock.width / planks - 0.04, 0.28, dock.depth]);

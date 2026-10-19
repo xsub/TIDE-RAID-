@@ -7,6 +7,7 @@ import {createNature} from './nature-view.js';
 import {createHarbors} from './harbors.js';
 import {beachWidth, coastHeight, islandHeight} from './nature.js';
 import {organicRock,sandyShore,naturalMaterial} from './natural-surfaces.js';
+import {createSceneryFade} from './scenery-fade.js';
 
 export function createWater(scene) {
   const boundary = new THREE.DataTexture(boundaryAtlas(), BOUNDARY_WIDTH, BOUNDARY_HEIGHT, THREE.RedFormat, THREE.UnsignedByteType);
@@ -86,8 +87,9 @@ export function createScenery(scene,realAssets=null) {
   const rock = naturalMaterial({color: 0xffffff, roughness: 0.95},1.8,'rock');
   const stone = organicRock(20,14);
   const cylinder = sandyShore();
-  const nature = createNature(realAssets);
-  const harbors = createHarbors();
+  const fade = createSceneryFade();
+  const nature = createNature(realAssets, fade);
+  const harbors = createHarbors(fade);
   const sharedGeometry = new Set([stone, cylinder, ...nature.shared, ...harbors.shared]);
   const loaded = new Map();
   function sourcedRock(x,y,z,width,height) {
@@ -191,6 +193,7 @@ export function createScenery(scene,realAssets=null) {
     loaded.set(index, group);
   }
   return {
+    updateCameraFade(eye, boat, enabled, beam) {fade.update(eye, boat, enabled, beam);},
     update(z, time = 0, x=channel(z).center, night = 0) {
       nature.update(time);
       harbors.update(time, night);

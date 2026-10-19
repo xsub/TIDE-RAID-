@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Boat-visible tree and building cutaways
+
+- Exterior views now softly dissolve the portions of trees and village houses crossing the camera-to-boat sightline. A feathered, hull-width-scaled corridor uses a fixed screen-space dither, restoring normal rendering automatically when the sightline moves away. This is a local see-through cutaway, not whole-object transparency; pilot view disables it.
+- Fadeable trees/houses no longer shorten the camera boom just for crossing its sightline. Expanded lens/endpoint contact remains solid, as do rocks, moored boats, docks, lighthouse towers and terrain. Existing smooth camera recovery stays active. Boat physics, trial rules and Cargo Lab remain unchanged.
+- Preserves instanced photographic trees/impostors and procedural breeze shaders. Houses retain merged material batches with a per-vertex eligibility mask, so shared roof/wall/wood materials do not fade piers or towers. Shared uniforms update in place; no extra draw calls, transparent sorting, textures, raycasts or random inputs. Shadows remain opaque. Dither can be visible at edges; actual device performance and dense coastal viewpoints still need playtesting.
+- All 229 tests and both production entry builds pass, covering shader composition/uniform reuse, near/far photographic trees, procedural trees, merged eligibility, relaxed sightline avoidance and solid camera contact. Browser exploration smoke-tested with no reported shader/runtime errors and original driver view restored. Existing shared-bundle size advisory remains.
+
 ## 2026-10-19 — Smoother obstacle-aware camera boom
 
 - Replaced tree/building overflight corrections with full 3D segment checks that shorten the exterior camera boom before an obstacle. Tall or nearby objects no longer multiply camera height by the inverse contact distance. Underwater/overhead misses remain clear; an eye starting inside a bound escapes through its nearest face rather than always jumping upward.

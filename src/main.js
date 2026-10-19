@@ -908,14 +908,15 @@ function frame(now) {
   cameraGoal();
   if (mode !== 'pilot') {
     clearCameraTerrain(cameraPosition, lookTarget, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(cameraPosition.x, cameraPosition.z, simTime, roughness).h + 1);
-    clearCameraObjects(cameraPosition, lookTarget, exploring, simTime, roughness, sampleWave, cameraObstacleFollow, elapsed, cameraCut || preferences.reducedCameraMotion);
+    clearCameraObjects(cameraPosition, lookTarget, exploring, simTime, roughness, sampleWave, cameraObstacleFollow, elapsed, cameraCut || preferences.reducedCameraMotion, true);
   } else cameraObstacleFollow.fraction = 1;
   camera.position.lerp(cameraPosition, 1 - Math.exp(-(mode === 'pilot' ? 16 : 5) * elapsed));
   if (preferences.reducedCameraMotion) {camera.position.copy(cameraPosition); smoothLook.copy(lookTarget);}
   if (mode === 'pilot') smoothLook.copy(lookTarget);
   else smoothLook.lerp(lookTarget, 1 - Math.exp(-7 * elapsed));
   if (mode !== 'pilot') clearCameraTerrain(camera.position, smoothLook, (x, z) => cameraGroundHeight(x, z, state.depthScale), mode === 'wreck' ? -Infinity : sampleWave(camera.position.x, camera.position.z, simTime, roughness).h + 1);
-  if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave);
+  if (mode !== 'pilot') clearCameraObjects(camera.position, smoothLook, exploring, simTime, roughness, sampleWave, null, 0, false, true);
+  scenery.updateCameraFade(camera.position, state, mode !== 'pilot', state.beam);
   camera.lookAt(smoothLook);
   const cameraSurface = sampleWave(camera.position.x, camera.position.z, simTime, roughness).h;
   const underwaterEnabled = ((mode === 'pilot' && preferences.pilotSinkWithBoat) || mode === 'wreck') && exploring;

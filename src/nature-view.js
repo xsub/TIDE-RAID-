@@ -3,7 +3,7 @@ import {natureLayout} from './nature.js';
 import {organicRock,naturalMaterial} from './natural-surfaces.js';
 import {foliageTexture,foliageCrown} from './land-textures.js';
 
-export function createNature(realAssets=null) {
+export function createNature(realAssets=null, fade=null) {
   const material = (color, doubleSide = false) => naturalMaterial({color, roughness: 1, side: doubleSide ? THREE.DoubleSide : THREE.FrontSide},0.8);
   const wood = naturalMaterial({color:0xffffff,roughness:1},1.5,'bark');
   const leaves = material(0xffffff,true);
@@ -111,6 +111,18 @@ export function createNature(realAssets=null) {
     }
     (group.userData.realBatches ??= []).push(batches);
   }
+  function treeSurface(surface) {
+    if (!fade) return surface;
+    const copy = surface.clone();
+    copy.onBeforeCompile = surface.onBeforeCompile;
+    copy.customProgramCacheKey = surface.customProgramCacheKey.bind(surface);
+    return fade.patch(copy);
+  }
+  const treeWood = treeSurface(wood);
+  const treeLeaves = treeSurface(leaves);
+  const treePineLeaves = treeSurface(pineLeaves);
+  const treePalmLeaves = treeSurface(palmLeaves);
+  if (fade && realAssets) for (const kind of ['pine', 'broadleaf']) for (const level of ['near', 'far']) for (const part of realAssets.models[kind][level]) fade.patch(part.material);
   return {
     shared,
     update(value) {time.value = value;},
@@ -136,8 +148,8 @@ export function createNature(realAssets=null) {
         realInstances(group,realAssets.models.broadleaf,layout.trees.filter((item)=>item.species!=='pine'),(item)=>[item.scale*14,item.scale*14,item.scale*14]);
         realInstances(group,realAssets.models.rock,layout.rocks,(item)=>[item.scale*2,item.scale*2,item.scale*2]);
       } else {
-        instances(group, trunk, wood, layout.trees, (item) => [item.scale, item.scale * (item.species === 'palm' ? 1.55 : 1), item.scale]);
-        for (const [species, geometry, surface] of [['pine', pine, pineLeaves], ['broadleaf', broadleaf, leaves], ['palm', palm, palmLeaves]]) instances(group, geometry, surface, layout.trees.filter((item) => item.species === species), (item) => [item.scale, item.scale, item.scale]);
+        instances(group, trunk, treeWood, layout.trees, (item) => [item.scale, item.scale * (item.species === 'palm' ? 1.55 : 1), item.scale]);
+        for (const [species, geometry, surface] of [['pine', pine, treePineLeaves], ['broadleaf', broadleaf, treeLeaves], ['palm', palm, treePalmLeaves]]) instances(group, geometry, surface, layout.trees.filter((item) => item.species === species), (item) => [item.scale, item.scale, item.scale]);
         instances(group, rock, stone, layout.rocks, (item) => [item.scale * 1.6, item.scale, item.scale * 1.3]);
       }
       instances(group, shrub, leaves, layout.shrubs, (item) => [item.scale * 0.45, item.scale * 0.22, item.scale * 0.4]);
