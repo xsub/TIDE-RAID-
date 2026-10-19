@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2026-10-19 — Stranded-boat rescue missions
+
+- Added optional Rescue activity: approach a stranded runabout, hold within 14 m below 1 m/s for 4 seconds with throttle/reverse released, then return the crew to the marked harbor and hold within 18 m for 2 seconds. Collision, unsafe speed, flooding and leaving range interrupt the hold. Completion scores only once; existing Recover/restart/activity-change cancellation remains.
+- Bounded deterministic placement searches at most 25 nearby channel candidates, rejecting shallow water, rocks/islands/sandbanks, docks and service-harbor overlap. No safe site produces a clear retry message rather than an unsafe spawn. Existing amber world rings plus SOS/GOAL map markers guide the player.
+- A single reused fleet runabout bobs on shared waves with amber hazard lamps, changing green after assistance. It remains anchored with capsule contact/impulses; no new lights, downloads or per-mission geometry allocations. Hidden outside exploration/completion and beyond 600 m. Crew transfer is abstracted; no towing, passenger animation or autonomous return vessel is simulated. Trials and Cargo Lab are unchanged.
+- All 204 tests and both production entry builds pass, covering coastal placement, unsafe-site fallback, assist-before-return sequencing, interrupted holds, deterministic fixed-step completion, one-time scoring, anchored collisions and reused render objects. Browser verified exploration rescue selection, target/distance/hold feedback and clean runtime; original camera preference restored. Full-route sailing and device performance still need playtesting; existing shared-bundle advisory remains.
+
 ## 2026-10-19 — Exploration defaults: 4× swell / 2× wavelength
 
 - Exploration starts/restarts at 4× base swell and defaults to 2× wavelength. Existing old-default 1× wavelength preferences migrate once to 2×; custom saved wavelengths are preserved, and an explicit new 1× choice remains valid afterward.

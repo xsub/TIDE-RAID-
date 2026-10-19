@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {createRescueView} from './rescue-view.js';
+import {collideRescueBoat} from './rescue-mission.js';
 import {setWavelength, seaForPhase} from './wave-settings.js';
 import {QUALITY_PRESETS, createQualityController} from './quality-controller.js';
 import {createActivity, tickActivity, activityText, activityTarget} from './coastal-activity.js';
@@ -99,7 +101,8 @@ document.getElementById('app').innerHTML = `
       <label for="cameraView">CAMERA VIEW</label><select id="cameraView" style="width:100%;padding:10px;background:#15383c;color:inherit;font:inherit"><option value="chase">Chase</option><option value="pilot">Pilot / driver POV</option><option value="arcade">Arcade overview</option><option value="wreck">Wreck inspection · underwater orbit</option></select>
       <label><input id="reducedCameraMotion" type="checkbox" style="width:auto"> REDUCED CAMERA MOTION · NO FOLLOW LAG</label>
       <label><input id="livingWeather" type="checkbox" style="width:auto"> LIVING WEATHER · GUSTS / WAVE SETS</label>
-      <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option><option value="lighthouse">Lighthouse tour · visit 3 coastal landmarks</option></select>
+      <label for="coastalActivity">OPTIONAL COASTAL ACTIVITY</label><select id="coastalActivity"><option value="off">Free exploration</option><option value="delivery">Harbor delivery · collect then deliver</option><option value="docking">Precision docking · hold 5 seconds below 0.7 m/s</option><option value="lighthouse">Lighthouse tour · visit 3 coastal landmarks</option><option value="rescue">Rescue · help stranded crew, return to harbor</option></select>
+      <small>Rescue: follow the orange ring / SOS marker to a stranded runabout. Stop within 14 m below 3.6 km/h, release throttle/reverse for 4 seconds to help and embark the crew. Return to the marked harbor and stop within 18 m for 2 seconds. Avoid collisions/flooding. Crew transfer is abstracted, not towing. Recover/restart/another activity cancels the rescue.</small>
       <small>Active targets have an amber ring. Lighthouse tour: enter each offshore ring below 72 km/h and release throttle to register a visit. Stay clear of shore/rocks; rings are guidance, not navigation guarantees.</small>
       <output id="activityStatus">FREE EXPLORATION</output><small>Uses green + service harbors. Delivery: stop within 18 m for 2 seconds at each end. Docking: stop within 10 m for 5 seconds. Release throttle/reverse. Changing activity restarts its score; Recover cancels it. No unlocks or grind.</small>
       <small>Wreck inspection follows the hull underwater. Orbit, tilt and zoom work; manual height is ignored. V resets the current view to its default.</small>
@@ -214,6 +217,7 @@ const spray = createSpray(scene);
 const sinkingBubbles = createSinkingBubbles(scene);
 let state = createState(preferences.playerBoat);
 let activity = createActivity('off', state);
+const rescueView = createRescueView(scene);
 const activityBeacon = new THREE.Mesh(new THREE.TorusGeometry(12, 0.35, 4, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xffc46c, transparent: true, opacity: 0.8, depthWrite: false}));
 activityBeacon.visible = false; scene.add(activityBeacon);
 document.getElementById('coastalActivity').onchange = (event) => {activity = createActivity(event.target.value, state);};
@@ -256,6 +260,7 @@ loadFleet().then((factory) => {
   showPlayerBoat();
   playerBoatSelect.disabled = false;
   trafficView = createTrafficView(scene, factory, traffic);
+  rescueView.setFactory(factory);
 }).catch(() => {
   fleetError = true;
   document.getElementById('fleetStatus').textContent = 'FLEET LOAD FAILED · RELOAD TO RETRY';
@@ -706,6 +711,11 @@ function drawMap() {
     map.font = '10px monospace';
     map.fillText(`GATE ${race.next + 1} / ${Math.max(0, Math.round(state.z - gate.z))}m`, 8, gateY + 14);
   }
+  if (race.phase === 'explore' && !['off', 'done'].includes(activity.phase)) {
+    const target = activityTarget(activity); const targetX = Math.max(12, Math.min(208, mapX(target.x))); const targetY = Math.max(12, Math.min(228, mapY(target.z)));
+    map.strokeStyle = '#ffbc63'; map.lineWidth = 2; map.beginPath(); map.arc(targetX, targetY, 7, 0, Math.PI * 2); map.stroke();
+    map.fillStyle = '#ffe0a3'; map.font = 'bold 10px monospace'; map.fillText(activity.mode === 'rescue' && activity.phase === 'assist' ? 'SOS' : 'GOAL', Math.max(4, targetX - 10), targetY - 10);
+  }
   map.save(); map.translate(110, 190); map.rotate(-state.heading);
   if (race.phase === 'explore') for (const station of SERVICE_STATIONS) {
     const positionY = mapY(station.z);
@@ -784,6 +794,7 @@ function frame(now) {
       step(state, driveInput, 1 / 120, simTime, roughness, trafficView ? (body) => {
         if (exploring && voyage.flooding > 0.8) return false;
         let hit=false;
+        if (exploring) hit = collideRescueBoat(body, activity);
         for(const ship of traffic.boats) hit=collideTraffic(body,ship)||hit;
         return hit;
       } : null, flooded?.buoyancy ?? 1);
@@ -833,6 +844,8 @@ function frame(now) {
   document.getElementById('windAngleValue').textContent = `${preferences.windAngle}°`;
   const exploring = race.phase === 'explore';
   weather.headlight = exploring && voyage.flooding >= 0.75 ? 0 : 1;
+  rescueView.update(activity, state, simTime, roughness, exploring);
+  document.querySelector('#coastalActivity option[value="rescue"]').disabled = !trafficView;
   activityBeacon.visible = exploring && !['off', 'done'].includes(activity.phase);
   if (activityBeacon.visible) {
     const target = activityTarget(activity);
